@@ -1,0 +1,177 @@
+/*
+ * Design tokens de StickFlow (inspirés des Human Interface Guidelines d'Apple).
+ * Les composants n'utilisent QUE ces variables : aucune couleur ni taille en dur.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* ---------- Couleurs : mode clair ---------- */
+  --color-bg: #f2f2f7;                       /* systemGroupedBackground */
+  --color-surface: #ffffff;                  /* cellules des groupes */
+  --color-surface-raised: #ffffff;
+  --color-label: #000000;
+  --color-label-secondary: #3c3c43;
+  --color-label-tertiary: #636366;           /* contraste AA sur fond clair */
+  --color-separator: rgba(60, 60, 67, 0.18);
+  --color-fill: rgba(120, 120, 128, 0.16);
+  --color-fill-hover: rgba(120, 120, 128, 0.24);
+  --color-fill-pressed: rgba(120, 120, 128, 0.32);
+  --color-segment-selected: #ffffff;
+  --color-switch-thumb: #ffffff;
+  --color-scrim: rgba(0, 0, 0, 0.32);
+
+  /* Couleur d'accent unique (bleu système assombri pour le contraste AA). */
+  --color-accent: #0066cc;                   /* texte, icônes, indicateurs */
+  --color-accent-fill: #0066cc;              /* fonds de boutons / interrupteurs */
+  --color-accent-fill-hover: #0058b0;
+  --color-accent-soft: rgba(0, 102, 204, 0.12);
+  --color-accent-soft-strong: rgba(0, 102, 204, 0.2);
+  --color-on-accent: #ffffff;
+  --color-focus-ring: rgba(0, 102, 204, 0.6);
+
+  /* Canvas */
+  --color-canvas: #fbfbfd;
+  --color-grid-line: rgba(60, 60, 67, 0.06);
+  --color-grid-line-major: rgba(60, 60, 67, 0.12);
+  --color-thumb-bg: #f7f7fa;
+
+  /* Matériaux translucides */
+  --material-regular: rgba(255, 255, 255, 0.72);
+  --material-thick: rgba(255, 255, 255, 0.88);
+  --material-fallback: #ffffff;
+  --material-blur: saturate(180%) blur(20px);
+  --app-backdrop: radial-gradient(120% 80% at 0% 0%, rgba(0, 102, 204, 0.08), transparent 60%), var(--color-bg);
+
+  /* Ombres */
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-thumb: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
+  --shadow-segment: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+
+  /* ---------- Typographie ---------- */
+  --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-family-rounded: ui-rounded, -apple-system, BlinkMacSystemFont, "SF Pro Rounded", system-ui, sans-serif;
+  --font-size-caption: 0.75rem;     /* 12 px */
+  --font-size-footnote: 0.8125rem;  /* 13 px */
+  --font-size-subhead: 0.875rem;    /* 14 px */
+  --font-size-body: 0.9375rem;      /* 15 px */
+  --font-size-headline: 1rem;       /* 16 px */
+  --font-size-title: 1.25rem;       /* 20 px */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.2;
+  --line-height-body: 1.4;
+  --letter-spacing-caps: 0.02em;
+
+  /* ---------- Espacements (grille de 8 px) ---------- */
+  --space-half: 4px;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+
+  /* ---------- Rayons ---------- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* ---------- Bordures ---------- */
+  --border-hairline: 1px;
+  --border-strong: 2px;
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+
+  /* ---------- Dimensions ---------- */
+  --touch-target: 44px;
+  --icon-size: 20px;
+  --icon-size-sm: 16px;
+  --icon-size-lg: 24px;
+  --panel-width: 320px;
+  --drawer-max-width: 85vw;
+  --control-height: 44px;
+  --segment-inset: 2px;
+  --switch-width: 51px;
+  --switch-height: 31px;
+  --switch-inset: 2px;
+  --switch-thumb-size: 27px;
+  --slider-track-height: 4px;
+  --slider-thumb-size: 24px;
+  --stepper-value-width: 44px;
+  --feature-icon-size: 32px;
+  --brand-icon-size: 36px;
+  --thumb-width: 112px;
+  --thumb-height: 70px;
+  --thumb-generated-scale: 0.82;
+  --badge-size: 20px;
+  --grid-size: 24px;
+  --grid-major-size: 96px;
+  --opacity-disabled: 0.4;
+  --opacity-muted: 0.5;
+
+  /* ---------- Couches ---------- */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-drawer: 100;
+
+  /* ---------- Animations d'interface ---------- */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 350ms;
+  --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ---------- Couleurs : mode sombre ---------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #000000;
+    --color-surface: #1c1c1e;
+    --color-surface-raised: #2c2c2e;
+    --color-label: #ffffff;
+    --color-label-secondary: #ebebf5;
+    --color-label-tertiary: #aeaeb2;
+    --color-separator: rgba(84, 84, 88, 0.6);
+    --color-fill: rgba(118, 118, 128, 0.24);
+    --color-fill-hover: rgba(118, 118, 128, 0.32);
+    --color-fill-pressed: rgba(118, 118, 128, 0.44);
+    --color-segment-selected: #636366;
+    --color-switch-thumb: #ffffff;
+    --color-scrim: rgba(0, 0, 0, 0.56);
+
+    --color-accent: #0a84ff;
+    --color-accent-fill: #0071e3;
+    --color-accent-fill-hover: #0a84ff;
+    --color-accent-soft: rgba(10, 132, 255, 0.18);
+    --color-accent-soft-strong: rgba(10, 132, 255, 0.28);
+    --color-on-accent: #ffffff;
+    --color-focus-ring: rgba(10, 132, 255, 0.7);
+
+    --color-canvas: #1c1c1e;
+    --color-grid-line: rgba(235, 235, 245, 0.05);
+    --color-grid-line-major: rgba(235, 235, 245, 0.1);
+    --color-thumb-bg: #2c2c2e;
+
+    --material-regular: rgba(28, 28, 30, 0.72);
+    --material-thick: rgba(28, 28, 30, 0.88);
+    --material-fallback: #1c1c1e;
+    --app-backdrop: radial-gradient(120% 80% at 0% 0%, rgba(10, 132, 255, 0.12), transparent 60%), var(--color-bg);
+
+    --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Écrans peu hauts (téléphone en paysage) : interface compacte. */
+@media (max-height: 500px) {
+  :root {
+    --thumb-width: 80px;
+    --thumb-height: 48px;
+    --panel-width: 300px;
+  }
+}

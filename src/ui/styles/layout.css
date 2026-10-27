@@ -1,0 +1,77 @@
+/*
+ * Grille principale :
+ *   panneau gauche | barre d'outils
+ *                  | canvas
+ *                  | timeline
+ */
+
+.app {
+  display: grid;
+  grid-template-columns: var(--panel-width) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "panel toolbar"
+    "panel stage"
+    "panel timeline";
+  gap: var(--space-2);
+  height: 100vh;
+  height: 100dvh;
+  padding:
+    max(var(--space-2), env(safe-area-inset-top))
+    max(var(--space-2), env(safe-area-inset-right))
+    max(var(--space-2), env(safe-area-inset-bottom))
+    max(var(--space-2), env(safe-area-inset-left));
+}
+
+.app__panel {
+  grid-area: panel;
+  display: flex;
+  min-height: 0;
+}
+
+.app__toolbar {
+  grid-area: toolbar;
+  min-width: 0;
+}
+
+.app__stage {
+  grid-area: stage;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.app__timeline {
+  grid-area: timeline;
+  min-width: 0;
+}
+
+/* Sous 900 px : le panneau gauche devient un tiroir superposé. */
+@media (max-width: 899px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "toolbar"
+      "stage"
+      "timeline";
+  }
+
+  .app__panel {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-drawer);
+    pointer-events: none;
+  }
+}
+
+/* Écrans peu hauts (téléphone en paysage). */
+@media (max-height: 500px) {
+  .app {
+    gap: var(--space-1);
+    padding:
+      max(var(--space-1), env(safe-area-inset-top))
+      max(var(--space-1), env(safe-area-inset-right))
+      max(var(--space-1), env(safe-area-inset-bottom))
+      max(var(--space-1), env(safe-area-inset-left));
+  }
+}

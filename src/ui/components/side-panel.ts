@@ -1,0 +1,352 @@
+import '../styles/components/side-panel.css';
+
+import {
+  EDITOR_MODES,
+  EXPORT_FORMATS,
+  LIMITS,
+  SMOOTHING_CURVES,
+  type EditorMode,
+  type ExportFormat,
+  type SmoothingCurve,
+} from '../../core/types';
+import type { Component, ComponentContext } from '../component';
+import { createIconButton } from '../controls/icon-button';
+import { createSegmented } from '../controls/segmented';
+import { createSlider } from '../controls/slider';
+import { createStepper } from '../controls/stepper';
+import { createSwitch } from '../controls/switch';
+import { DRAWER_MEDIA_QUERY, h, ids, type Child } from '../dom';
+import { icon, type IconName } from '../icons';
+import { strings } from '../strings';
+
+const t = strings.panel;
+
+/**
+ * Panneau gauche : en-tête du projet, réglages IA, réglages d'animation et export.
+ * Sous 900 px de large, il devient un tiroir piloté par `state.drawerOpen`.
+ */
+export function createSidePanel({ bus, store }: ComponentContext): Component {
+  const cleanups: Array<() => void> = [];
+  const drawerQuery = window.matchMedia(DRAWER_MEDIA_QUERY);
+  let focusBeforeOpen: HTMLElement | null = null;
+
+  // ---------- En-tête ----------
+  const projectName = h('h1', { class: 'side-panel__project-name' });
+  const closeButton = createIconButton({
+    icon: 'close',
+    label: t.closeDrawer,
+    action: 'ui:drawer:toggle',
+    variant: 'filled',
+    className: 'side-panel__close',
+    onClick: () => bus.emit('ui:drawer:toggle', { open: false }),
+  });
+  const saveButton = createIconButton({
+    icon: 'save',
+    label: t.save,
+    action: 'project:save',
+    variant: 'accent',
+    onClick: () => bus.emit('project:save'),
+  });
+
+  const modeControl = createSegmented<EditorMode>({
+    label: t.modeLabel,
+    action: 'editor:mode:change',
+    options: EDITOR_MODES.map((mode) => ({ value: mode, label: t.modes[mode] })),
+    value: store.state.editorMode,
+    onChange: (mode) => bus.emit('editor:mode:change', { mode }),
+  });
+
+  const header = h('header', { class: 'side-panel__header' }, [
+    h('div', { class: 'side-panel__title-row' }, [
+      h('div', { class: 'side-panel__brand', 'aria-hidden': 'true' }, [icon('person')]),
+      h('div', { class: 'side-panel__titles' }, [
+        h('p', { class: 'side-panel__app-name' }, [strings.appName]),
+        projectName,
+      ]),
+      saveButton,
+      closeButton,
+    ]),
+    modeControl.element,
+  ]);
+
+  // ---------- Fluidité ----------
+  const smoothing = store.state.ai.smoothing;
+  const smoothingSwitch = createSwitch({
+    label: t.smoothing.toggle,
+    action: 'ai:smoothing:change',
+    checked: smoothing.enabled,
+    onChange: (enabled) => bus.emit('ai:smoothing:change', { enabled }),
+  });
+  const intensityValue = h('span', { class: 'group__value', 'aria-hidden': 'true' });
+  const intensitySlider = createSlider({
+    id: 'smoothing-intensity',
+    action: 'ai:smoothing:change',
+    ...LIMITS.smoothingIntensity,
+    value: smoothing.intensity,
+    formatValue: strings.units.frames,
+    onChange: (intensity) => bus.emit('ai:smoothing:change', { intensity }),
+  });
+  const curveControl = createSegmented<SmoothingCurve>({
+    label: t.smoothing.curve,
+    action: 'ai:smoothing:change',
+    options: SMOOTHING_CURVES.map((curve) => ({
+      value: curve,
+      label: t.smoothing.curvesShort[curve],
+      ariaLabel: t.smoothing.curves[curve],
+    })),
+    value: smoothing.curve,
+    onChange: (curve) => bus.emit('ai:smoothing:change', { curve }),
+  });
+
+  const intensityRow = stackedRow(
+    labelFor('smoothing-intensity', t.smoothing.intensity),
+    intensityValue,
+    intensitySlider.element,
+  );
+  const curveRow = stackedRow(h('span', { class: 'group__label' }, [t.smoothing.curve]), null, curveControl.element);
+
+  const smoothingGroup = h('div', { class: 'group' }, [
+    featureRow('sparkles', t.smoothing.title, t.smoothing.description, smoothingSwitch.element),
+    intensityRow,
+    curveRow,
+  ]);
+
+  // ---------- Répétition ----------
+  const loop = store.state.ai.loop;
+  let lastRepeatCount = typeof loop.repeat === 'number' ? loop.repeat : 3;
+
+  const loopSwitch = createSwitch({
+    label: t.loop.toggle,
+    action: 'ai:loop:change',
+    checked: loop.enabled,
+    onChange: (enabled) => bus.emit('ai:loop:change', { enabled }),
+  });
+  const repeatStepper = createStepper({
+    id: 'loop-repeat',
+    label: t.loop.repeat,
+    action: 'ai:loop:change',
+    ...LIMITS.loopRepeat,
+    value: lastRepeatCount,
+    onChange: (repeat) => bus.emit('ai:loop:change', { repeat }),
+  });
+  const infiniteChip = h(
+    'button',
+    {
+      type: 'button',
+      class: 'chip',
+      'aria-pressed': 'false',
+      'aria-label': t.loop.infiniteToggle,
+      'data-action': 'ai:loop:change',
+    },
+    [icon('infinity'), t.loop.infinite],
+  );
+  infiniteChip.addEventListener('click', () => {
+    const isInfinite = store.state.ai.loop.repeat === 'infinite';
+    bus.emit('ai:loop:change', { repeat: isInfinite ? lastRepeatCount : 'infinite' });
+  });
+
+  const transitionValue = h('span', { class: 'group__value', 'aria-hidden': 'true' });
+  const transitionSlider = createSlider({
+    id: 'loop-transition',
+    action: 'ai:loop:change',
+    ...LIMITS.loopTransitionFrames,
+    value: loop.transitionFrames,
+    formatValue: strings.units.frames,
+    onChange: (transitionFrames) => bus.emit('ai:loop:change', { transitionFrames }),
+  });
+
+  const repeatRow = h('div', { class: 'group__row side-panel__repeat-row' }, [
+    labelFor('loop-repeat', t.loop.repeat),
+    h('div', { class: 'group__controls' }, [repeatStepper.element, infiniteChip]),
+  ]);
+  const transitionRow = stackedRow(
+    labelFor('loop-transition', t.loop.transition),
+    transitionValue,
+    transitionSlider.element,
+  );
+
+  const loopGroup = h('div', { class: 'group' }, [
+    featureRow('repeat', t.loop.title, t.loop.description, loopSwitch.element),
+    repeatRow,
+    transitionRow,
+  ]);
+
+  // ---------- Animation ----------
+  const fpsStepper = createStepper({
+    id: 'animation-fps',
+    label: t.fps,
+    action: 'animation:fps:change',
+    ...LIMITS.fps,
+    value: store.state.fps,
+    onChange: (fps) => bus.emit('animation:fps:change', { fps }),
+  });
+  const animationGroup = h('div', { class: 'group' }, [
+    h('div', { class: 'group__row' }, [
+      h('span', { class: 'side-panel__row-icon', 'aria-hidden': 'true' }, [icon('fps')]),
+      labelFor('animation-fps', t.fps),
+      fpsStepper.element,
+    ]),
+  ]);
+
+  const body = h('div', { class: 'side-panel__body' }, [
+    section('section-ai', t.aiSection, [smoothingGroup, loopGroup]),
+    section('section-animation', t.animationSection, [animationGroup]),
+    // Emplacements réservés (effets prédéfinis, zone de prompt) : phase 8.
+    section('section-effects', t.effectsSection, [], { slot: 'effects', hidden: true }),
+    section('section-prompt', t.promptSection, [], { slot: 'prompt', hidden: true }),
+  ]);
+
+  // ---------- Export ----------
+  const formatControl = createSegmented<ExportFormat>({
+    label: t.exportFormat,
+    action: 'export:format:change',
+    options: EXPORT_FORMATS.map((format) => ({ value: format, label: t.formats[format] })),
+    value: store.state.exportFormat,
+    onChange: (format) => bus.emit('export:format:change', { format }),
+  });
+  const exportButton = h(
+    'button',
+    { type: 'button', class: 'button-primary side-panel__export', 'data-action': 'export:request' },
+    [icon('download'), t.export],
+  );
+  exportButton.addEventListener('click', () =>
+    bus.emit('export:request', { format: store.state.exportFormat }),
+  );
+  const footer = h('footer', { class: 'side-panel__footer' }, [formatControl.element, exportButton]);
+
+  // ---------- Racine ----------
+  const panel = h('div', { class: 'side-panel', id: ids.sidePanel, tabindex: -1 }, [header, body, footer]);
+  const scrim = h('div', { class: 'side-panel__scrim', 'aria-hidden': 'true' });
+  scrim.addEventListener('click', () => bus.emit('ui:drawer:toggle', { open: false }));
+  panel.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && drawerQuery.matches && store.state.drawerOpen) {
+      bus.emit('ui:drawer:toggle', { open: false });
+    }
+  });
+
+  // ---------- Abonnements au store ----------
+  cleanups.push(
+    store.watch((s) => s.projectName, (name) => (projectName.textContent = name)),
+    store.watch((s) => s.editorMode, (mode) => modeControl.setValue(mode)),
+    store.watch(
+      (s) => s.ai.smoothing,
+      (value) => {
+        smoothingSwitch.setChecked(value.enabled);
+        intensitySlider.setValue(value.intensity);
+        intensityValue.textContent = strings.units.frames(value.intensity);
+        curveControl.setValue(value.curve);
+        setRowDisabled(intensityRow, !value.enabled);
+        setRowDisabled(curveRow, !value.enabled);
+        intensitySlider.setDisabled(!value.enabled);
+        curveControl.setDisabled(!value.enabled);
+      },
+    ),
+    store.watch(
+      (s) => s.ai.loop,
+      (value) => {
+        const isInfinite = value.repeat === 'infinite';
+        if (typeof value.repeat === 'number') lastRepeatCount = value.repeat;
+        loopSwitch.setChecked(value.enabled);
+        repeatStepper.setValue(lastRepeatCount);
+        repeatStepper.setDisabled(!value.enabled || isInfinite);
+        infiniteChip.setAttribute('aria-pressed', String(isInfinite));
+        infiniteChip.disabled = !value.enabled;
+        transitionSlider.setValue(value.transitionFrames);
+        transitionSlider.setDisabled(!value.enabled);
+        transitionValue.textContent = strings.units.frames(value.transitionFrames);
+        setRowDisabled(repeatRow, !value.enabled);
+        setRowDisabled(transitionRow, !value.enabled);
+      },
+    ),
+    store.watch((s) => s.fps, (fps) => fpsStepper.setValue(fps)),
+    store.watch((s) => s.exportFormat, (format) => formatControl.setValue(format)),
+    store.watch((s) => s.drawerOpen, () => applyDrawerState(true)),
+  );
+
+  const onQueryChange = (): void => applyDrawerState(false);
+  drawerQuery.addEventListener('change', onQueryChange);
+  cleanups.push(() => drawerQuery.removeEventListener('change', onQueryChange));
+
+  function applyDrawerState(manageFocus: boolean): void {
+    const isDrawer = drawerQuery.matches;
+    const open = isDrawer && store.state.drawerOpen;
+    panel.classList.toggle('is-open', open);
+    scrim.classList.toggle('is-visible', open);
+    panel.inert = isDrawer && !open;
+    if (open) {
+      panel.setAttribute('role', 'dialog');
+      panel.setAttribute('aria-modal', 'true');
+      panel.setAttribute('aria-label', strings.regions.panel);
+    } else {
+      panel.removeAttribute('role');
+      panel.removeAttribute('aria-modal');
+      panel.removeAttribute('aria-label');
+    }
+
+    if (!manageFocus || !isDrawer) return;
+    if (open) {
+      focusBeforeOpen = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      closeButton.focus();
+    } else if (focusBeforeOpen) {
+      focusBeforeOpen.focus();
+      focusBeforeOpen = null;
+    }
+  }
+
+  return {
+    mount(parent) {
+      parent.append(scrim, panel);
+    },
+    destroy() {
+      cleanups.forEach((cleanup) => cleanup());
+      scrim.remove();
+      panel.remove();
+    },
+  };
+}
+
+// ---------- Aides de construction ----------
+
+function section(
+  id: string,
+  title: string,
+  children: readonly Child[],
+  options: { slot?: string; hidden?: boolean } = {},
+): HTMLElement {
+  return h(
+    'section',
+    {
+      class: 'side-panel__section',
+      'aria-labelledby': id,
+      'data-slot': options.slot,
+      hidden: options.hidden,
+    },
+    [h('h2', { class: 'side-panel__section-title', id }, [title]), ...children],
+  );
+}
+
+function featureRow(iconName: IconName, title: string, description: string, control: Child): HTMLElement {
+  return h('div', { class: 'group__row side-panel__feature' }, [
+    h('span', { class: 'side-panel__feature-icon', 'aria-hidden': 'true' }, [icon(iconName)]),
+    h('div', { class: 'side-panel__feature-text' }, [
+      h('h3', { class: 'side-panel__feature-title' }, [title]),
+      h('p', { class: 'side-panel__feature-description' }, [description]),
+    ]),
+    control,
+  ]);
+}
+
+function stackedRow(label: HTMLElement, value: HTMLElement | null, control: HTMLElement): HTMLElement {
+  return h('div', { class: 'group__row group__row--stacked' }, [
+    h('div', { class: 'group__row-header' }, value ? [label, value] : [label]),
+    control,
+  ]);
+}
+
+function labelFor(id: string, text: string): HTMLLabelElement {
+  return h('label', { class: 'group__label', for: id }, [text]);
+}
+
+function setRowDisabled(row: HTMLElement, disabled: boolean): void {
+  row.setAttribute('aria-disabled', String(disabled));
+}

@@ -1,0 +1,81 @@
+/* Barre d'outils supérieure. */
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.toolbar__start {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.toolbar__end {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.toolbar__center {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-half);
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-pill);
+  background: var(--material-fallback);
+  box-shadow: var(--shadow-panel);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .toolbar__center {
+    background: var(--material-regular);
+    -webkit-backdrop-filter: var(--material-blur);
+    backdrop-filter: var(--material-blur);
+  }
+}
+
+.toolbar__group {
+  display: flex;
+  gap: var(--space-half);
+}
+
+.toolbar__speed {
+  width: auto;
+  border-radius: var(--radius-pill);
+}
+
+.toolbar__speed .segmented__item {
+  min-width: var(--touch-target);
+  border-radius: var(--radius-pill);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Le bouton du tiroir n'existe que sur petits écrans. */
+.toolbar__menu {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .toolbar__menu {
+    display: inline-grid;
+  }
+}
+
+/* Très étroit : les contrôles occupent toute la largeur disponible. */
+@media (max-width: 599px) {
+  .toolbar {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .toolbar__center {
+    justify-content: space-between;
+    gap: var(--space-1);
+    overflow-x: auto;
+  }
+
+  .toolbar__end {
+    display: none;
+  }
+}

@@ -1,2 +1,3 @@
-// Phase 2 : contexte WebGL 2, shaders et rendu du squelette.
-export {};
+// Rendu WebGL 2 de la scène.
+export { connectStickmanView } from './stickman-view';
+export { WebGLUnavailableError } from './renderer';

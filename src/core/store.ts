@@ -1,10 +1,12 @@
 import { createId } from './id';
-import type { AiSettings, EditorMode, ExportFormat, Frame, PlaybackSpeed } from './types';
+import type { AiSettings, EditorMode, ExportFormat, Frame, PlaybackSpeed, SkeletonNode } from './types';
 
 /** État global de l'application. Mis à jour de façon immuable. */
 export interface AppState {
   projectName: string;
   editorMode: EditorMode;
+  /** Trié parents avant enfants (voir `sortSkeleton`). */
+  skeleton: SkeletonNode[];
   frames: Frame[];
   activeFrameIndex: number;
   isPlaying: boolean;
@@ -64,11 +66,15 @@ export function createPlaceholderFrame(generated = false): Frame {
   return { id: createId(), pose: {}, rootPosition: { x: 0, y: 0 }, generated };
 }
 
-/** État de départ. Les 5 frames sont factices (phase 1) ; la 3e simule une frame générée. */
-export function createInitialState(projectName: string): AppState {
+/**
+ * État de départ. Les 5 frames sont factices (pose vide = squelette au repos) ;
+ * la 3e simule une frame générée.
+ */
+export function createInitialState(projectName: string, skeleton: SkeletonNode[]): AppState {
   return {
     projectName,
     editorMode: 'character',
+    skeleton,
     frames: [false, false, true, false, false].map(createPlaceholderFrame),
     activeFrameIndex: 0,
     isPlaying: false,

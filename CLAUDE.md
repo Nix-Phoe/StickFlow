@@ -115,6 +115,7 @@ Référence : https://developer.apple.com/design/human-interface-guidelines
 | IA (V2) | Entraînement **PyTorch** → inférence **ONNX Runtime Web** |
 | Web | **PWA** (`vite-plugin-pwa`), hébergement Cloudflare Pages / Netlify |
 | Android | **Capacitor** |
+| Tests | **Vitest** (`npm test`) |
 | Débogage WebGL | Spector.js |
 
 ---
@@ -158,6 +159,19 @@ src/ui/strings.ts        # Tous les textes de l'interface (français)
 src/ui/controls/         # Primitives réutilisables : icon-button, switch, segmented, slider, stepper
 src/ui/styles/controls.css
 ```
+
+Fichiers ajoutés en phase 2 (rendu WebGL 2, stickman fixe) :
+```
+src/model/skeleton.ts        # Squelette par défaut + sortSkeleton (validation, tri parents avant enfants)
+src/model/kinematics.ts      # solvePose : cinématique directe (angles relatifs → positions du monde)
+src/render/camera.ts         # Monde → découpage (gl-matrix) ; STAGE_WORLD_HEIGHT = 400 unités visibles
+src/render/scene.ts          # Nœuds posés → capsules (segment épais / disque) + empaquetage GPU
+src/render/color.ts          # Lecture des couleurs hexadécimales des tokens
+src/render/renderer.ts       # Contexte WebGL 2, programme, capsules instanciées, perte de contexte
+src/render/stickman-view.ts  # Relie store / bus / thème au rendu (à la demande, via requestAnimationFrame)
+src/render/shaders/capsule.{vert,frag}.glsl   # Capsules remplies par champ de distance
+src/**/*.test.ts             # Tests Vitest, à côté du fichier testé
+```
 Il n’y a pas de `core/history.ts` : l’historique est interne au module Projet (`src/model/project/`), par instantanés (voir `docs/adr/0001-historique-par-instantanes.md`).
 
 ### 5.2 Règles d'architecture
@@ -170,6 +184,8 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 - **Flux unidirectionnel** : un composant émet un événement → `core/intents.ts` (ou un module métier) met à jour le store → le composant se redessine via `store.watch(selector, listener)`. Les contrôles sont « contrôlés » : ils n'affichent que l'état venu du store.
 - La valeur d'un attribut `data-action` est **le nom de l'événement émis** (ex. `data-action="frame:add"`).
 - Les composants reçoivent `{ bus, store }` par injection et ne s'importent jamais entre eux ; ils peuvent utiliser les primitives de `ui/controls/`.
+- **Repère du monde** : origine au centre de la scène, y vers le haut, angles en radians (0 = vers +x). La caméra montre une hauteur fixe de monde ; la largeur suit le rapport d'aspect.
+- **Rendu** : `main.ts` passe le canvas `#stage` à `connectStickmanView`. Le rendu lit la taille au moment de dessiner (`canvas.width`/`height`), redessine tout de suite sur `canvas:resize` (évite un clignotement) et à la demande sinon. Les couleurs lues par WebGL viennent des tokens CSS et doivent rester en **hexadécimal** (ex. `--color-stickman`).
 - Le panneau gauche devient un tiroir sous **900 px** de large (`DRAWER_MEDIA_QUERY` dans `ui/dom.ts`, dupliqué dans les CSS car les variables CSS sont interdites dans les media queries).
 
 ### 5.2 bis Événements du bus (`AppEvents` dans `core/events.ts`)
@@ -197,8 +213,9 @@ La vitesse de prévisualisation comprend **x1** (vitesse normale) en plus de x2 
 interface SkeletonNode {
   id: string;
   parentId: string | null;
-  length: number;   // longueur du segment vers le parent
-  angle: number;    // radians, relatif au parent
+  length: number;   // longueur du segment vers le parent (diamètre pour un cercle)
+  angle: number;    // angle de repos, radians, relatif au parent
+  shape: 'segment' | 'circle';   // trait épais, ou disque plein (la tête)
 }
 
 interface Frame {
@@ -240,7 +257,8 @@ Décisions du module Projet (revue d'architecture, candidat 1, en cours d'implé
 ## 6. Feuille de route
 
 1. **Phase 1 — Interface HTML/CSS** : coquille de l'app selon la maquette, composants, tokens, bus d'événements. Aucune logique d'animation.
-2. **Phase 2 — Rendu WebGL 2** : contexte, shaders, affichage d'un stickman fixe.
+2. **Phase 2 — Rendu WebGL 2** : contexte, shaders, affichage d'un stickman fixe. ✅
+   - Ensuite : chantier du module Projet (décisions en 5.3), avant la phase 3.
 3. **Phase 3 — Manipulation** : sélection et rotation des nœuds au toucher / à la souris.
 4. **Phase 4 — Animation** : frames, timeline fonctionnelle, lecture, pelure d'oignon, annuler / rétablir.
 5. **Phase 5 — Fluidité et Répétition (V1)** : splines + easing, boucle intelligente.
@@ -255,4 +273,5 @@ Décisions du module Projet (revue d'architecture, candidat 1, en cours d'implé
 - Code et noms de fichiers en **anglais** ; textes de l'interface en **français** (centralisés pour une traduction future).
 - TypeScript strict, pas de `any`.
 - Petits fichiers à responsabilité unique.
+- **Tests d'abord** : pour toute logique nouvelle, écrire les tests Vitest (`*.test.ts` à côté du fichier) et les voir échouer, puis implémenter. Ce qui ne se teste pas en unitaire (WebGL, DOM) est vérifié dans le navigateur. `npm test` doit passer avant chaque commit.
 - Commits courts et descriptifs, une fonctionnalité par commit.

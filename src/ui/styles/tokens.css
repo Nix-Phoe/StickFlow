@@ -30,7 +30,8 @@
   --color-on-accent: #ffffff;
   --color-focus-ring: rgba(0, 102, 204, 0.6);
 
-  /* Canvas */
+  /* Canvas (les couleurs lues par le rendu WebGL doivent rester en hexadécimal) */
+  --color-stickman: #1c1c1e;
   --color-canvas: #fbfbfd;
   --color-grid-line: rgba(60, 60, 67, 0.06);
   --color-grid-line-major: rgba(60, 60, 67, 0.12);
@@ -152,6 +153,7 @@
     --color-on-accent: #ffffff;
     --color-focus-ring: rgba(10, 132, 255, 0.7);
 
+    --color-stickman: #f2f2f7;
     --color-canvas: #1c1c1e;
     --color-grid-line: rgba(235, 235, 245, 0.05);
     --color-grid-line-major: rgba(235, 235, 245, 0.1);

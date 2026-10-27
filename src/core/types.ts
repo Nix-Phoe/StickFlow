@@ -1,12 +1,16 @@
 // Types partagés du projet. Aucune dépendance au DOM ni à WebGL.
 
+/** Forme dessinée pour un nœud : un trait du parent au nœud, ou un disque plein (la tête). */
+export type NodeShape = 'segment' | 'circle';
+
 export interface SkeletonNode {
   id: string;
   parentId: string | null;
-  /** Longueur du segment vers le parent. */
+  /** Longueur du segment vers le parent (diamètre pour un cercle). */
   length: number;
-  /** Radians, relatif au parent. */
+  /** Angle de repos, en radians, relatif au parent. */
   angle: number;
+  shape: NodeShape;
 }
 
 export interface Vec2 {

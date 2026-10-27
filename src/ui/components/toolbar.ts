@@ -1,6 +1,7 @@
 import '../styles/components/toolbar.css';
 
 import { PLAYBACK_SPEEDS, type PlaybackSpeed } from '../../core/types';
+import { canRedo, canUndo } from '../../model/project';
 import type { Component, ComponentContext } from '../component';
 import { createIconButton } from '../controls/icon-button';
 import { createSegmented } from '../controls/segmented';
@@ -19,7 +20,7 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
     action: 'ui:drawer:toggle',
     variant: 'filled',
     className: 'toolbar__menu',
-    onClick: () => bus.emit('ui:drawer:toggle', { open: !store.state.drawerOpen }),
+    onClick: () => bus.emit('ui:drawer:toggle', { open: !store.state.session.drawerOpen }),
   });
   menuButton.setAttribute('aria-controls', ids.sidePanel);
 
@@ -61,7 +62,7 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
       label: t.speedValue(speed),
       ariaLabel: t.speedLabel(speed),
     })),
-    value: store.state.playbackSpeed,
+    value: store.state.session.playbackSpeed,
     onChange: (speed) => bus.emit('playback:speed:change', { speed }),
   });
 
@@ -83,15 +84,29 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
 
   cleanups.push(
     store.watch(
-      (s) => s.isPlaying,
+      (s) => s.session.isPlaying,
       (isPlaying) => {
         playButton.setAttribute('aria-pressed', String(isPlaying));
         pauseButton.setAttribute('aria-pressed', String(!isPlaying));
       },
     ),
-    store.watch((s) => s.playbackSpeed, (speed) => speedControl.setValue(speed)),
-    store.watch((s) => s.drawerOpen, (open) => menuButton.setAttribute('aria-expanded', String(open))),
+    store.watch((s) => s.session.playbackSpeed, (speed) => speedControl.setValue(speed)),
+    store.watch((s) => s.session.drawerOpen, (open) => menuButton.setAttribute('aria-expanded', String(open))),
+    store.watch((s) => canUndo(s.project), (can) => (undoButton.disabled = !can)),
+    store.watch((s) => canRedo(s.project), (can) => (redoButton.disabled = !can)),
   );
+
+  // Raccourcis : Ctrl/⌘+Z annuler, Ctrl/⌘+Maj+Z ou Ctrl+Y rétablir. Les champs de saisie gardent les leurs.
+  const onShortcut = (event: KeyboardEvent): void => {
+    if (!(event.ctrlKey || event.metaKey) || isEditable(event.target)) return;
+    const key = event.key.toLowerCase();
+    if (key === 'z' && !event.shiftKey) bus.emit('history:undo');
+    else if ((key === 'z' && event.shiftKey) || key === 'y') bus.emit('history:redo');
+    else return;
+    event.preventDefault();
+  };
+  document.addEventListener('keydown', onShortcut);
+  cleanups.push(() => document.removeEventListener('keydown', onShortcut));
 
   return {
     mount(parent) {
@@ -102,4 +117,12 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
       root.remove();
     },
   };
+}
+
+function isEditable(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
 }

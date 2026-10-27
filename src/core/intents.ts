@@ -1,53 +1,67 @@
+// Aiguillage sans règle : chaque événement de l'interface devient soit un changement nommé
+// du Projet (avec l'heure, pour regrouper les gestes), soit une mise à jour de la Session.
+// Les règles vivent dans le module Projet et dans session.ts.
+
+import { applyChange, redo, undo, type ProjectChange, type ProjectHistory } from '../model/project';
 import type { AppEventBus } from './events';
-import { createPlaceholderFrame, type Store } from './store';
-import { clamp, LIMITS } from './types';
+import { createId } from './id';
+import { fitSessionToProject, type Session } from './session';
+import type { Store } from './store';
+import { clamp, type Project } from './types';
 
-/**
- * Traduit les intentions émises par l'UI en changements d'état.
- * Les événements sans effet sur l'état (annuler, sauvegarder, exporter…)
- * seront pris en charge par leurs modules dans les phases suivantes.
- */
-export function connectIntents(bus: AppEventBus, store: Store): () => void {
+export interface IntentOptions {
+  /** Horloge en millisecondes (injectable pour les tests). */
+  now?: () => number;
+}
+
+export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now }: IntentOptions = {}): () => void {
+  /** Remplace l'historique du Projet puis recale la Session (frame active, sélection). */
+  function setProject(next: ProjectHistory, sessionPatch?: (project: Project) => Partial<Session>): void {
+    const { project, session } = store.state;
+    if (next === project) return;
+    const patched = sessionPatch ? { ...session, ...sessionPatch(next.present) } : session;
+    store.update({ project: next, session: fitSessionToProject(patched, next.present) });
+  }
+
+  const change = (projectChange: ProjectChange, sessionPatch?: (project: Project) => Partial<Session>): void =>
+    setProject(applyChange(store.state.project, projectChange, now()), sessionPatch);
+
+  const setSession = (patch: Partial<Session>): void =>
+    store.update((s) => ({ session: { ...s.session, ...patch } }));
+
   const unsubscribers = [
-    bus.on('playback:play', () => store.update({ isPlaying: true })),
-    bus.on('playback:pause', () => store.update({ isPlaying: false })),
-    bus.on('playback:speed:change', ({ speed }) => store.update({ playbackSpeed: speed })),
+    // ---------- Projet ----------
+    bus.on('history:undo', () => setProject(undo(store.state.project))),
+    bus.on('history:redo', () => setProject(redo(store.state.project))),
 
-    bus.on('frame:select', ({ index }) =>
-      store.update((s) => ({ activeFrameIndex: clamp(index, 0, s.frames.length - 1) })),
-    ),
-    // Phase 1 : ajoute une frame factice. La vraie logique (et l'historique) arrive en phase 4.
-    bus.on('frame:add', () =>
-      store.update((s) => ({
-        frames: [...s.frames, createPlaceholderFrame()],
-        activeFrameIndex: s.frames.length,
-      })),
-    ),
+    bus.on('animation:fps:change', ({ fps }) => change({ type: 'setFps', fps })),
+    bus.on('ai:smoothing:change', (changes) => change({ type: 'updateSmoothing', changes })),
+    bus.on('ai:loop:change', (changes) => change({ type: 'updateLoop', changes })),
 
-    // Modifier une frame générée la convertit en image clé (l'IA ne la régénérera plus).
+    bus.on('frame:add', () => {
+      const { project, session } = store.state;
+      const after = project.present.frames[session.activeFrameIndex];
+      if (!after) return;
+      const frameId = createId();
+      change({ type: 'insertFrame', afterFrameId: after.id, frameId }, (p) => ({
+        activeFrameIndex: p.frames.findIndex((f) => f.id === frameId),
+      }));
+    }),
     bus.on('frame:pose:change', ({ frameId, pose, rootPosition }) =>
-      store.update((s) => ({
-        frames: s.frames.map((f) => (f.id === frameId ? { ...f, pose, rootPosition, generated: false } : f)),
-      })),
-    ),
-    bus.on('node:select', ({ nodeId }) => store.update({ selectedNodeId: nodeId })),
-
-    bus.on('editor:mode:change', ({ mode }) => store.update({ editorMode: mode })),
-
-    bus.on('ai:smoothing:change', (changes) =>
-      store.update((s) => ({ ai: { ...s.ai, smoothing: { ...s.ai.smoothing, ...changes } } })),
-    ),
-    bus.on('ai:loop:change', (changes) =>
-      store.update((s) => ({ ai: { ...s.ai, loop: { ...s.ai.loop, ...changes } } })),
+      change({ type: 'poseFrame', frameId, pose, rootPosition }),
     ),
 
-    bus.on('animation:fps:change', ({ fps }) =>
-      store.update({ fps: clamp(Math.round(fps), LIMITS.fps.min, LIMITS.fps.max) }),
+    // ---------- Session ----------
+    bus.on('frame:select', ({ index }) =>
+      setSession({ activeFrameIndex: clamp(index, 0, store.state.project.present.frames.length - 1) }),
     ),
-
-    bus.on('export:format:change', ({ format }) => store.update({ exportFormat: format })),
-
-    bus.on('ui:drawer:toggle', ({ open }) => store.update({ drawerOpen: open })),
+    bus.on('node:select', ({ nodeId }) => setSession({ selectedNodeId: nodeId })),
+    bus.on('playback:play', () => setSession({ isPlaying: true })),
+    bus.on('playback:pause', () => setSession({ isPlaying: false })),
+    bus.on('playback:speed:change', ({ speed }) => setSession({ playbackSpeed: speed })),
+    bus.on('editor:mode:change', ({ mode }) => setSession({ editorMode: mode })),
+    bus.on('export:format:change', ({ format }) => setSession({ exportFormat: format })),
+    bus.on('ui:drawer:toggle', ({ open }) => setSession({ drawerOpen: open })),
   ];
 
   return () => unsubscribers.forEach((unsubscribe) => unsubscribe());

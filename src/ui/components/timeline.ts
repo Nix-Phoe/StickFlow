@@ -45,8 +45,8 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
   });
 
   list.addEventListener('keydown', (event) => {
-    const last = store.state.frames.length - 1;
-    const current = store.state.activeFrameIndex;
+    const last = store.state.project.present.frames.length - 1;
+    const current = store.state.session.activeFrameIndex;
     let next: number;
     switch (event.key) {
       case 'ArrowRight':
@@ -73,7 +73,7 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
     thumbs = frames.map((frame, index) => createThumb(frame, index));
     list.replaceChildren(...thumbs.map((thumb) => h('li', { class: 'timeline__item' }, [thumb])));
     count.textContent = t.count(frames.length);
-    renderActive(store.state.activeFrameIndex);
+    renderActive(store.state.session.activeFrameIndex);
   }
 
   function renderActive(activeIndex: number): void {
@@ -92,8 +92,8 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
   }
 
   cleanups.push(
-    store.watch((s) => s.frames, renderFrames),
-    store.watch((s) => s.activeFrameIndex, renderActive),
+    store.watch((s) => s.project.present.frames, renderFrames),
+    store.watch((s) => s.session.activeFrameIndex, renderActive),
   );
 
   return {

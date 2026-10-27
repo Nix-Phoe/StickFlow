@@ -52,7 +52,7 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
     label: t.modeLabel,
     action: 'editor:mode:change',
     options: EDITOR_MODES.map((mode) => ({ value: mode, label: t.modes[mode] })),
-    value: store.state.editorMode,
+    value: store.state.session.editorMode,
     onChange: (mode) => bus.emit('editor:mode:change', { mode }),
   });
 
@@ -70,7 +70,7 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
   ]);
 
   // ---------- Fluidité ----------
-  const smoothing = store.state.ai.smoothing;
+  const smoothing = store.state.project.present.ai.smoothing;
   const smoothingSwitch = createSwitch({
     label: t.smoothing.toggle,
     action: 'ai:smoothing:change',
@@ -112,8 +112,7 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
   ]);
 
   // ---------- Répétition ----------
-  const loop = store.state.ai.loop;
-  let lastRepeatCount = typeof loop.repeat === 'number' ? loop.repeat : 3;
+  const loop = store.state.project.present.ai.loop;
 
   const loopSwitch = createSwitch({
     label: t.loop.toggle,
@@ -126,8 +125,8 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
     label: t.loop.repeat,
     action: 'ai:loop:change',
     ...LIMITS.loopRepeat,
-    value: lastRepeatCount,
-    onChange: (repeat) => bus.emit('ai:loop:change', { repeat }),
+    value: loop.repeatCount,
+    onChange: (repeatCount) => bus.emit('ai:loop:change', { repeatCount }),
   });
   const infiniteChip = h(
     'button',
@@ -140,10 +139,9 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
     },
     [icon('infinity'), t.loop.infinite],
   );
-  infiniteChip.addEventListener('click', () => {
-    const isInfinite = store.state.ai.loop.repeat === 'infinite';
-    bus.emit('ai:loop:change', { repeat: isInfinite ? lastRepeatCount : 'infinite' });
-  });
+  infiniteChip.addEventListener('click', () =>
+    bus.emit('ai:loop:change', { infinite: !store.state.project.present.ai.loop.infinite }),
+  );
 
   const transitionValue = h('span', { class: 'group__value', 'aria-hidden': 'true' });
   const transitionSlider = createSlider({
@@ -177,7 +175,7 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
     label: t.fps,
     action: 'animation:fps:change',
     ...LIMITS.fps,
-    value: store.state.fps,
+    value: store.state.project.present.fps,
     onChange: (fps) => bus.emit('animation:fps:change', { fps }),
   });
   const animationGroup = h('div', { class: 'group' }, [
@@ -201,7 +199,7 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
     label: t.exportFormat,
     action: 'export:format:change',
     options: EXPORT_FORMATS.map((format) => ({ value: format, label: t.formats[format] })),
-    value: store.state.exportFormat,
+    value: store.state.session.exportFormat,
     onChange: (format) => bus.emit('export:format:change', { format }),
   });
   const exportButton = h(
@@ -210,7 +208,7 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
     [icon('download'), t.export],
   );
   exportButton.addEventListener('click', () =>
-    bus.emit('export:request', { format: store.state.exportFormat }),
+    bus.emit('export:request', { format: store.state.session.exportFormat }),
   );
   const footer = h('footer', { class: 'side-panel__footer' }, [formatControl.element, exportButton]);
 
@@ -219,17 +217,17 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
   const scrim = h('div', { class: 'side-panel__scrim', 'aria-hidden': 'true' });
   scrim.addEventListener('click', () => bus.emit('ui:drawer:toggle', { open: false }));
   panel.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && drawerQuery.matches && store.state.drawerOpen) {
+    if (event.key === 'Escape' && drawerQuery.matches && store.state.session.drawerOpen) {
       bus.emit('ui:drawer:toggle', { open: false });
     }
   });
 
   // ---------- Abonnements au store ----------
   cleanups.push(
-    store.watch((s) => s.projectName, (name) => (projectName.textContent = name)),
-    store.watch((s) => s.editorMode, (mode) => modeControl.setValue(mode)),
+    store.watch((s) => s.project.present.name, (name) => (projectName.textContent = name)),
+    store.watch((s) => s.session.editorMode, (mode) => modeControl.setValue(mode)),
     store.watch(
-      (s) => s.ai.smoothing,
+      (s) => s.project.present.ai.smoothing,
       (value) => {
         smoothingSwitch.setChecked(value.enabled);
         intensitySlider.setValue(value.intensity);
@@ -242,14 +240,12 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
       },
     ),
     store.watch(
-      (s) => s.ai.loop,
+      (s) => s.project.present.ai.loop,
       (value) => {
-        const isInfinite = value.repeat === 'infinite';
-        if (typeof value.repeat === 'number') lastRepeatCount = value.repeat;
         loopSwitch.setChecked(value.enabled);
-        repeatStepper.setValue(lastRepeatCount);
-        repeatStepper.setDisabled(!value.enabled || isInfinite);
-        infiniteChip.setAttribute('aria-pressed', String(isInfinite));
+        repeatStepper.setValue(value.repeatCount);
+        repeatStepper.setDisabled(!value.enabled || value.infinite);
+        infiniteChip.setAttribute('aria-pressed', String(value.infinite));
         infiniteChip.disabled = !value.enabled;
         transitionSlider.setValue(value.transitionFrames);
         transitionSlider.setDisabled(!value.enabled);
@@ -258,9 +254,9 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
         setRowDisabled(transitionRow, !value.enabled);
       },
     ),
-    store.watch((s) => s.fps, (fps) => fpsStepper.setValue(fps)),
-    store.watch((s) => s.exportFormat, (format) => formatControl.setValue(format)),
-    store.watch((s) => s.drawerOpen, () => applyDrawerState(true)),
+    store.watch((s) => s.project.present.fps, (fps) => fpsStepper.setValue(fps)),
+    store.watch((s) => s.session.exportFormat, (format) => formatControl.setValue(format)),
+    store.watch((s) => s.session.drawerOpen, () => applyDrawerState(true)),
   );
 
   const onQueryChange = (): void => applyDrawerState(false);
@@ -269,7 +265,7 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
 
   function applyDrawerState(manageFocus: boolean): void {
     const isDrawer = drawerQuery.matches;
-    const open = isDrawer && store.state.drawerOpen;
+    const open = isDrawer && store.state.session.drawerOpen;
     panel.classList.toggle('is-open', open);
     scrim.classList.toggle('is-visible', open);
     panel.inert = isDrawer && !open;

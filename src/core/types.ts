@@ -36,11 +36,11 @@ export interface SmoothingSettings {
   curve: SmoothingCurve;
 }
 
-export type LoopRepeat = number | 'infinite';
-
 export interface LoopSettings {
   enabled: boolean;
-  repeat: LoopRepeat;
+  /** Nombre de répétitions, conservé même quand la répétition est infinie. */
+  repeatCount: number;
+  infinite: boolean;
   transitionFrames: number;
 }
 

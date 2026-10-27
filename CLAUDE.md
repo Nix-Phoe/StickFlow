@@ -191,7 +191,7 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 - **Composants UI** : chaque composant expose `mount(parent)` et, si besoin, `destroy()`. Les éléments interactifs portent un attribut `data-action` pour faciliter le branchement.
 - **Design tokens** : aucune couleur ou taille « en dur » dans les composants, uniquement des variables CSS de `tokens.css`.
 - Toute modification du **Projet** passe par le module Projet, qui l’ajoute à l’historique (annuler / rétablir). Un changement de la Session n’est jamais annulable.
-- **Flux unidirectionnel** : un composant émet un événement → `core/intents.ts` (ou un module métier) met à jour le store → le composant se redessine via `store.watch(selector, listener)`. Les contrôles sont « contrôlés » : ils n'affichent que l'état venu du store.
+- **Flux unidirectionnel** : un composant émet un événement → `core/intents.ts` le traduit en changement nommé du Projet (module Projet pur) ou en mise à jour de la Session, puis met à jour le store → le composant se redessine via `store.watch(selector, listener)`. Les contrôles sont « contrôlés » : ils n'affichent que l'état venu du store.
 - La valeur d'un attribut `data-action` est **le nom de l'événement émis** (ex. `data-action="frame:add"`).
 - Les composants reçoivent `{ bus, store }` par injection et ne s'importent jamais entre eux ; ils peuvent utiliser les primitives de `ui/controls/`.
 - **Repère du monde** : origine au centre de la scène, y vers le haut, angles en radians (0 = vers +x). La caméra montre une hauteur fixe de monde ; la largeur suit le rapport d'aspect.
@@ -254,7 +254,7 @@ interface Project {
 }
 ```
 
-Décisions du module Projet (revue d'architecture, candidat 1, en cours d'implémentation) :
+Module Projet (revue d'architecture, candidat 1, **réalisé**) — `src/model/project/` (`changes.ts` : changements nommés et invariants, `history.ts` : historique), `src/core/session.ts`, store `{ project: ProjectHistory, session: Session }` :
 - Le **Projet** (nom, IPS, squelette, frames, réglages IA) est séparé de la **Session** (frame active, lecture, vitesse, mode, tiroir, format d'export). Voir `GLOSSARY.md`.
 - Toute modification du Projet est annulable ; aucune modification de la Session ne l'est.
 - Les valeurs hors limites sont ramenées dans leurs bornes, jamais rejetées.
@@ -267,7 +267,9 @@ Décisions du module Projet (revue d'architecture, candidat 1, en cours d'implé
 - `intents.ts` n'est plus qu'un aiguillage sans règle : changement nommé vers le Projet ou mise à jour de la Session, avec l'heure du changement (le module Projet reste pur).
 - Les boutons Annuler / Rétablir sont désactivés quand il n'y a rien à annuler / rétablir.
 - Seul le module Projet applique les bornes ; le stepper ne corrige plus les valeurs (il rejette seulement les saisies non numériques).
-- Ordre : ce chantier est réalisé **après la phase 2**.
+- Changements nommés : `setFps`, `updateSmoothing`, `updateLoop`, `insertFrame` (après une frame, en copiant sa pose), `deleteFrame` (pas encore relié à l'interface), `poseFrame`. Regroupés en une étape s'ils sont du même réglage et à moins de 1 s d'intervalle ; les bascules (activé, courbe, infini) et les ajouts / suppressions de frames ne sont jamais regroupés. Le « + » de la timeline insère après la frame active et la sélectionne.
+- L'interface ne lit que `state.project.present`, `canUndo(state.project)` / `canRedo(state.project)` et `state.session`.
+- Raccourcis : Ctrl/⌘+Z annuler, Ctrl/⌘+Maj+Z ou Ctrl+Y rétablir (sauf dans un champ de saisie).
 
 ---
 
@@ -276,7 +278,7 @@ Décisions du module Projet (revue d'architecture, candidat 1, en cours d'implé
 1. **Phase 1 — Interface HTML/CSS** : coquille de l'app selon la maquette, composants, tokens, bus d'événements. Aucune logique d'animation.
 2. **Phase 2 — Rendu WebGL 2** : contexte, shaders, affichage d'un stickman fixe. ✅
 3. **Phase 3 — Manipulation** : sélection et rotation des nœuds au toucher / à la souris. ✅
-   - Ensuite : chantier du module Projet (décisions en 5.3), avant la phase 4.
+   - Puis : module Projet (candidat 1 de la revue d'architecture, voir 5.3). ✅
 4. **Phase 4 — Animation** : frames, timeline fonctionnelle, lecture, pelure d'oignon, annuler / rétablir.
 5. **Phase 5 — Fluidité et Répétition (V1)** : splines + easing, boucle intelligente.
 6. **Phase 6 — Sauvegarde et export** : IndexedDB, GIF / PNG / MP4.

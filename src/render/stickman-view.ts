@@ -29,7 +29,8 @@ export function connectStickmanView({ bus, store, canvas }: StickmanViewOptions)
   function draw(): void {
     cancelAnimationFrame(pendingFrame);
     pendingFrame = 0;
-    const { skeleton, frames, activeFrameIndex, selectedNodeId, isPlaying, editorMode } = store.state;
+    const { skeleton, frames } = store.state.project.present;
+    const { activeFrameIndex, selectedNodeId, isPlaying, editorMode } = store.state.session;
     const frame = frames[activeFrameIndex];
     const posed = solvePose(skeleton, frame?.pose ?? {}, frame?.rootPosition ?? ORIGIN);
     const stickman: DrawLayer = {
@@ -62,12 +63,12 @@ export function connectStickmanView({ bus, store, canvas }: StickmanViewOptions)
   colorScheme.addEventListener('change', scheduleDraw);
 
   const unsubscribers = [
-    store.watch((s) => s.skeleton, scheduleDraw),
-    store.watch((s) => s.frames, scheduleDraw),
-    store.watch((s) => s.activeFrameIndex, scheduleDraw),
-    store.watch((s) => s.selectedNodeId, scheduleDraw),
-    store.watch((s) => s.isPlaying, scheduleDraw),
-    store.watch((s) => s.editorMode, scheduleDraw),
+    store.watch((s) => s.project.present.skeleton, scheduleDraw),
+    store.watch((s) => s.project.present.frames, scheduleDraw),
+    store.watch((s) => s.session.activeFrameIndex, scheduleDraw),
+    store.watch((s) => s.session.selectedNodeId, scheduleDraw),
+    store.watch((s) => s.session.isPlaying, scheduleDraw),
+    store.watch((s) => s.session.editorMode, scheduleDraw),
     // Redimensionner un canvas l'efface : on redessine tout de suite pour éviter un clignotement.
     bus.on('canvas:resize', draw),
   ];

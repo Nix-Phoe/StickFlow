@@ -1,4 +1,3 @@
-import { clamp } from '../../core/types';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { strings } from '../strings';
@@ -67,11 +66,13 @@ export function createStepper(options: StepperOptions): StepperControl {
     increase,
   ]);
 
+  /**
+   * Les bornes sont appliquées par le module Projet, pas ici : on transmet la valeur saisie,
+   * puis on réaffiche `current`, déjà mis à jour par le store s'il a accepté le changement.
+   */
   const commit = (value: number): void => {
-    const next = clamp(Math.round(value), options.min, options.max);
-    if (Number.isNaN(next)) return render();
-    if (next !== current) options.onChange(next);
-    else render();
+    if (Number.isFinite(value) && value !== current) options.onChange(value);
+    render();
   };
 
   decrease.addEventListener('click', () => commit(current - 1));

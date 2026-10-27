@@ -1,23 +1,13 @@
+import { createHistory, type ProjectHistory } from '../model/project';
 import { createId } from './id';
-import type { AiSettings, EditorMode, ExportFormat, Frame, PlaybackSpeed, SkeletonNode } from './types';
+import { createSession, type Session } from './session';
+import type { Frame, SkeletonNode } from './types';
 
-/** État global de l'application. Mis à jour de façon immuable. */
+/** État global de l'application : le Projet (avec son historique) et la Session. */
 export interface AppState {
-  projectName: string;
-  editorMode: EditorMode;
-  /** Trié parents avant enfants (voir `sortSkeleton`). */
-  skeleton: SkeletonNode[];
-  frames: Frame[];
-  activeFrameIndex: number;
-  /** Nœud sélectionné sur la scène (Session). */
-  selectedNodeId: string | null;
-  isPlaying: boolean;
-  playbackSpeed: PlaybackSpeed;
-  fps: number;
-  ai: AiSettings;
-  exportFormat: ExportFormat;
-  /** Tiroir du panneau gauche ouvert (petits écrans uniquement). */
-  drawerOpen: boolean;
+  /** Ne lire que `project.present` (et `canUndo` / `canRedo`) depuis l'interface. */
+  project: ProjectHistory;
+  session: Session;
 }
 
 export type StateListener = (state: Readonly<AppState>, previous: Readonly<AppState>) => void;
@@ -64,30 +54,26 @@ export class Store {
   }
 }
 
-export function createPlaceholderFrame(generated = false): Frame {
+function createDemoFrame(generated: boolean): Frame {
   return { id: createId(), pose: {}, rootPosition: { x: 0, y: 0 }, generated };
 }
 
 /**
- * État de départ. Les 5 frames sont factices (pose vide = squelette au repos) ;
+ * État de départ. Les 5 frames de démonstration sont au repos ;
  * la 3e simule une frame générée.
  */
 export function createInitialState(projectName: string, skeleton: SkeletonNode[]): AppState {
   return {
-    projectName,
-    editorMode: 'character',
-    skeleton,
-    frames: [false, false, true, false, false].map(createPlaceholderFrame),
-    activeFrameIndex: 0,
-    selectedNodeId: null,
-    isPlaying: false,
-    playbackSpeed: 1,
-    fps: 12,
-    ai: {
-      smoothing: { enabled: true, intensity: 3, curve: 'smooth' },
-      loop: { enabled: false, repeat: 'infinite', transitionFrames: 4 },
-    },
-    exportFormat: 'gif',
-    drawerOpen: false,
+    project: createHistory({
+      name: projectName,
+      fps: 12,
+      skeleton,
+      frames: [false, false, true, false, false].map(createDemoFrame),
+      ai: {
+        smoothing: { enabled: true, intensity: 3, curve: 'smooth' },
+        loop: { enabled: false, repeatCount: 3, infinite: true, transitionFrames: 4 },
+      },
+    }),
+    session: createSession(),
   };
 }

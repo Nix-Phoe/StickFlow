@@ -35,7 +35,7 @@ const move = (bus: AppEventBus, p: Vec2, id = 1): void => bus.emit('stage:pointe
 const up = (bus: AppEventBus, p: Vec2, id = 1): void => bus.emit('stage:pointer:up', screen(p, id));
 
 function frameAt(store: Store, index: number): Frame {
-  const frame = store.state.frames[index];
+  const frame = store.state.project.present.frames[index];
   if (!frame) throw new Error(`missing frame ${index}`);
   return frame;
 }
@@ -44,7 +44,7 @@ describe('connectNodeManipulation: selection', () => {
   it('selects the node whose handle is under the pointer', () => {
     const { bus, store, handle } = setup();
     down(bus, handle('upperArmL'));
-    expect(store.state.selectedNodeId).toBe('upperArmL');
+    expect(store.state.session.selectedNodeId).toBe('upperArmL');
   });
 
   it('clears the selection when pressing on empty space', () => {
@@ -52,7 +52,7 @@ describe('connectNodeManipulation: selection', () => {
     down(bus, handle('upperArmL'));
     up(bus, handle('upperArmL'));
     down(bus, { x: 300, y: 150 });
-    expect(store.state.selectedNodeId).toBeNull();
+    expect(store.state.session.selectedNodeId).toBeNull();
   });
 
   it('ignores the stage while the animation is playing', () => {
@@ -60,7 +60,7 @@ describe('connectNodeManipulation: selection', () => {
     bus.emit('playback:play');
     down(bus, handle('upperArmL'));
     move(bus, { x: 100, y: 100 });
-    expect(store.state.selectedNodeId).toBeNull();
+    expect(store.state.session.selectedNodeId).toBeNull();
     expect(frameAt(store, 0).pose).toEqual({});
   });
 });
@@ -107,6 +107,16 @@ describe('connectNodeManipulation: dragging', () => {
     expect(handle('hip')).toEqual({ x: 0, y: 0 });
   });
 
+  it('undoes a whole drag in one step', () => {
+    const { bus, store, handle } = setup();
+    const shoulder = handle('torso');
+    down(bus, handle('upperArmL'));
+    for (const dx of [10, 20, 30, 40]) move(bus, { x: shoulder.x + dx, y: shoulder.y });
+    up(bus, { x: shoulder.x + 40, y: shoulder.y });
+    bus.emit('history:undo');
+    expect(frameAt(store, 0).pose).toEqual({});
+  });
+
   it('turns an edited generated frame into a keyframe', () => {
     const { bus, store } = setup();
     bus.emit('frame:select', { index: 2 });
@@ -121,9 +131,9 @@ describe('connectNodeManipulation: keyboard', () => {
   it('walks through the nodes in skeleton order', () => {
     const { bus, store } = setup();
     bus.emit('node:cycle', { direction: 1 });
-    expect(store.state.selectedNodeId).toBe('hip');
+    expect(store.state.session.selectedNodeId).toBe('hip');
     bus.emit('node:cycle', { direction: 1 });
-    expect(store.state.selectedNodeId).toBe('torso');
+    expect(store.state.session.selectedNodeId).toBe('torso');
   });
 
   it('nudges the selected node', () => {

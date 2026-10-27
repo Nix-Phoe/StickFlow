@@ -24,14 +24,14 @@ export function connectNodeManipulation({ bus, store }: NodeManipulationOptions)
   const toWorld = (p: StagePointer): Vec2 => screenToWorld(p, p, STAGE_WORLD_HEIGHT);
 
   function activeFrame() {
-    return store.state.frames[store.state.activeFrameIndex];
+    return store.state.project.present.frames[store.state.session.activeFrameIndex];
   }
 
   function onDown(pointer: StagePointer): void {
     const frame = activeFrame();
-    if (drag || store.state.isPlaying || !frame) return;
+    if (drag || store.state.session.isPlaying || !frame) return;
 
-    const { skeleton } = store.state;
+    const { skeleton } = store.state.project.present;
     const posed = solvePose(skeleton, frame.pose, frame.rootPosition);
     const point = toWorld(pointer);
     const nodeId = pickNode(posed, point, pixelsToWorld(HANDLE_HIT_RADIUS_PX, pointer.height, STAGE_WORLD_HEIGHT));
@@ -59,16 +59,17 @@ export function connectNodeManipulation({ bus, store }: NodeManipulationOptions)
     bus.on('playback:play', () => {
       drag = null;
     }),
-    bus.on('node:cycle', ({ direction }) =>
-      bus.emit('node:select', { nodeId: cycleNode(store.state.skeleton, store.state.selectedNodeId, direction) }),
-    ),
+    bus.on('node:cycle', ({ direction }) => {
+      const { project, session } = store.state;
+      bus.emit('node:select', { nodeId: cycleNode(project.present.skeleton, session.selectedNodeId, direction) });
+    }),
     bus.on('node:nudge', ({ radians }) => {
       const frame = activeFrame();
-      const nodeId = store.state.selectedNodeId;
-      if (!frame || !nodeId || store.state.isPlaying) return;
+      const nodeId = store.state.session.selectedNodeId;
+      if (!frame || !nodeId || store.state.session.isPlaying) return;
       bus.emit('frame:pose:change', {
         frameId: frame.id,
-        pose: nudgeNode(frame.pose, store.state.skeleton, nodeId, radians),
+        pose: nudgeNode(frame.pose, store.state.project.present.skeleton, nodeId, radians),
         rootPosition: frame.rootPosition,
       });
     }),

@@ -1,6 +1,7 @@
 // Relie le store au rendu : redessine la frame active quand elle, le squelette, la sélection,
 // la taille du canvas ou le thème changent. Rendu à la demande, pas de boucle continue.
 
+import { onionSkinFrame } from '../animation/onion-skin';
 import type { AppEventBus } from '../core/events';
 import type { Store } from '../core/store';
 import type { Vec2 } from '../core/types';
@@ -14,6 +15,7 @@ const ORIGIN: Vec2 = { x: 0, y: 0 };
 const COLOR_TOKENS = { stickman: '--color-stickman', handle: '--color-accent' } as const;
 const FALLBACK_COLOR: Rgba = [0, 0, 0, 1];
 const HALO_OPACITY = 0.25;
+const ONION_SKIN_OPACITY = 0.22;
 const JOINT_OPACITY = 0.85;
 
 export interface StickmanViewOptions {
@@ -30,23 +32,31 @@ export function connectStickmanView({ bus, store, canvas }: StickmanViewOptions)
     cancelAnimationFrame(pendingFrame);
     pendingFrame = 0;
     const { skeleton, frames } = store.state.project.present;
-    const { activeFrameIndex, selectedNodeId, isPlaying, editorMode } = store.state.session;
+    const { activeFrameIndex, selectedNodeId, isPlaying, editorMode, onionSkin } = store.state.session;
     const frame = frames[activeFrameIndex];
     const posed = solvePose(skeleton, frame?.pose ?? {}, frame?.rootPosition ?? ORIGIN);
-    const stickman: DrawLayer = {
-      capsules: buildCapsules(skeleton, posed, DEFAULT_STICKMAN_STYLE),
-      color: readColor(canvas, COLOR_TOKENS.stickman),
+    const stickmanColor = readColor(canvas, COLOR_TOKENS.stickman);
+    const stickman: DrawLayer = { capsules: buildCapsules(skeleton, posed, DEFAULT_STICKMAN_STYLE), color: stickmanColor };
+
+    // Pelure d'oignon : la frame précédente, en transparence, sous tout le reste.
+    const previous = onionSkinFrame(frames, activeFrameIndex, { enabled: onionSkin, isPlaying });
+    const onion: DrawLayer = {
+      capsules: previous
+        ? buildCapsules(skeleton, solvePose(skeleton, previous.pose, previous.rootPosition), DEFAULT_STICKMAN_STYLE)
+        : [],
+      color: withOpacity(stickmanColor, ONION_SKIN_OPACITY),
     };
 
     // Les poignées ne s'affichent qu'en édition du personnage, jamais pendant la lecture.
     if (isPlaying || editorMode !== 'character') {
-      renderer.draw([stickman]);
+      renderer.draw([onion, stickman]);
       return;
     }
 
     const handles = buildHandles(skeleton, posed, selectedNodeId, DEFAULT_HANDLE_STYLE);
     const accent = readColor(canvas, COLOR_TOKENS.handle);
     renderer.draw([
+      onion,
       { capsules: handles.halo, color: withOpacity(accent, HALO_OPACITY) },
       stickman,
       { capsules: handles.joints, color: withOpacity(accent, JOINT_OPACITY) },
@@ -69,6 +79,7 @@ export function connectStickmanView({ bus, store, canvas }: StickmanViewOptions)
     store.watch((s) => s.session.selectedNodeId, scheduleDraw),
     store.watch((s) => s.session.isPlaying, scheduleDraw),
     store.watch((s) => s.session.editorMode, scheduleDraw),
+    store.watch((s) => s.session.onionSkin, scheduleDraw),
     // Redimensionner un canvas l'efface : on redessine tout de suite pour éviter un clignotement.
     bus.on('canvas:resize', draw),
   ];

@@ -27,6 +27,12 @@ export interface Frame {
   generated: boolean;
 }
 
+/** Ce qui définit la pose d'une frame (copiée / collée, modifiée en manipulant les nœuds). */
+export interface FramePose {
+  pose: Readonly<Record<string, number>>;
+  rootPosition: Vec2;
+}
+
 export type SmoothingCurve = 'linear' | 'smooth' | 'ease-in-out';
 
 export interface SmoothingSettings {

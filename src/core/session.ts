@@ -1,6 +1,6 @@
 // Session : l'état de travail du moment, ni sauvegardé ni annulable (voir GLOSSARY.md).
 
-import { clamp, type EditorMode, type ExportFormat, type PlaybackSpeed, type Project } from './types';
+import { clamp, type EditorMode, type ExportFormat, type FramePose, type PlaybackSpeed, type Project } from './types';
 
 export interface Session {
   activeFrameIndex: number;
@@ -11,6 +11,10 @@ export interface Session {
   exportFormat: ExportFormat;
   /** Tiroir du panneau gauche ouvert (petits écrans uniquement). */
   drawerOpen: boolean;
+  /** Pelure d'oignon : frame précédente affichée en transparence. */
+  onionSkin: boolean;
+  /** Pose copiée, prête à être collée sur une autre frame. */
+  clipboard: FramePose | null;
 }
 
 export function createSession(): Session {
@@ -22,6 +26,8 @@ export function createSession(): Session {
     editorMode: 'character',
     exportFormat: 'gif',
     drawerOpen: false,
+    onionSkin: true,
+    clipboard: null,
   };
 }
 

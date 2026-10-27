@@ -42,3 +42,11 @@ describe('fitSessionToProject', () => {
     expect(fitSessionToProject(session, project).selectedNodeId).toBeNull();
   });
 });
+
+describe('createSession: phase 4', () => {
+  it('shows the onion skin and has an empty clipboard', () => {
+    const session = createSession();
+    expect(session.onionSkin).toBe(true);
+    expect(session.clipboard).toBeNull();
+  });
+});

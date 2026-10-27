@@ -178,11 +178,22 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
     value: store.state.project.present.fps,
     onChange: (fps) => bus.emit('animation:fps:change', { fps }),
   });
+  const onionSkinSwitch = createSwitch({
+    label: t.onionSkinToggle,
+    action: 'animation:onion-skin:change',
+    checked: store.state.session.onionSkin,
+    onChange: (enabled) => bus.emit('animation:onion-skin:change', { enabled }),
+  });
   const animationGroup = h('div', { class: 'group' }, [
     h('div', { class: 'group__row' }, [
       h('span', { class: 'side-panel__row-icon', 'aria-hidden': 'true' }, [icon('fps')]),
       labelFor('animation-fps', t.fps),
       fpsStepper.element,
+    ]),
+    h('div', { class: 'group__row' }, [
+      h('span', { class: 'side-panel__row-icon', 'aria-hidden': 'true' }, [icon('onionSkin')]),
+      h('span', { class: 'group__label' }, [t.onionSkin]),
+      onionSkinSwitch.element,
     ]),
   ]);
 
@@ -255,6 +266,7 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
       },
     ),
     store.watch((s) => s.project.present.fps, (fps) => fpsStepper.setValue(fps)),
+    store.watch((s) => s.session.onionSkin, (enabled) => onionSkinSwitch.setChecked(enabled)),
     store.watch((s) => s.session.exportFormat, (format) => formatControl.setValue(format)),
     store.watch((s) => s.session.drawerOpen, () => applyDrawerState(true)),
   );

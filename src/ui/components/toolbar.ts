@@ -53,6 +53,14 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
     onClick: () => bus.emit('playback:pause'),
   });
 
+  const stopButton = createIconButton({
+    icon: 'stop',
+    label: t.stop,
+    action: 'playback:stop',
+    variant: 'filled',
+    onClick: () => bus.emit('playback:stop'),
+  });
+
   const speedControl = createSegmented<PlaybackSpeed>({
     label: t.speed,
     action: 'playback:speed:change',
@@ -76,6 +84,7 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
       h('div', { class: 'toolbar__group', role: 'group', 'aria-label': `${t.play} / ${t.pause}` }, [
         playButton,
         pauseButton,
+        stopButton,
       ]),
       speedControl.element,
     ]),
@@ -96,9 +105,18 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
     store.watch((s) => canRedo(s.project), (can) => (redoButton.disabled = !can)),
   );
 
-  // Raccourcis : Ctrl/⌘+Z annuler, Ctrl/⌘+Maj+Z ou Ctrl+Y rétablir. Les champs de saisie gardent les leurs.
+  // Raccourcis : Espace lecture / pause ; Ctrl/⌘+Z annuler, Ctrl/⌘+Maj+Z ou Ctrl+Y rétablir.
+  // Les champs de saisie gardent leurs raccourcis, et Espace active toujours les autres boutons ;
+  // sur les boutons de lecture, Espace bascule lecture / pause (sinon il relancerait le bouton).
   const onShortcut = (event: KeyboardEvent): void => {
-    if (!(event.ctrlKey || event.metaKey) || isEditable(event.target)) return;
+    if (isEditable(event.target)) return;
+    if (event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (event.target instanceof HTMLButtonElement && !event.target.dataset.action?.startsWith('playback:')) return;
+      bus.emit(store.state.session.isPlaying ? 'playback:pause' : 'playback:play');
+      event.preventDefault();
+      return;
+    }
+    if (!(event.ctrlKey || event.metaKey)) return;
     const key = event.key.toLowerCase();
     if (key === 'z' && !event.shiftKey) bus.emit('history:undo');
     else if ((key === 'z' && event.shiftKey) || key === 'y') bus.emit('history:redo');

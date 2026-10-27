@@ -44,6 +44,14 @@ _Avoid_ : frame IA, intercalaire
 La frame affichée et modifiable sur le canvas ; elle fait partie de la Session.
 _Avoid_ : frame sélectionnée, frame courante
 
+**Pelure d'oignon** :
+L'affichage en transparence de la frame précédente derrière la frame active, pour poser la suivante.
+_Avoid_ : onion skin, fantôme
+
+**Tête de lecture** :
+La frame affichée pendant la lecture ; à l'arrêt, elle se confond avec la frame active.
+_Avoid_ : curseur, playhead
+
 **IPS** :
 Le nombre de frames jouées par seconde, de 1 à 60.
 _Avoid_ : FPS, cadence

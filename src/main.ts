@@ -7,6 +7,7 @@ import './ui/styles/controls.css';
 
 import { createEventBus } from './core/events';
 import { connectIntents } from './core/intents';
+import { connectPlayer } from './animation';
 import type { AppEventName } from './core/events';
 import { createInitialState, Store } from './core/store';
 import { connectNodeManipulation } from './interaction';
@@ -27,9 +28,10 @@ const bus = createEventBus();
 const store = new Store(createInitialState(strings.defaultProjectName, sortSkeleton(createDefaultSkeleton())));
 connectIntents(bus, store);
 connectNodeManipulation({ bus, store });
+connectPlayer({ bus, store });
 
-// Débogage : chaque événement est journalisé, sauf ceux émis en continu pendant un glisser.
-const QUIET_EVENTS: ReadonlySet<AppEventName> = new Set(['stage:pointer:move', 'frame:pose:change']);
+// Débogage : chaque événement est journalisé, sauf ceux émis en continu (glisser, lecture).
+const QUIET_EVENTS: ReadonlySet<AppEventName> = new Set(['stage:pointer:move', 'frame:pose:change', 'playback:frame']);
 bus.onAny((type, payload) => {
   if (!QUIET_EVENTS.has(type as AppEventName)) console.info(`[event] ${String(type)}`, payload ?? '');
 });

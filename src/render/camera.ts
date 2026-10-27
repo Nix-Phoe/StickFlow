@@ -51,3 +51,12 @@ export function screenToWorld(point: Vec2, viewport: Viewport, worldHeight: numb
 export function pixelsToWorld(pixels: number, viewportHeight: number, worldHeight: number): number {
   return (pixels * worldHeight) / viewportHeight;
 }
+
+/** Point du monde → point de l'écran (inverse de `screenToWorld`). */
+export function worldToScreen(point: Vec2, viewport: Viewport, worldHeight: number): Vec2 {
+  const pixelsPerUnit = viewport.height / worldHeight;
+  return {
+    x: viewport.width / 2 + point.x * pixelsPerUnit,
+    y: viewport.height / 2 - point.y * pixelsPerUnit,
+  };
+}

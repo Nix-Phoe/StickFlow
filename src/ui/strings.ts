@@ -58,6 +58,8 @@ export const strings = {
 
     animationSection: 'Animation',
     fps: 'Images par seconde (IPS)',
+    onionSkin: 'Pelure d’oignon',
+    onionSkinToggle: 'Afficher l’image précédente en transparence',
 
     effectsSection: 'Effets',
     promptSection: 'Prompt',
@@ -77,6 +79,7 @@ export const strings = {
     redo: 'Rétablir',
     play: 'Lecture',
     pause: 'Pause',
+    stop: 'Stop (revenir à l’image de départ)',
     speed: 'Vitesse de prévisualisation',
     speedValue: (speed: number): string => `x${speed}`,
     speedLabel: (speed: number): string => `Vitesse x${speed}`,
@@ -93,7 +96,11 @@ export const strings = {
     frames: 'Images de l’animation',
     count: (n: number): string => plural(n, 'image', 'images'),
     generatedLegend: 'Générée par l’IA',
-    addFrame: 'Ajouter une image',
+    addFrame: 'Ajouter une image (copie de l’image active)',
+    actions: 'Actions sur l’image active',
+    copyPose: 'Copier la pose',
+    pastePose: 'Coller la pose',
+    deleteFrame: 'Supprimer l’image',
     frameLabel: (n: number, generated: boolean): string =>
       generated ? `Image ${n}, générée par l’IA` : `Image ${n}`,
   },

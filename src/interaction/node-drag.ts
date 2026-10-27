@@ -1,12 +1,6 @@
-import type { SkeletonNode, Vec2 } from '../core/types';
+import type { FramePose, SkeletonNode, Vec2 } from '../core/types';
 import { normalizeAngle } from '../model/angle';
 import type { PosedNode } from '../model/kinematics';
-
-/** Ce que l'utilisateur modifie d'une frame en manipulant ses nœuds. */
-export interface FramePose {
-  pose: Readonly<Record<string, number>>;
-  rootPosition: Vec2;
-}
 
 export interface NodeDrag {
   /** Nouvelle pose de la frame pour la position actuelle du pointeur (unités du monde). */

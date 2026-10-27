@@ -1,2 +1,3 @@
-// Phase 4 : lecture, interpolation et timeline.
-export {};
+// Lecture, pelure d'oignon.
+export { connectPlayer } from './player';
+export { onionSkinFrame } from './onion-skin';

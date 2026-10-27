@@ -1,10 +1,13 @@
 // Icônes Lucide (licence ISC), centralisées. Ajouter ici toute nouvelle icône.
 
 import {
+  ClipboardPaste,
+  Copy,
   createElement,
   Download,
   Gauge,
   Infinity as InfinityIcon,
+  Layers,
   Menu,
   Minus,
   Pause,
@@ -15,12 +18,19 @@ import {
   Repeat,
   Save,
   Sparkles,
+  Square,
+  Trash,
   Undo2,
   X,
   type IconNode,
 } from 'lucide';
 
 const registry = {
+  copy: Copy,
+  paste: ClipboardPaste,
+  onionSkin: Layers,
+  stop: Square,
+  trash: Trash,
   download: Download,
   fps: Gauge,
   infinity: InfinityIcon,

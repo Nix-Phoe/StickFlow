@@ -1,22 +1,64 @@
 import '../styles/components/timeline.css';
 
 import type { Frame } from '../../core/types';
+import { paintThumbnail } from '../../render/thumbnail';
 import type { Component, ComponentContext } from '../component';
+import { createIconButton } from '../controls/icon-button';
 import { h, prefersReducedMotion } from '../dom';
 import { icon } from '../icons';
 import { strings } from '../strings';
 
 const t = strings.timeline;
 
+/** Tokens CSS des vignettes : image clé, ou frame générée (couleur d'accent). */
+const THUMB_COLOR_TOKENS = { keyframe: '--color-stickman', generated: '--color-accent' } as const;
+
+interface Thumb {
+  item: HTMLLIElement;
+  button: HTMLButtonElement;
+  number: HTMLSpanElement;
+  canvas: HTMLCanvasElement;
+  frame: Frame;
+}
+
 /**
- * Barre inférieure : vignettes numérotées, frame active surlignée,
- * frames générées par l'IA distinguées, bouton « + ».
- * Clavier : flèches gauche / droite, Début, Fin pour changer de frame.
+ * Barre inférieure : actions sur la frame active, vignettes montrant la pose de chaque frame
+ * (frames générées distinguées), bouton « + ».
+ * Clavier : flèches gauche / droite, Début, Fin pour changer de frame ; Suppr pour la supprimer.
  */
 export function createTimeline({ bus, store }: ComponentContext): Component {
   const cleanups: Array<() => void> = [];
-  let thumbs: HTMLButtonElement[] = [];
+  /** Vignettes conservées d'un rendu à l'autre, par id de frame : seules celles qui changent sont repeintes. */
+  const thumbsById = new Map<string, Thumb>();
+  let order: Thumb[] = [];
+  let repaintRequest = 0;
 
+  // ---------- Actions ----------
+  const copyButton = createIconButton({
+    icon: 'copy',
+    label: t.copyPose,
+    action: 'frame:copy',
+    onClick: () => bus.emit('frame:copy'),
+  });
+  const pasteButton = createIconButton({
+    icon: 'paste',
+    label: t.pastePose,
+    action: 'frame:paste',
+    onClick: () => bus.emit('frame:paste'),
+  });
+  const deleteButton = createIconButton({
+    icon: 'trash',
+    label: t.deleteFrame,
+    action: 'frame:delete',
+    onClick: () => bus.emit('frame:delete'),
+  });
+  const actions = h('div', { class: 'timeline__actions', role: 'group', 'aria-label': t.actions }, [
+    copyButton,
+    pasteButton,
+    deleteButton,
+  ]);
+
+  // ---------- Vignettes ----------
   const count = h('span', { class: 'timeline__count' });
   const list = h('ol', { class: 'timeline__frames', 'aria-label': t.frames });
   const addButton = h(
@@ -36,7 +78,7 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
         t.generatedLegend,
       ]),
     ]),
-    scroller,
+    h('div', { class: 'timeline__body' }, [actions, scroller]),
   ]);
 
   list.addEventListener('click', (event) => {
@@ -61,44 +103,96 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
       case 'End':
         next = last;
         break;
+      case 'Delete':
+      case 'Backspace':
+        event.preventDefault();
+        bus.emit('frame:delete');
+        order[store.state.session.activeFrameIndex]?.button.focus();
+        return;
       default:
         return;
     }
     event.preventDefault();
     bus.emit('frame:select', { index: next });
-    thumbs[next]?.focus();
+    order[next]?.button.focus();
   });
 
-  function renderFrames(frames: readonly Frame[]): void {
-    thumbs = frames.map((frame, index) => createThumb(frame, index));
-    list.replaceChildren(...thumbs.map((thumb) => h('li', { class: 'timeline__item' }, [thumb])));
+  function syncFrames(frames: readonly Frame[]): void {
+    const dirty: Thumb[] = [];
+    const next = frames.map((frame, index) => {
+      let thumb = thumbsById.get(frame.id);
+      // Le badge et le style dépendent de `generated` : on recrée la vignette s'il change.
+      if (!thumb || thumb.frame.generated !== frame.generated) {
+        thumb = createThumb(frame);
+        thumbsById.set(frame.id, thumb);
+        dirty.push(thumb);
+      } else if (thumb.frame !== frame) {
+        thumb.frame = frame;
+        dirty.push(thumb);
+      }
+      setThumbIndex(thumb, index);
+      return thumb;
+    });
+
+    const ids = new Set(frames.map((f) => f.id));
+    for (const id of thumbsById.keys()) if (!ids.has(id)) thumbsById.delete(id);
+    if (next.length !== order.length || next.some((thumb, i) => thumb !== order[i])) {
+      list.replaceChildren(...next.map((thumb) => thumb.item));
+    }
+    order = next;
+
     count.textContent = t.count(frames.length);
+    deleteButton.disabled = frames.length <= 1;
+    dirty.forEach(paint);
     renderActive(store.state.session.activeFrameIndex);
   }
 
-  function renderActive(activeIndex: number): void {
-    thumbs.forEach((thumb, index) => {
-      const active = index === activeIndex;
-      thumb.classList.toggle('is-active', active);
-      thumb.tabIndex = active ? 0 : -1;
-      if (active) thumb.setAttribute('aria-current', 'true');
-      else thumb.removeAttribute('aria-current');
-    });
-    thumbs[activeIndex]?.scrollIntoView({
-      block: 'nearest',
-      inline: 'nearest',
-      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+  function paint(thumb: Thumb): void {
+    const token = thumb.frame.generated ? THUMB_COLOR_TOKENS.generated : THUMB_COLOR_TOKENS.keyframe;
+    const color = getComputedStyle(root).getPropertyValue(token).trim();
+    paintThumbnail(thumb.canvas, store.state.project.present.skeleton, thumb.frame, color);
+  }
+
+  /** Repeint toutes les vignettes (squelette, thème ou taille modifiés), une fois par image d'affichage. */
+  function repaintAll(): void {
+    if (repaintRequest !== 0) return;
+    repaintRequest = requestAnimationFrame(() => {
+      repaintRequest = 0;
+      order.forEach(paint);
     });
   }
 
+  function renderActive(activeIndex: number): void {
+    order.forEach((thumb, index) => {
+      const active = index === activeIndex;
+      thumb.button.classList.toggle('is-active', active);
+      thumb.button.tabIndex = active ? 0 : -1;
+      if (active) thumb.button.setAttribute('aria-current', 'true');
+      else thumb.button.removeAttribute('aria-current');
+    });
+    const smooth = !prefersReducedMotion() && !store.state.session.isPlaying;
+    order[activeIndex]?.button.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: smooth ? 'smooth' : 'auto' });
+  }
+
+  const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
+  colorScheme.addEventListener('change', repaintAll);
+  window.addEventListener('resize', repaintAll);
+
   cleanups.push(
-    store.watch((s) => s.project.present.frames, renderFrames),
+    () => colorScheme.removeEventListener('change', repaintAll),
+    () => window.removeEventListener('resize', repaintAll),
+    () => cancelAnimationFrame(repaintRequest),
+    store.watch((s) => s.project.present.frames, syncFrames),
+    store.watch((s) => s.project.present.skeleton, repaintAll),
     store.watch((s) => s.session.activeFrameIndex, renderActive),
+    store.watch((s) => s.session.clipboard, (clipboard) => (pasteButton.disabled = clipboard === null)),
   );
 
   return {
     mount(parent) {
       parent.append(root);
+      // Les vignettes n'ont une taille qu'une fois dans le document.
+      repaintAll();
     },
     destroy() {
       cleanups.forEach((cleanup) => cleanup());
@@ -107,24 +201,32 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
   };
 }
 
-function createThumb(frame: Frame, index: number): HTMLButtonElement {
-  const number = index + 1;
-  return h(
+function createThumb(frame: Frame): Thumb {
+  const number = h('span', { class: 'frame-thumb__number', 'aria-hidden': 'true' });
+  const canvas = h('canvas', { class: 'frame-thumb__canvas', 'aria-hidden': 'true' });
+  const button = h(
     'button',
     {
       type: 'button',
       class: frame.generated ? 'frame-thumb frame-thumb--generated' : 'frame-thumb',
-      'aria-label': t.frameLabel(number, frame.generated),
       'data-action': 'frame:select',
-      'data-index': index,
       'data-frame-id': frame.id,
     },
     [
-      h('span', { class: 'frame-thumb__preview', 'aria-hidden': 'true' }, [icon('person', 'icon frame-thumb__figure')]),
-      h('span', { class: 'frame-thumb__number', 'aria-hidden': 'true' }, [String(number)]),
+      canvas,
+      number,
       ...(frame.generated
         ? [h('span', { class: 'frame-thumb__badge', 'aria-hidden': 'true' }, [icon('sparkles')])]
         : []),
     ],
   );
+  return { item: h('li', { class: 'timeline__item' }, [button]), button, number, canvas, frame };
+}
+
+function setThumbIndex(thumb: Thumb, index: number): void {
+  const label = String(index + 1);
+  if (thumb.number.textContent === label) return;
+  thumb.number.textContent = label;
+  thumb.button.dataset.index = String(index);
+  thumb.button.setAttribute('aria-label', t.frameLabel(index + 1, thumb.frame.generated));
 }

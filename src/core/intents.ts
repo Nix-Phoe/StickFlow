@@ -29,6 +29,8 @@ export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now 
   const setSession = (patch: Partial<Session>): void =>
     store.update((s) => ({ session: { ...s.session, ...patch } }));
 
+  const activeFrame = () => store.state.project.present.frames[store.state.session.activeFrameIndex];
+
   const unsubscribers = [
     // ---------- Projet ----------
     bus.on('history:undo', () => setProject(undo(store.state.project))),
@@ -50,11 +52,29 @@ export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now 
     bus.on('frame:pose:change', ({ frameId, pose, rootPosition }) =>
       change({ type: 'poseFrame', frameId, pose, rootPosition }),
     ),
+    bus.on('frame:delete', () => {
+      const active = activeFrame();
+      if (active) change({ type: 'deleteFrame', frameId: active.id });
+    }),
+    bus.on('frame:paste', () => {
+      const active = activeFrame();
+      const { clipboard } = store.state.session;
+      if (!active || !clipboard) return;
+      change({ type: 'poseFrame', frameId: active.id, pose: { ...clipboard.pose }, rootPosition: clipboard.rootPosition });
+    }),
 
     // ---------- Session ----------
     bus.on('frame:select', ({ index }) =>
       setSession({ activeFrameIndex: clamp(index, 0, store.state.project.present.frames.length - 1) }),
     ),
+    bus.on('playback:frame', ({ index }) =>
+      setSession({ activeFrameIndex: clamp(index, 0, store.state.project.present.frames.length - 1) }),
+    ),
+    bus.on('frame:copy', () => {
+      const active = activeFrame();
+      if (active) setSession({ clipboard: { pose: active.pose, rootPosition: active.rootPosition } });
+    }),
+    bus.on('animation:onion-skin:change', ({ enabled }) => setSession({ onionSkin: enabled })),
     bus.on('node:select', ({ nodeId }) => setSession({ selectedNodeId: nodeId })),
     bus.on('playback:play', () => setSession({ isPlaying: true })),
     bus.on('playback:pause', () => setSession({ isPlaying: false })),

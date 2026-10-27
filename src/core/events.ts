@@ -27,10 +27,21 @@ export interface AppEvents {
 
   'playback:play': void;
   'playback:pause': void;
+  /** Arrête la lecture et revient à la frame où elle avait commencé. */
+  'playback:stop': void;
+  /** Le lecteur avance la tête de lecture (émis en continu pendant la lecture). */
+  'playback:frame': { index: number };
   'playback:speed:change': { speed: PlaybackSpeed };
 
   'frame:select': { index: number };
+  /** Insère une copie de la frame active juste après elle. */
   'frame:add': void;
+  /** Supprime la frame active (jamais la dernière). */
+  'frame:delete': void;
+  /** Copie la pose de la frame active dans le presse-papiers de la Session. */
+  'frame:copy': void;
+  /** Colle la pose copiée sur la frame active. */
+  'frame:paste': void;
   /** Nouvelle pose d'une frame (désignée par son id) ; une frame générée devient image clé. */
   'frame:pose:change': { frameId: string; pose: Record<string, number>; rootPosition: Vec2 };
 
@@ -52,6 +63,7 @@ export interface AppEvents {
   'ai:loop:change': Partial<LoopSettings>;
 
   'animation:fps:change': { fps: number };
+  'animation:onion-skin:change': { enabled: boolean };
 
   'export:format:change': { format: ExportFormat };
   'export:request': { format: ExportFormat };

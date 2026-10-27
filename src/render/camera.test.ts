@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Vec2 } from '../core/types';
-import { createCamera, pixelsToWorld, screenToWorld } from './camera';
+import { createCamera, pixelsToWorld, screenToWorld, worldToScreen } from './camera';
 
 /** Applique une matrice 3×3 colonne-major (format WebGL / gl-matrix) à un point 2D. */
 function project(matrix: ArrayLike<number>, p: Vec2): Vec2 {
@@ -85,5 +85,25 @@ describe('pixelsToWorld', () => {
   it('converts a screen distance to world units', () => {
     expect(pixelsToWorld(22, 200, 400)).toBeCloseTo(44, 9);
     expect(pixelsToWorld(22, 800, 400)).toBeCloseTo(11, 9);
+  });
+});
+
+describe('worldToScreen', () => {
+  const viewport = { width: 800, height: 400 };
+
+  it('maps the world origin to the centre of the viewport', () => {
+    expect(worldToScreen({ x: 0, y: 0 }, viewport, 400)).toEqual({ x: 400, y: 200 });
+  });
+
+  it('is the inverse of screenToWorld', () => {
+    const screen = { x: 123, y: 321 };
+    const back = worldToScreen(screenToWorld(screen, viewport, 400), viewport, 400);
+    expect(back.x).toBeCloseTo(123, 9);
+    expect(back.y).toBeCloseTo(321, 9);
+  });
+
+  it('scales with the viewport height (thumbnails)', () => {
+    // 80 px de haut pour 400 unités : 1 unité = 0,2 px.
+    expect(worldToScreen({ x: 100, y: 100 }, { width: 128, height: 80 }, 400)).toEqual({ x: 84, y: 20 });
   });
 });

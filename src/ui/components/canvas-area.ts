@@ -1,19 +1,22 @@
 import '../styles/components/canvas-area.css';
 
+import type { StagePointer } from '../../core/events';
+import { NUDGE_FINE_STEP, NUDGE_STEP } from '../../interaction';
 import type { Component, ComponentContext } from '../component';
 import { h, ids } from '../dom';
 import { strings } from '../strings';
 
 /**
  * Zone centrale : un `<canvas id="stage">` qui suit la taille de son conteneur
- * en pixels physiques (`devicePixelRatio`). Le rendu WebGL 2 arrive en phase 2 ;
- * il pourra écouter `canvas:resize` pour ajuster son viewport.
+ * en pixels physiques (`devicePixelRatio`). L'UI n'y dessine jamais : elle émet le pointeur
+ * (`stage:pointer:*`) et les touches (`node:*`) ; le rendu et la manipulation s'en chargent.
  */
 export function createCanvasArea({ bus }: ComponentContext): Component {
   const canvas = h('canvas', {
     id: ids.stage,
     class: 'canvas-area__canvas',
-    role: 'img',
+    role: 'application',
+    tabindex: 0,
     'aria-label': strings.stage.canvas,
   });
   const root = h('div', { class: 'canvas-area' }, [canvas]);
@@ -21,6 +24,66 @@ export function createCanvasArea({ bus }: ComponentContext): Component {
   let observer: ResizeObserver | null = null;
   let stopWatchingPixelRatio: (() => void) | null = null;
 
+  // ---------- Pointeur ----------
+  function toStagePointer(event: PointerEvent): StagePointer {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      pointerId: event.pointerId,
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+  }
+
+  canvas.addEventListener('pointerdown', (event) => {
+    // Un seul doigt (ou le bouton principal) manipule la scène.
+    if (!event.isPrimary || event.button !== 0) return;
+    canvas.setPointerCapture(event.pointerId);
+    canvas.classList.add('is-dragging');
+    bus.emit('stage:pointer:down', toStagePointer(event));
+  });
+
+  canvas.addEventListener('pointermove', (event) => {
+    if (canvas.hasPointerCapture(event.pointerId)) bus.emit('stage:pointer:move', toStagePointer(event));
+  });
+
+  const release = (event: PointerEvent): void => {
+    if (!canvas.classList.contains('is-dragging')) return;
+    canvas.classList.remove('is-dragging');
+    bus.emit('stage:pointer:up', toStagePointer(event));
+  };
+  canvas.addEventListener('pointerup', release);
+  canvas.addEventListener('pointercancel', release);
+  canvas.addEventListener('lostpointercapture', release);
+
+  // ---------- Clavier ----------
+  canvas.addEventListener('keydown', (event) => {
+    const step = event.shiftKey ? NUDGE_FINE_STEP : NUDGE_STEP;
+    switch (event.key) {
+      case 'ArrowDown':
+        bus.emit('node:cycle', { direction: 1 });
+        break;
+      case 'ArrowUp':
+        bus.emit('node:cycle', { direction: -1 });
+        break;
+      // y vers le haut : un angle positif tourne dans le sens antihoraire.
+      case 'ArrowLeft':
+        bus.emit('node:nudge', { radians: step });
+        break;
+      case 'ArrowRight':
+        bus.emit('node:nudge', { radians: -step });
+        break;
+      case 'Escape':
+        bus.emit('node:select', { nodeId: null });
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+  });
+
+  // ---------- Taille ----------
   function applySize(width: number, height: number): void {
     const pixelRatio = window.devicePixelRatio || 1;
     if (width === 0 || height === 0) return;

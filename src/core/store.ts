@@ -9,6 +9,8 @@ export interface AppState {
   skeleton: SkeletonNode[];
   frames: Frame[];
   activeFrameIndex: number;
+  /** Nœud sélectionné sur la scène (Session). */
+  selectedNodeId: string | null;
   isPlaying: boolean;
   playbackSpeed: PlaybackSpeed;
   fps: number;
@@ -77,6 +79,7 @@ export function createInitialState(projectName: string, skeleton: SkeletonNode[]
     skeleton,
     frames: [false, false, true, false, false].map(createPlaceholderFrame),
     activeFrameIndex: 0,
+    selectedNodeId: null,
     isPlaying: false,
     playbackSpeed: 1,
     fps: 12,

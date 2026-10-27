@@ -12,6 +12,20 @@ _Avoid_ : document, fichier, animation (pour désigner l'ensemble)
 L'état de travail du moment : frame active, lecture en cours, vitesse de prévisualisation, mode d'édition, format d'export. Elle n'est ni sauvegardée ni annulable.
 _Avoid_ : état d'interface, préférences
 
+## Squelette
+
+**Nœud** :
+Un point articulé du squelette, relié à son parent par un segment de longueur fixe ; on l'anime en le faisant tourner autour du bout de son parent.
+_Avoid_ : os, joint, articulation
+
+**Racine** :
+Le nœud sans parent (le bassin) ; le déplacer déplace toute la figure.
+_Avoid_ : nœud principal, origine
+
+**Poignée** :
+La pastille affichée au bout d'un nœud, que l'on saisit pour le manipuler.
+_Avoid_ : point de contrôle, handle
+
 ## Frames
 
 **Frame** :

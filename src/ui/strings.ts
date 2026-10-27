@@ -83,7 +83,9 @@ export const strings = {
   },
 
   stage: {
-    canvas: "Canvas d'animation",
+    canvas:
+      "Scène d'animation. Flèches haut et bas : choisir un nœud. " +
+      'Flèches gauche et droite : le faire tourner (Maj : rotation fine). Échap : désélectionner.',
   },
 
   timeline: {

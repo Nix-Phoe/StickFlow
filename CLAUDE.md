@@ -172,6 +172,16 @@ src/render/stickman-view.ts  # Relie store / bus / thème au rendu (à la demand
 src/render/shaders/capsule.{vert,frag}.glsl   # Capsules remplies par champ de distance
 src/**/*.test.ts             # Tests Vitest, à côté du fichier testé
 ```
+
+Fichiers ajoutés en phase 3 (manipulation des nœuds) :
+```
+src/model/angle.ts                     # normalizeAngle : angles dans (-π, π]
+src/interaction/picking.ts             # pickNode : nœud dont la poignée est sous le pointeur
+src/interaction/node-drag.ts           # startNodeDrag : rotation autour du parent, ou déplacement par la racine
+src/interaction/node-keys.ts           # cycleNode / nudgeNode : sélection et rotation au clavier
+src/interaction/node-manipulation.ts   # Contrôleur sans DOM : stage:pointer:* / node:* → node:select, frame:pose:change
+```
+`render/camera.ts` gagne `screenToWorld` / `pixelsToWorld`, `render/scene.ts` gagne `buildHandles` (poignées), et le rendu dessine des **couches** de couleurs différentes.
 Il n’y a pas de `core/history.ts` : l’historique est interne au module Projet (`src/model/project/`), par instantanés (voir `docs/adr/0001-historique-par-instantanes.md`).
 
 ### 5.2 Règles d'architecture
@@ -186,6 +196,8 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 - Les composants reçoivent `{ bus, store }` par injection et ne s'importent jamais entre eux ; ils peuvent utiliser les primitives de `ui/controls/`.
 - **Repère du monde** : origine au centre de la scène, y vers le haut, angles en radians (0 = vers +x). La caméra montre une hauteur fixe de monde ; la largeur suit le rapport d'aspect.
 - **Rendu** : `main.ts` passe le canvas `#stage` à `connectStickmanView`. Le rendu lit la taille au moment de dessiner (`canvas.width`/`height`), redessine tout de suite sur `canvas:resize` (évite un clignotement) et à la demande sinon. Les couleurs lues par WebGL viennent des tokens CSS et doivent rester en **hexadécimal** (ex. `--color-stickman`).
+- **Manipulation** : `CanvasArea` émet le pointeur brut (`stage:pointer:*`, en pixels CSS avec la taille du canvas) et les touches (`node:cycle`, `node:nudge`, `node:select`) ; `interaction/node-manipulation.ts` fait la sélection et le glisser, et émet `frame:pose:change` (frame désignée par son **id**). Zone de saisie d'une poignée : 22 px CSS de rayon (cible de 44 px). Pas de manipulation pendant la lecture ; les poignées ne s'affichent qu'en mode Personnage.
+- **Règles de manipulation** : glisser un nœud le fait tourner autour du bout de son parent (ses descendants suivent) ; glisser la racine déplace toute la figure ; modifier une frame générée la convertit en image clé. Clavier sur le canvas : ↑ / ↓ choisir un nœud, ← / → tourner de 5° (Maj : 1°), Échap désélectionner.
 - Le panneau gauche devient un tiroir sous **900 px** de large (`DRAWER_MEDIA_QUERY` dans `ui/dom.ts`, dupliqué dans les CSS car les variables CSS sont interdites dans les media queries).
 
 ### 5.2 bis Événements du bus (`AppEvents` dans `core/events.ts`)
@@ -205,6 +217,11 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 | `export:request` | `{ format }` |
 | `ui:drawer:toggle` | `{ open }` |
 | `canvas:resize` | `{ width, height, pixelRatio }` (pixels physiques du canvas) |
+| `stage:pointer:down` / `move` / `up` | `{ pointerId, x, y, width, height }` (pixels CSS) |
+| `node:select` | `{ nodeId: string \| null }` |
+| `node:cycle` | `{ direction: 1 \| -1 }` |
+| `node:nudge` | `{ radians }` |
+| `frame:pose:change` | `{ frameId, pose, rootPosition }` |
 
 La vitesse de prévisualisation comprend **x1** (vitesse normale) en plus de x2 / x5 / x10, pour qu'une valeur soit toujours sélectionnée.
 
@@ -258,8 +275,8 @@ Décisions du module Projet (revue d'architecture, candidat 1, en cours d'implé
 
 1. **Phase 1 — Interface HTML/CSS** : coquille de l'app selon la maquette, composants, tokens, bus d'événements. Aucune logique d'animation.
 2. **Phase 2 — Rendu WebGL 2** : contexte, shaders, affichage d'un stickman fixe. ✅
-   - Ensuite : chantier du module Projet (décisions en 5.3), avant la phase 3.
-3. **Phase 3 — Manipulation** : sélection et rotation des nœuds au toucher / à la souris.
+3. **Phase 3 — Manipulation** : sélection et rotation des nœuds au toucher / à la souris. ✅
+   - Ensuite : chantier du module Projet (décisions en 5.3), avant la phase 4.
 4. **Phase 4 — Animation** : frames, timeline fonctionnelle, lecture, pelure d'oignon, annuler / rétablir.
 5. **Phase 5 — Fluidité et Répétition (V1)** : splines + easing, boucle intelligente.
 6. **Phase 6 — Sauvegarde et export** : IndexedDB, GIF / PNG / MP4.

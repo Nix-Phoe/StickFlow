@@ -24,6 +24,14 @@ export function connectIntents(bus: AppEventBus, store: Store): () => void {
       })),
     ),
 
+    // Modifier une frame générée la convertit en image clé (l'IA ne la régénérera plus).
+    bus.on('frame:pose:change', ({ frameId, pose, rootPosition }) =>
+      store.update((s) => ({
+        frames: s.frames.map((f) => (f.id === frameId ? { ...f, pose, rootPosition, generated: false } : f)),
+      })),
+    ),
+    bus.on('node:select', ({ nodeId }) => store.update({ selectedNodeId: nodeId })),
+
     bus.on('editor:mode:change', ({ mode }) => store.update({ editorMode: mode })),
 
     bus.on('ai:smoothing:change', (changes) =>

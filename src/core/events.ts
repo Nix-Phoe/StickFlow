@@ -4,7 +4,17 @@ import type {
   LoopSettings,
   PlaybackSpeed,
   SmoothingSettings,
+  Vec2,
 } from './types';
+
+/** Pointeur sur la scène, en pixels CSS depuis le coin haut-gauche du canvas, avec sa taille. */
+export interface StagePointer {
+  pointerId: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 /**
  * Catalogue des événements de l'application et de leur payload.
@@ -21,6 +31,19 @@ export interface AppEvents {
 
   'frame:select': { index: number };
   'frame:add': void;
+  /** Nouvelle pose d'une frame (désignée par son id) ; une frame générée devient image clé. */
+  'frame:pose:change': { frameId: string; pose: Record<string, number>; rootPosition: Vec2 };
+
+  'stage:pointer:down': StagePointer;
+  'stage:pointer:move': StagePointer;
+  /** Relâchement ou annulation du pointeur. */
+  'stage:pointer:up': StagePointer;
+
+  'node:select': { nodeId: string | null };
+  /** Sélectionne le nœud suivant (1) ou précédent (-1). */
+  'node:cycle': { direction: 1 | -1 };
+  /** Tourne le nœud sélectionné. */
+  'node:nudge': { radians: number };
 
   'project:save': void;
   'editor:mode:change': { mode: EditorMode };

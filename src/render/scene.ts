@@ -54,3 +54,45 @@ export function packCapsules(capsules: readonly Capsule[]): Float32Array {
   });
   return data;
 }
+
+/** Tailles des poignées des nœuds, en unités du monde. */
+export interface HandleStyle {
+  jointRadius: number;
+  rootRadius: number;
+  selectedRadius: number;
+  haloRadius: number;
+}
+
+export const DEFAULT_HANDLE_STYLE: HandleStyle = { jointRadius: 4.5, rootRadius: 7, selectedRadius: 7, haloRadius: 14 };
+
+/** Poignées regroupées par couche de dessin (le halo passe sous le stickman, le reste dessus). */
+export interface HandleLayers {
+  halo: Capsule[];
+  joints: Capsule[];
+  root: Capsule[];
+  selected: Capsule[];
+}
+
+/** Une poignée au bout de chaque nœud ; la racine et le nœud sélectionné sont mis en évidence. */
+export function buildHandles(
+  skeleton: readonly SkeletonNode[],
+  posed: readonly PosedNode[],
+  selectedNodeId: string | null,
+  style: HandleStyle,
+): HandleLayers {
+  const disc = (center: Vec2, radius: number): Capsule => ({ a: center, b: center, radius });
+  const byId = new Map(posed.map((p) => [p.id, p]));
+  const layers: HandleLayers = { halo: [], joints: [], root: [], selected: [] };
+
+  for (const node of skeleton) {
+    const placed = byId.get(node.id);
+    if (!placed) continue;
+    if (node.parentId === null) layers.root.push(disc(placed.end, style.rootRadius));
+    else layers.joints.push(disc(placed.end, style.jointRadius));
+    if (node.id === selectedNodeId) {
+      layers.halo.push(disc(placed.end, style.haloRadius));
+      layers.selected.push(disc(placed.end, style.selectedRadius));
+    }
+  }
+  return layers;
+}

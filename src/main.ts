@@ -7,7 +7,9 @@ import './ui/styles/controls.css';
 
 import { createEventBus } from './core/events';
 import { connectIntents } from './core/intents';
+import type { AppEventName } from './core/events';
 import { createInitialState, Store } from './core/store';
+import { connectNodeManipulation } from './interaction';
 import { createDefaultSkeleton, sortSkeleton } from './model';
 import { connectStickmanView } from './render';
 import type { Component, ComponentContext } from './ui/component';
@@ -24,10 +26,12 @@ if (!root) throw new Error('Élément #app introuvable');
 const bus = createEventBus();
 const store = new Store(createInitialState(strings.defaultProjectName, sortSkeleton(createDefaultSkeleton())));
 connectIntents(bus, store);
+connectNodeManipulation({ bus, store });
 
-// Phase 1 : chaque événement est journalisé pour vérifier le branchement de l'UI.
+// Débogage : chaque événement est journalisé, sauf ceux émis en continu pendant un glisser.
+const QUIET_EVENTS: ReadonlySet<AppEventName> = new Set(['stage:pointer:move', 'frame:pose:change']);
 bus.onAny((type, payload) => {
-  console.info(`[event] ${String(type)}`, payload ?? '');
+  if (!QUIET_EVENTS.has(type as AppEventName)) console.info(`[event] ${String(type)}`, payload ?? '');
 });
 
 const regions = {

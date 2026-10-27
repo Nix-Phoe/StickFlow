@@ -10,14 +10,15 @@ export class WebGLUnavailableError extends Error {
   override name = 'WebGLUnavailableError';
 }
 
-export interface StickmanDrawing {
+/** Un groupe de capsules d'une même couleur. Les couches sont dessinées dans l'ordre. */
+export interface DrawLayer {
   capsules: readonly Capsule[];
   color: Rgba;
 }
 
 export interface StageRenderer {
-  /** Dessine à la taille actuelle du canvas (`canvas.width` × `canvas.height`). */
-  draw(drawing: StickmanDrawing): void;
+  /** Dessine les couches à la taille actuelle du canvas (`canvas.width` × `canvas.height`). */
+  draw(layers: readonly DrawLayer[]): void;
   destroy(): void;
 }
 
@@ -67,14 +68,13 @@ export function createStageRenderer(canvas: HTMLCanvasElement, options: StageRen
   canvas.addEventListener('webglcontextrestored', onRestored);
 
   return {
-    draw({ capsules, color }) {
+    draw(layers) {
       const { width, height } = canvas;
       if (!resources || width === 0 || height === 0) return;
 
       gl.viewport(0, 0, width, height);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
-      if (capsules.length === 0) return;
 
       const camera = createCamera({ width, height }, STAGE_WORLD_HEIGHT);
       const { program, vertexArray, instanceBuffer, uniforms } = resources;
@@ -82,15 +82,18 @@ export function createStageRenderer(canvas: HTMLCanvasElement, options: StageRen
       gl.useProgram(program);
       gl.uniformMatrix3fv(uniforms.viewProjection, false, camera.viewProjection);
       gl.uniform1f(uniforms.pixelsPerUnit, camera.pixelsPerUnit);
-      gl.uniform4fv(uniforms.color, color);
-
-      gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, packCapsules(capsules), gl.DYNAMIC_DRAW);
-
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.bindVertexArray(vertexArray);
-      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, capsules.length);
+      gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
+
+      for (const { capsules, color } of layers) {
+        if (capsules.length === 0) continue;
+        gl.uniform4fv(uniforms.color, color);
+        gl.bufferData(gl.ARRAY_BUFFER, packCapsules(capsules), gl.DYNAMIC_DRAW);
+        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, capsules.length);
+      }
+
       gl.bindVertexArray(null);
     },
     destroy() {

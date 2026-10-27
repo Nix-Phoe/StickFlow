@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { SkeletonNode } from '../core/types';
 import type { PosedNode } from '../model/kinematics';
-import { buildCapsules, FLOATS_PER_CAPSULE, packCapsules, type Capsule } from './scene';
+import { buildCapsules, buildHandles, FLOATS_PER_CAPSULE, packCapsules, type Capsule } from './scene';
 
 const style = { strokeWidth: 8 };
 
@@ -60,5 +60,39 @@ describe('packCapsules', () => {
 
   it('returns an empty buffer for no capsules', () => {
     expect(packCapsules([])).toHaveLength(0);
+  });
+});
+
+describe('buildHandles', () => {
+  const handleStyle = { jointRadius: 4, rootRadius: 7, selectedRadius: 6, haloRadius: 12 };
+
+  it('puts a joint handle at the end of every non-root node', () => {
+    const { joints } = buildHandles(skeleton, posed, null, handleStyle);
+    expect(joints).toEqual([
+      { a: { x: 0, y: 10 }, b: { x: 0, y: 10 }, radius: 4 },
+      { a: { x: 0, y: 16 }, b: { x: 0, y: 16 }, radius: 4 },
+    ]);
+  });
+
+  it('marks the root with a larger handle of its own', () => {
+    expect(buildHandles(skeleton, posed, null, handleStyle).root).toEqual([
+      { a: { x: 0, y: 0 }, b: { x: 0, y: 0 }, radius: 7 },
+    ]);
+  });
+
+  it('draws no selection when nothing is selected', () => {
+    const { selected, halo } = buildHandles(skeleton, posed, null, handleStyle);
+    expect(selected).toEqual([]);
+    expect(halo).toEqual([]);
+  });
+
+  it('highlights the selected node with a bigger handle and a halo', () => {
+    const { selected, halo } = buildHandles(skeleton, posed, 'body', handleStyle);
+    expect(selected).toEqual([{ a: { x: 0, y: 10 }, b: { x: 0, y: 10 }, radius: 6 }]);
+    expect(halo).toEqual([{ a: { x: 0, y: 10 }, b: { x: 0, y: 10 }, radius: 12 }]);
+  });
+
+  it('ignores a selection that is not in the pose', () => {
+    expect(buildHandles(skeleton, posed, 'ghost', handleStyle).selected).toEqual([]);
   });
 });

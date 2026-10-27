@@ -30,7 +30,18 @@
   display: block;
   width: 100%;
   height: 100%;
+  border-radius: inherit;
+  cursor: crosshair;
   touch-action: none;
+}
+
+.canvas-area__canvas.is-dragging {
+  cursor: grabbing;
+}
+
+/* Le conteneur coupe ce qui dépasse : l'anneau de focus est dessiné à l'intérieur. */
+.canvas-area__canvas:focus-visible {
+  outline-offset: calc(-1 * var(--focus-ring-width));
 }
 
 @media (max-height: 500px) {

@@ -2,6 +2,8 @@
 
 import { mat3 } from 'gl-matrix';
 
+import type { Vec2 } from '../core/types';
+
 /** Hauteur du monde visible sur la scène, en unités. Le stickman par défaut en mesure ~210. */
 export const STAGE_WORLD_HEIGHT = 400;
 
@@ -31,4 +33,21 @@ export function createCamera(viewport: Viewport, worldHeight: number): Camera {
   const viewProjection = new Float32Array(9);
   mat3.fromScaling(viewProjection, [2 / worldWidth, 2 / worldHeight]);
   return { viewProjection, pixelsPerUnit };
+}
+
+/**
+ * Point de l'écran → point du monde. `point` et `viewport` doivent être dans la même unité
+ * (pixels CSS ou physiques), avec l'origine en haut à gauche du canvas.
+ */
+export function screenToWorld(point: Vec2, viewport: Viewport, worldHeight: number): Vec2 {
+  const unitsPerPixel = worldHeight / viewport.height;
+  return {
+    x: (point.x - viewport.width / 2) * unitsPerPixel,
+    y: (viewport.height / 2 - point.y) * unitsPerPixel,
+  };
+}
+
+/** Distance à l'écran → distance dans le monde (ex. rayon de la zone tactile d'une poignée). */
+export function pixelsToWorld(pixels: number, viewportHeight: number, worldHeight: number): number {
+  return (pixels * worldHeight) / viewportHeight;
 }

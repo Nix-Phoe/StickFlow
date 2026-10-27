@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Vec2 } from '../core/types';
-import { createCamera } from './camera';
+import { createCamera, pixelsToWorld, screenToWorld } from './camera';
 
 /** Applique une matrice 3×3 colonne-major (format WebGL / gl-matrix) à un point 2D. */
 function project(matrix: ArrayLike<number>, p: Vec2): Vec2 {
@@ -46,5 +46,44 @@ describe('createCamera', () => {
 
   it('rejects a non-positive world height', () => {
     expect(() => createCamera({ width: 800, height: 800 }, 0)).toThrow(RangeError);
+  });
+});
+
+describe('screenToWorld', () => {
+  // 800 × 400 px pour 400 unités de haut : 1 px = 1 unité, origine du monde en (400, 200).
+  const viewport = { width: 800, height: 400 };
+
+  it('maps the centre of the viewport to the world origin', () => {
+    const p = screenToWorld({ x: 400, y: 200 }, viewport, 400);
+    expect(p.x).toBeCloseTo(0, 9);
+    expect(p.y).toBeCloseTo(0, 9);
+  });
+
+  it('flips y: screen y grows downwards, world y upwards', () => {
+    expect(screenToWorld({ x: 400, y: 0 }, viewport, 400).y).toBeCloseTo(200, 9);
+    expect(screenToWorld({ x: 400, y: 400 }, viewport, 400).y).toBeCloseTo(-200, 9);
+  });
+
+  it('maps the left edge to minus half the world width', () => {
+    expect(screenToWorld({ x: 0, y: 200 }, viewport, 400).x).toBeCloseTo(-400, 9);
+  });
+
+  it('scales with the viewport height', () => {
+    // 200 px pour 400 unités : 1 px = 2 unités.
+    expect(screenToWorld({ x: 0, y: 0 }, { width: 400, height: 200 }, 400)).toEqual({ x: -400, y: 200 });
+  });
+
+  it('is the inverse of the view-projection', () => {
+    const world = screenToWorld({ x: 600, y: 100 }, viewport, 400);
+    const clip = project(createCamera(viewport, 400).viewProjection, world);
+    expect(clip.x).toBeCloseTo(0.5, 6);
+    expect(clip.y).toBeCloseTo(0.5, 6);
+  });
+});
+
+describe('pixelsToWorld', () => {
+  it('converts a screen distance to world units', () => {
+    expect(pixelsToWorld(22, 200, 400)).toBeCloseTo(44, 9);
+    expect(pixelsToWorld(22, 800, 400)).toBeCloseTo(11, 9);
   });
 });

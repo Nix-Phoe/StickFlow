@@ -57,10 +57,14 @@ describe('connectPlayer', () => {
     expect(active()).toBe(1);
   });
 
-  it('loops back to the first frame after the last one', () => {
+  it('loops back to the first frame after the last one when the Répétition is infinite', () => {
     const { bus, clock, active } = setup();
+    // Répétition infinie, 1 frame de transition : la séquence fait 6 frames.
+    bus.emit('ai:loop:change', { enabled: true, infinite: true, transitionFrames: 1 });
     bus.emit('frame:select', { index: 4 });
     bus.emit('playback:play');
+    clock.advance(100);
+    expect(active()).toBe(5);
     clock.advance(100);
     expect(active()).toBe(0);
   });
@@ -116,5 +120,39 @@ describe('connectPlayer', () => {
     bus.emit('playback:play');
     clock.advance(300);
     expect(store.state.project).toBe(before);
+  });
+});
+
+describe('connectPlayer: Répétition', () => {
+  it('plays once and stops on the last frame when the Répétition is off', () => {
+    const { bus, store, clock, active } = setup();
+    bus.emit('frame:select', { index: 3 });
+    bus.emit('playback:play');
+    clock.advance(100);
+    clock.advance(100);
+    expect(active()).toBe(4);
+    expect(store.state.session.isPlaying).toBe(false);
+    expect(clock.pendingCount()).toBe(0);
+  });
+
+  it('plays the sequence the requested number of times', () => {
+    const { bus, store, clock, active } = setup();
+    // 2 passages, 1 frame de transition : 6 frames par passage.
+    bus.emit('ai:loop:change', { enabled: true, infinite: false, repeatCount: 2, transitionFrames: 1 });
+    bus.emit('playback:play');
+    for (let i = 0; i < 11; i += 1) clock.advance(100);
+    expect(active()).toBe(5);
+    expect(store.state.session.isPlaying).toBe(true);
+    clock.advance(100);
+    expect(store.state.session.isPlaying).toBe(false);
+    expect(active()).toBe(5);
+  });
+
+  it('starts over from the first frame when play is pressed at the end', () => {
+    const { bus, clock, active } = setup();
+    bus.emit('frame:select', { index: 4 });
+    bus.emit('playback:play');
+    clock.advance(100);
+    expect(active()).toBe(1);
   });
 });

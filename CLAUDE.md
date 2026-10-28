@@ -35,7 +35,7 @@ Inspiré des écrans de Stick Nodes :
 ### 2.2 Fonctionnalités IA (phase initiale : 2 seulement)
 1. **Fluidité** — génère automatiquement des frames intermédiaires entre les images clés de l'utilisateur (ex. 3 frames → mouvement fluide).
    - Réglages : activé / désactivé, intensité (nombre de frames intermédiaires), type de courbe (linéaire, douce, accélération / décélération).
-   - V1 : interpolation par splines (Catmull-Rom) + easing sur les angles des nœuds. V2 : modèle d'IA de *motion in-betweening*.
+   - V1 (réalisée) : courbe **Linéaire** = droite entre deux images clés ; **Douce** = spline Catmull-Rom passant par les images clés (tient compte des voisines, mouvement continu) ; **Accélération / décélération** = même spline, rythme ralenti près des images clés (ease-in-out cubique). Angles toujours par le plus court chemin. V2 : modèle d'IA de *motion in-betweening*.
 2. **Répétition (boucle intelligente)** — rend l'animation répétable en générant une transition fluide de la dernière frame vers la première.
    - Réglages : activé / désactivé, nombre de répétitions ou boucle infinie, durée de la transition.
 
@@ -189,7 +189,8 @@ src/animation/playback.ts     # frameDuration / advancePlayhead : horloge de lec
 src/animation/player.ts       # connectPlayer : avance la tête de lecture tant que la Session lit (planificateur et horloge injectables)
 src/animation/onion-skin.ts   # onionSkinFrame : frame précédente, hors lecture
 src/render/thumbnail.ts       # paintThumbnail : vignette Canvas 2D d'une frame (même cadrage vertical que la scène)
-src/model/sequence.ts         # deriveSequence : images clés + frames générées (candidat 2)
+src/model/sequence.ts         # deriveSequence : images clés + frames générées + transition de Répétition (candidat 2, phase 5)
+src/model/interpolation.ts    # interpolateKeyframes : linéaire / Catmull-Rom / ease-in-out (phase 5)
 src/core/selectors.ts         # sequenceOf / activeFrame : lectures dérivées de l'état
 ```
 `render/camera.ts` gagne `worldToScreen`. La Session gagne `onionSkin` et `clipboard` (pose copiée).
@@ -209,7 +210,7 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 - **Rendu** : `main.ts` passe le canvas `#stage` à `connectStickmanView`. Le rendu lit la taille au moment de dessiner (`canvas.width`/`height`), redessine tout de suite sur `canvas:resize` (évite un clignotement) et à la demande sinon. Les couleurs lues par WebGL viennent des tokens CSS et doivent rester en **hexadécimal** (ex. `--color-stickman`).
 - **Manipulation** : `CanvasArea` émet le pointeur brut (`stage:pointer:*`, en pixels CSS avec la taille du canvas) et les touches (`node:cycle`, `node:nudge`, `node:select`) ; `interaction/node-manipulation.ts` fait la sélection et le glisser, et émet `frame:pose:change` (frame désignée par son **id**). Zone de saisie d'une poignée : 22 px CSS de rayon (cible de 44 px). Pas de manipulation pendant la lecture ; les poignées ne s'affichent qu'en mode Personnage.
 - **Règles de manipulation** : glisser un nœud le fait tourner autour du bout de son parent (ses descendants suivent) ; glisser la racine déplace toute la figure ; modifier une frame générée (glisser, coller, « + ») la convertit en nouvelle image clé entre ses voisines, qui devient la frame active. Clavier sur le canvas : ↑ / ↓ choisir un nœud, ← / → tourner de 5° (Maj : 1°), Échap désélectionner.
-- **Lecture** : boucle sur toutes les frames au rythme IPS × vitesse ; un saut de plus de 250 ms (onglet masqué) est plafonné. Pause garde la frame courante ; **Stop** revient à la frame active au lancement. Espace bascule lecture / pause (y compris sur les boutons de lecture, pas sur les autres boutons ni dans un champ). La lecture ne touche jamais au Projet (`playback:frame` met à jour la Session).
+- **Lecture** : parcourt la séquence au rythme IPS × vitesse, autant de fois que la Répétition l'indique (coupée : une fois puis arrêt sur la dernière frame ; « Infini » : en boucle ; sinon N passages). Lancée depuis la dernière frame, elle repart du début ; un saut de plus de 250 ms (onglet masqué) est plafonné. Pause garde la frame courante ; **Stop** revient à la frame active au lancement. Espace bascule lecture / pause (y compris sur les boutons de lecture, pas sur les autres boutons ni dans un champ). La lecture ne touche jamais au Projet (`playback:frame` met à jour la Session).
 - **Frames** : « + » insère une copie de la frame active juste après elle (c'est aussi « dupliquer ») ; Supprimer (bouton ou Suppr sur une vignette) retire l'image clé active, jamais la dernière, et ne s'applique pas à une frame générée ; Copier / Coller la pose passe par la Session, et coller est annulable. Vignettes : conservées par id de frame, seule celle qui change est repeinte ; frames générées dessinées en couleur d'accent.
 - **Pelure d'oignon** : frame précédente en transparence sous la frame active, réglable dans la section Animation, masquée pendant la lecture.
 - Le panneau gauche devient un tiroir sous **900 px** de large (`DRAWER_MEDIA_QUERY` dans `ui/dom.ts`, dupliqué dans les CSS car les variables CSS sont interdites dans les media queries).
@@ -271,7 +272,7 @@ interface Project {
 }
 ```
 
-**Séquence dérivée** (revue d'architecture, candidat 2, **réalisé** — ADR 0002) : `model/sequence.ts` calcule `deriveSequence(project)` = images clés + frames générées (`SequenceFrame`, `kind: 'keyframe' | 'generated'`, avec `from`, `to`, `step`). Pur et mémoïsé : même tableau tant que images clés, squelette et Fluidité sont inchangés, et mêmes objets pour les segments intacts (vignettes non repeintes). Interpolation V1 linéaire (angles par le plus court chemin, position de la racine) ; la courbe n'a pas encore d'effet (phase 5). La Session désigne la frame active par son **id** (`activeFrameId`) ; `core/selectors.ts` fournit `sequenceOf(state)` et `activeFrame(state)` (frame + position). Les événements gardent des **positions** dans la séquence (`frame:select`, `playback:frame`) ; `intents.ts` les traduit en id.
+**Séquence dérivée** (revue d'architecture, candidat 2, **réalisé** — ADR 0002) : `model/sequence.ts` calcule `deriveSequence(project)` = images clés + frames générées (`SequenceFrame`, `kind: 'keyframe' | 'generated'`, avec `from`, `to`, `step`). Pur et mémoïsé : même tableau tant que images clés, squelette et Fluidité sont inchangés, et mêmes objets pour les segments intacts (vignettes non repeintes). Interpolation par `model/interpolation.ts` selon la courbe (voir 2.2). Avec la Répétition (et au moins 2 images clés), la séquence est une **boucle** : `transitionFrames` frames générées suivent la dernière image clé pour revenir à la première, et la spline prend ses voisines en boucle ; la transition suit la courbe de la Fluidité, ou la courbe Douce si la Fluidité est coupée. Les segments sont mis en cache par image clé de départ ; en Linéaire, seules les deux images clés du segment comptent, sinon aussi leurs voisines. La Session désigne la frame active par son **id** (`activeFrameId`) ; `core/selectors.ts` fournit `sequenceOf(state)` et `activeFrame(state)` (frame + position). Les événements gardent des **positions** dans la séquence (`frame:select`, `playback:frame`) ; `intents.ts` les traduit en id.
 
 Module Projet (revue d'architecture, candidat 1, **réalisé**) — `src/model/project/` (`changes.ts` : changements nommés et invariants, `history.ts` : historique), `src/core/session.ts`, store `{ project: ProjectHistory, session: Session }` :
 - Le **Projet** (nom, IPS, squelette, frames, réglages IA) est séparé de la **Session** (frame active, lecture, vitesse, mode, tiroir, format d'export). Voir `GLOSSARY.md`.
@@ -300,7 +301,7 @@ Module Projet (revue d'architecture, candidat 1, **réalisé**) — `src/model/p
    - Puis : module Projet (candidat 1 de la revue d'architecture, voir 5.3). ✅
 4. **Phase 4 — Animation** : frames, timeline fonctionnelle, lecture, pelure d'oignon, annuler / rétablir. ✅
    - Puis : séquence dérivée (candidat 2, ADR 0002). ✅
-5. **Phase 5 — Fluidité et Répétition (V1)** : splines + easing, boucle intelligente.
+5. **Phase 5 — Fluidité et Répétition (V1)** : splines + easing, boucle intelligente. ✅
 6. **Phase 6 — Sauvegarde et export** : IndexedDB, GIF / PNG / MP4.
 7. **Phase 7 — PWA et Android** : `vite-plugin-pwa`, Capacitor, test fermé Google Play.
 8. **Phase 8 — IA avancée** : modèle de *motion in-betweening*, effets prédéfinis, prompt.

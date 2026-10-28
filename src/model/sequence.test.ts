@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Keyframe, Project, SkeletonNode, SmoothingSettings } from '../core/types';
+import type { Keyframe, LoopSettings, Project, SkeletonNode, SmoothingSettings } from '../core/types';
+import { catmullRom } from './interpolation';
 import { deriveSequence } from './sequence';
 
 const skeleton: SkeletonNode[] = [
@@ -14,7 +15,11 @@ const key = (id: string, pose: Record<string, number> = {}, x = 0): Keyframe => 
   rootPosition: { x, y: 0 },
 });
 
-function project(keyframes: Keyframe[], smoothing: Partial<SmoothingSettings> = {}): Project {
+function project(
+  keyframes: Keyframe[],
+  smoothing: Partial<SmoothingSettings> = {},
+  loop: Partial<LoopSettings> = {},
+): Project {
   return {
     name: 'Test',
     fps: 12,
@@ -22,7 +27,7 @@ function project(keyframes: Keyframe[], smoothing: Partial<SmoothingSettings> = 
     keyframes,
     ai: {
       smoothing: { enabled: true, intensity: 3, curve: 'linear', ...smoothing },
-      loop: { enabled: false, repeatCount: 3, infinite: false, transitionFrames: 4 },
+      loop: { enabled: false, repeatCount: 3, infinite: false, transitionFrames: 4, ...loop },
     },
   };
 }
@@ -128,5 +133,81 @@ describe('deriveSequence: non destructif et mémoïsé', () => {
     // Le segment a → b est intact : mêmes objets, donc pas de vignette à repeindre.
     expect(after.slice(0, 5)).toEqual(before.slice(0, 5));
     after.slice(0, 5).forEach((frame, i) => expect(frame).toBe(before[i]));
+  });
+});
+
+describe('deriveSequence: courbes', () => {
+  it('follows the spline through neighbouring keyframes with the smooth curve', () => {
+    // arm : 0, 1, 0. Entre a et b, la spline tient compte de c (après b) et de a répété (avant a).
+    const sequence = deriveSequence(
+      project([key('a', { arm: 0 }), key('b', { arm: 1 }), key('c', { arm: 0 })], { intensity: 1, curve: 'smooth' }),
+    );
+    expect(sequence[1]?.pose.arm).toBeCloseTo(catmullRom(0, 0, 1, 0, 0.5), 9);
+  });
+
+  it('changes the generated frames when the curve changes', () => {
+    const keyframes = [key('a', { arm: 0 }), key('b', { arm: 1 })];
+    const linear = deriveSequence(project(keyframes, { curve: 'linear' }))[1]?.pose.arm;
+    const eased = deriveSequence(project(keyframes, { curve: 'ease-in-out' }))[1]?.pose.arm;
+    expect(eased).not.toBeCloseTo(linear ?? 0, 3);
+  });
+});
+
+describe('deriveSequence: Répétition', () => {
+  const keyframes = [key('a', { arm: 0 }), key('b', { arm: 1 })];
+
+  it('adds no transition when the loop is off', () => {
+    expect(kinds(project(keyframes, { enabled: false }))).toEqual(['keyframe', 'keyframe']);
+  });
+
+  it('adds `transitionFrames` generated frames from the last keyframe back to the first', () => {
+    const sequence = deriveSequence(project(keyframes, { enabled: false }, { enabled: true, transitionFrames: 2 }));
+    expect(sequence.map((f) => f.kind)).toEqual(['keyframe', 'keyframe', 'generated', 'generated']);
+    expect(sequence[2]).toMatchObject({ from: 'b', to: 'a', step: 1 });
+    expect(sequence[3]).toMatchObject({ from: 'b', to: 'a', step: 2 });
+  });
+
+  it('comes after the smoothing frames of the last segment', () => {
+    expect(kinds(project(keyframes, { intensity: 1 }, { enabled: true, transitionFrames: 1 }))).toEqual([
+      'keyframe',
+      'generated',
+      'keyframe',
+      'generated',
+    ]);
+  });
+
+  it('gives transition frames their own ids', () => {
+    const ids = deriveSequence(project(keyframes, { intensity: 2 }, { enabled: true })).map((f) => f.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('adds no transition to a single keyframe', () => {
+    expect(kinds(project([key('a')], {}, { enabled: true }))).toEqual(['keyframe']);
+  });
+
+  it('brings the pose back towards the first keyframe', () => {
+    const sequence = deriveSequence(project(keyframes, { enabled: false, curve: 'linear' }, { enabled: true, transitionFrames: 1 }));
+    expect(sequence[2]?.pose.arm).toBeCloseTo(0.5, 9);
+  });
+
+  it('treats the animation as a loop for the spline (the first keyframe follows the last)', () => {
+    // a → b avec la boucle : avant a vient b, après b vient a.
+    const sequence = deriveSequence(
+      project([key('a', { arm: 0 }), key('b', { arm: 1 })], { intensity: 1, curve: 'smooth' }, { enabled: true, transitionFrames: 1 }),
+    );
+    expect(sequence[1]?.pose.arm).toBeCloseTo(catmullRom(1, 0, 1, 0, 0.5), 9);
+  });
+
+  it('uses the smooth curve for the transition when smoothing is off', () => {
+    const three = [key('a', { arm: 0 }), key('b', { arm: 1 }), key('c', { arm: 2 })];
+    const sequence = deriveSequence(project(three, { enabled: false, curve: 'linear' }, { enabled: true, transitionFrames: 1 }));
+    // Transition c → a, voisins en boucle : b avant c, b après a.
+    expect(sequence[3]?.pose.arm).toBeCloseTo(catmullRom(1, 2, 0, 1, 0.5), 9);
+  });
+
+  it('recomputes the sequence when the loop settings change', () => {
+    const p = project(keyframes);
+    const longer = { ...p, ai: { ...p.ai, loop: { ...p.ai.loop, enabled: true } } };
+    expect(deriveSequence(longer)).not.toBe(deriveSequence(p));
   });
 });

@@ -74,7 +74,7 @@ _Avoid_ : lissage, interpolation (pour désigner la fonctionnalité)
 Le nombre de frames générées par la Fluidité entre deux images clés consécutives.
 
 **Courbe** :
-La façon dont le mouvement accélère ou ralentit entre deux images clés : linéaire, douce, ou accélération / décélération.
+La façon dont la Fluidité relie les images clés : linéaire (en ligne droite), douce (un mouvement continu qui passe par toutes les images clés) ou accélération / décélération (le même mouvement, ralenti près de chaque image clé).
 _Avoid_ : easing (dans l'interface)
 
 **Répétition** :

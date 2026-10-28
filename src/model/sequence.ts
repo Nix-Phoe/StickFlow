@@ -1,9 +1,10 @@
-// Séquence affichée et jouée : les images clés, et entre elles les frames générées par la
-// Fluidité. Dérivée, jamais enregistrée (ADR 0002) : les images clés restent intactes.
+// Séquence affichée et jouée : les images clés, entre elles les frames générées par la
+// Fluidité, et après la dernière la transition de Répétition vers la première.
+// Dérivée, jamais enregistrée (ADR 0002) : les images clés restent intactes.
 // Pur et mémoïsé : tant que ses entrées ne changent pas, chaque frame garde le même objet.
 
-import type { Keyframe, Project, SkeletonNode, Vec2 } from '../core/types';
-import { normalizeAngle } from './angle';
+import type { Keyframe, LoopSettings, Project, SkeletonNode, SmoothingCurve, SmoothingSettings, Vec2 } from '../core/types';
+import { interpolateKeyframes, type SegmentNeighbours } from './interpolation';
 
 interface SequenceFrameBase {
   /** Stable : id de l'image clé, ou « de → vers #rang » pour une frame générée. */
@@ -22,34 +23,67 @@ export type SequenceFrame =
       step: number;
     });
 
-/** Calcule la séquence d'un Projet. Même tableau tant que images clés, squelette et Fluidité sont inchangés. */
+let last: {
+  keyframes: readonly Keyframe[];
+  skeleton: readonly SkeletonNode[];
+  smoothing: SmoothingSettings;
+  loop: LoopSettings;
+  sequence: readonly SequenceFrame[];
+} | null = null;
+
+/**
+ * Calcule la séquence d'un Projet. Même tableau tant que images clés, squelette, Fluidité
+ * et Répétition sont inchangés.
+ */
 export function deriveSequence(project: Project): readonly SequenceFrame[] {
   const { keyframes, skeleton } = project;
-  const { smoothing } = project.ai;
-  if (last && last.keyframes === keyframes && last.skeleton === skeleton && last.smoothing === smoothing) {
+  const { smoothing, loop } = project.ai;
+  if (
+    last &&
+    last.keyframes === keyframes &&
+    last.skeleton === skeleton &&
+    last.smoothing === smoothing &&
+    last.loop === loop
+  ) {
     return last.sequence;
   }
+
+  // Avec la Répétition, l'animation est une boucle : la première image clé suit la dernière.
+  const cyclic = loop.enabled && keyframes.length > 1;
+  const neighbour = (index: number): Keyframe => {
+    const wrapped = cyclic
+      ? (index + keyframes.length) % keyframes.length
+      : Math.min(Math.max(index, 0), keyframes.length - 1);
+    const keyframe = keyframes[wrapped];
+    if (!keyframe) throw new Error('Séquence sans image clé');
+    return keyframe;
+  };
+  const neighboursOf = (i: number): SegmentNeighbours => ({
+    before: neighbour(i - 1),
+    from: neighbour(i),
+    to: neighbour(i + 1),
+    after: neighbour(i + 2),
+  });
 
   const between = smoothing.enabled ? smoothing.intensity : 0;
   const sequence: SequenceFrame[] = [];
   keyframes.forEach((keyframe, i) => {
     sequence.push(keyframeFrame(keyframe));
-    const next = keyframes[i + 1];
-    if (next && between > 0) sequence.push(...segment(keyframe, next, between, skeleton));
+    if (i < keyframes.length - 1 && between > 0) {
+      sequence.push(...segment(neighboursOf(i), between, smoothing.curve, skeleton));
+    }
   });
+  if (cyclic) {
+    // La transition suit la courbe de la Fluidité, ou une courbe douce si la Fluidité est coupée.
+    const curve = smoothing.enabled ? smoothing.curve : 'smooth';
+    sequence.push(...segment(neighboursOf(keyframes.length - 1), loop.transitionFrames, curve, skeleton));
+  }
 
-  last = { keyframes, skeleton, smoothing, sequence };
+  last = { keyframes, skeleton, smoothing, loop, sequence };
   return sequence;
 }
 
-// ---------- Mémoïsation ----------
-
-let last: {
-  keyframes: readonly Keyframe[];
-  skeleton: readonly SkeletonNode[];
-  smoothing: Project['ai']['smoothing'];
-  sequence: readonly SequenceFrame[];
-} | null = null;
+// ---------- Mémoïsation par image clé et par segment ----------
 
 const keyframeFrames = new WeakMap<Keyframe, SequenceFrame>();
 
@@ -63,54 +97,44 @@ function keyframeFrame(keyframe: Keyframe): SequenceFrame {
 }
 
 interface Segment {
-  to: Keyframe;
-  between: number;
+  neighbours: SegmentNeighbours;
+  count: number;
+  curve: SmoothingCurve;
   skeleton: readonly SkeletonNode[];
   frames: SequenceFrame[];
 }
 
-/** Frames générées entre `from` et `to`, réutilisées si le segment n'a pas changé. */
+/** Frames générées par segment, indexées par leur image clé de départ. */
 const segments = new WeakMap<Keyframe, Segment>();
 
-function segment(from: Keyframe, to: Keyframe, between: number, skeleton: readonly SkeletonNode[]): SequenceFrame[] {
-  const cached = segments.get(from);
-  if (cached && cached.to === to && cached.between === between && cached.skeleton === skeleton) return cached.frames;
-
-  const frames: SequenceFrame[] = [];
-  for (let step = 1; step <= between; step += 1) {
-    const t = step / (between + 1);
-    frames.push({
-      kind: 'generated',
-      id: `${from.id}→${to.id}#${step}`,
-      from: from.id,
-      to: to.id,
-      step,
-      pose: interpolatePose(from, to, t, skeleton),
-      rootPosition: {
-        x: from.rootPosition.x + (to.rootPosition.x - from.rootPosition.x) * t,
-        y: from.rootPosition.y + (to.rootPosition.y - from.rootPosition.y) * t,
-      },
-    });
-  }
-  segments.set(from, { to, between, skeleton, frames });
-  return frames;
+function isReusable(
+  cached: Segment | undefined,
+  n: SegmentNeighbours,
+  count: number,
+  curve: SmoothingCurve,
+  skeleton: readonly SkeletonNode[],
+): cached is Segment {
+  if (!cached || cached.count !== count || cached.curve !== curve || cached.skeleton !== skeleton) return false;
+  if (cached.neighbours.to !== n.to) return false;
+  // En linéaire, seules les deux images clés du segment comptent ; la spline regarde aussi leurs voisines.
+  return curve === 'linear' || (cached.neighbours.before === n.before && cached.neighbours.after === n.after);
 }
 
-// ---------- Interpolation (V1 : linéaire ; courbes et splines en phase 5) ----------
-
-/** Angles interpolés par le plus court chemin ; un nœud posé d'un seul côté part de son angle de repos. */
-function interpolatePose(
-  from: Keyframe,
-  to: Keyframe,
-  t: number,
+function segment(
+  neighbours: SegmentNeighbours,
+  count: number,
+  curve: SmoothingCurve,
   skeleton: readonly SkeletonNode[],
-): Record<string, number> {
-  const pose: Record<string, number> = {};
-  for (const id of new Set([...Object.keys(from.pose), ...Object.keys(to.pose)])) {
-    const rest = skeleton.find((n) => n.id === id)?.angle ?? 0;
-    const a = from.pose[id] ?? rest;
-    const b = to.pose[id] ?? rest;
-    pose[id] = a + normalizeAngle(b - a) * t;
+): SequenceFrame[] {
+  const { from, to } = neighbours;
+  const cached = segments.get(from);
+  if (isReusable(cached, neighbours, count, curve, skeleton)) return cached.frames;
+
+  const frames: SequenceFrame[] = [];
+  for (let step = 1; step <= count; step += 1) {
+    const { pose, rootPosition } = interpolateKeyframes(neighbours, step / (count + 1), curve, skeleton);
+    frames.push({ kind: 'generated', id: `${from.id}→${to.id}#${step}`, from: from.id, to: to.id, step, pose, rootPosition });
   }
-  return pose;
+  segments.set(from, { neighbours, count, curve, skeleton, frames });
+  return frames;
 }

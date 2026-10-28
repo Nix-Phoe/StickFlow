@@ -5,7 +5,7 @@ import { createId } from '../../core/id';
 import {
   clamp,
   LIMITS,
-  type Frame,
+  type Keyframe,
   type LoopSettings,
   type Project,
   type SmoothingSettings,
@@ -17,11 +17,19 @@ export type ProjectChange =
   | { type: 'setFps'; fps: number }
   | { type: 'updateSmoothing'; changes: Partial<SmoothingSettings> }
   | { type: 'updateLoop'; changes: Partial<LoopSettings> }
-  /** Insère `frameId` juste après `afterFrameId`, en copiant sa pose. */
-  | { type: 'insertFrame'; afterFrameId: string; frameId: string }
-  | { type: 'deleteFrame'; frameId: string }
-  /** Pose une frame ; une frame générée devient image clé. */
-  | { type: 'poseFrame'; frameId: string; pose: Record<string, number>; rootPosition: Vec2 };
+  /**
+   * Insère l'image clé `keyframeId` juste après `afterKeyframeId`, avec la pose donnée
+   * (conversion d'une frame générée) ou, sans pose, une copie de la précédente.
+   */
+  | {
+      type: 'insertKeyframe';
+      afterKeyframeId: string;
+      keyframeId: string;
+      pose?: Record<string, number>;
+      rootPosition?: Vec2;
+    }
+  | { type: 'deleteKeyframe'; keyframeId: string }
+  | { type: 'poseKeyframe'; keyframeId: string; pose: Record<string, number>; rootPosition: Vec2 };
 
 /** Réglages qui basculent : chaque bascule est une étape d'annulation à part. */
 const TOGGLES: ReadonlySet<string> = new Set(['enabled', 'curve', 'infinite']);
@@ -39,10 +47,12 @@ export function coalesceKey(change: ProjectChange): string | null {
       const fields = Object.keys(change.changes).sort();
       return fields.some((field) => TOGGLES.has(field)) ? null : `${change.type}:${fields.join(',')}`;
     }
-    case 'poseFrame':
-      return `${change.type}:${change.frameId}`;
-    case 'insertFrame':
-    case 'deleteFrame':
+    case 'poseKeyframe':
+      return `poseKeyframe:${change.keyframeId}`;
+    // Insérer avec une pose, c'est déjà poser : les poses qui suivent rejoignent la même étape.
+    case 'insertKeyframe':
+      return change.pose ? `poseKeyframe:${change.keyframeId}` : null;
+    case 'deleteKeyframe':
       return null;
   }
 }
@@ -63,39 +73,38 @@ export function applyToProject(project: Project, change: ProjectChange): Project
       const loop = normalizeLoop({ ...project.ai.loop, ...change.changes });
       return sameFields(loop, project.ai.loop) ? project : { ...project, ai: { ...project.ai, loop } };
     }
-    case 'insertFrame': {
-      const index = project.frames.findIndex((f) => f.id === change.afterFrameId);
-      const source = project.frames[index];
-      if (!source || project.frames.some((f) => f.id === change.frameId)) return project;
-      const inserted: Frame = {
-        id: change.frameId,
-        pose: { ...source.pose },
-        rootPosition: { ...source.rootPosition },
-        generated: false,
+    case 'insertKeyframe': {
+      const index = project.keyframes.findIndex((k) => k.id === change.afterKeyframeId);
+      const source = project.keyframes[index];
+      if (!source || project.keyframes.some((k) => k.id === change.keyframeId)) return project;
+      const inserted: Keyframe = {
+        id: change.keyframeId,
+        pose: { ...(change.pose ?? source.pose) },
+        rootPosition: { ...(change.rootPosition ?? source.rootPosition) },
       };
-      return { ...project, frames: project.frames.toSpliced(index + 1, 0, inserted) };
+      return { ...project, keyframes: project.keyframes.toSpliced(index + 1, 0, inserted) };
     }
-    case 'deleteFrame': {
-      const index = project.frames.findIndex((f) => f.id === change.frameId);
-      // Un Projet garde toujours au moins une frame.
-      if (index === -1 || project.frames.length <= 1) return project;
-      return { ...project, frames: project.frames.toSpliced(index, 1) };
+    case 'deleteKeyframe': {
+      const index = project.keyframes.findIndex((k) => k.id === change.keyframeId);
+      // Un Projet garde toujours au moins une image clé.
+      if (index === -1 || project.keyframes.length <= 1) return project;
+      return { ...project, keyframes: project.keyframes.toSpliced(index, 1) };
     }
-    case 'poseFrame': {
-      const index = project.frames.findIndex((f) => f.id === change.frameId);
+    case 'poseKeyframe': {
+      const index = project.keyframes.findIndex((k) => k.id === change.keyframeId);
       if (index === -1) return project;
-      const posed: Frame = { id: change.frameId, pose: change.pose, rootPosition: change.rootPosition, generated: false };
-      return { ...project, frames: project.frames.with(index, posed) };
+      const posed: Keyframe = { id: change.keyframeId, pose: change.pose, rootPosition: change.rootPosition };
+      return { ...project, keyframes: project.keyframes.with(index, posed) };
     }
   }
 }
 
-/** Ramène toutes les valeurs dans leurs bornes et garantit au moins une frame. */
+/** Ramène toutes les valeurs dans leurs bornes et garantit au moins une image clé. */
 export function normalizeProject(project: Project): Project {
   return {
     ...project,
     fps: toLimit(project.fps, LIMITS.fps, LIMITS.fps.min),
-    frames: project.frames.length > 0 ? project.frames : [createRestFrame()],
+    keyframes: project.keyframes.length > 0 ? project.keyframes : [createRestKeyframe()],
     ai: {
       smoothing: normalizeSmoothing(project.ai.smoothing),
       loop: normalizeLoop(project.ai.loop),
@@ -127,6 +136,6 @@ function sameFields<T extends object>(a: T, b: T): boolean {
   return (Object.keys(a) as Array<keyof T>).every((key) => Object.is(a[key], b[key]));
 }
 
-function createRestFrame(): Frame {
-  return { id: createId(), pose: {}, rootPosition: { x: 0, y: 0 }, generated: false };
+function createRestKeyframe(): Keyframe {
+  return { id: createId(), pose: {}, rootPosition: { x: 0, y: 0 } };
 }

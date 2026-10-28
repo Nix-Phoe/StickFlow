@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Frame, Project } from '../../core/types';
+import type { Keyframe, Project } from '../../core/types';
 import { createDefaultSkeleton, sortSkeleton } from '../skeleton';
 import {
   applyChange,
@@ -17,11 +17,10 @@ import {
 
 const skeleton = sortSkeleton(createDefaultSkeleton());
 
-const frame = (id: string, generated = false, pose: Record<string, number> = {}): Frame => ({
+const frame = (id: string, pose: Record<string, number> = {}): Keyframe => ({
   id,
   pose,
   rootPosition: { x: 0, y: 0 },
-  generated,
 });
 
 function project(overrides: Partial<Project> = {}): Project {
@@ -29,7 +28,7 @@ function project(overrides: Partial<Project> = {}): Project {
     name: 'Test',
     fps: 12,
     skeleton,
-    frames: [frame('f1'), frame('f2')],
+    keyframes: [frame('f1'), frame('f2')],
     ai: {
       smoothing: { enabled: true, intensity: 3, curve: 'smooth' },
       loop: { enabled: false, repeatCount: 3, infinite: false, transitionFrames: 4 },
@@ -43,7 +42,7 @@ function apply(history: ProjectHistory, changes: ProjectChange[], start = 0, ste
   return changes.reduce((h, change, i) => applyChange(h, change, start + i * step), history);
 }
 
-const ids = (h: ProjectHistory): string[] => h.present.frames.map((f) => f.id);
+const ids = (h: ProjectHistory): string[] => h.present.keyframes.map((f) => f.id);
 
 describe('createHistory', () => {
   it('starts with nothing to undo or redo', () => {
@@ -72,11 +71,10 @@ describe('createHistory', () => {
     expect(createHistory(project({ fps: 12.6 })).present.fps).toBe(13);
   });
 
-  it('gives a project without frames one frame in the rest pose', () => {
-    const { present } = createHistory(project({ frames: [] }));
-    expect(present.frames).toHaveLength(1);
-    expect(present.frames[0]?.pose).toEqual({});
-    expect(present.frames[0]?.generated).toBe(false);
+  it('gives a project without keyframes one keyframe in the rest pose', () => {
+    const { present } = createHistory(project({ keyframes: [] }));
+    expect(present.keyframes).toHaveLength(1);
+    expect(present.keyframes[0]?.pose).toEqual({});
   });
 });
 
@@ -123,50 +121,53 @@ describe('applyChange: settings', () => {
     apply(createHistory(original), [
       { type: 'setFps', fps: 30 },
       { type: 'updateLoop', changes: { infinite: true } },
-      { type: 'poseFrame', frameId: 'f1', pose: { torso: 1 }, rootPosition: { x: 5, y: 5 } },
+      { type: 'poseKeyframe', keyframeId: 'f1', pose: { torso: 1 }, rootPosition: { x: 5, y: 5 } },
     ]);
     expect(original).toEqual(snapshot);
   });
 });
 
-describe('applyChange: frames', () => {
-  it('inserts a new frame right after the given one, copying its pose', () => {
-    const start = createHistory(project({ frames: [frame('f1', false, { torso: 1 }), frame('f2')] }));
-    const history = apply(start, [{ type: 'insertFrame', afterFrameId: 'f1', frameId: 'new' }]);
+describe('applyChange: keyframes', () => {
+  it('inserts a keyframe right after the given one, copying its pose', () => {
+    const start = createHistory(project({ keyframes: [frame('f1', { torso: 1 }), frame('f2')] }));
+    const history = apply(start, [{ type: 'insertKeyframe', afterKeyframeId: 'f1', keyframeId: 'new' }]);
     expect(ids(history)).toEqual(['f1', 'new', 'f2']);
-    expect(history.present.frames[1]?.pose).toEqual({ torso: 1 });
+    expect(history.present.keyframes[1]?.pose).toEqual({ torso: 1 });
   });
 
-  it('makes an inserted frame a keyframe, even when copied from a generated frame', () => {
-    const start = createHistory(project({ frames: [frame('g', true)] }));
-    const history = apply(start, [{ type: 'insertFrame', afterFrameId: 'g', frameId: 'new' }]);
-    expect(history.present.frames[1]?.generated).toBe(false);
+  it('inserts a keyframe with its own pose when one is given', () => {
+    const history = apply(createHistory(project()), [
+      { type: 'insertKeyframe', afterKeyframeId: 'f1', keyframeId: 'new', pose: { torso: 2 }, rootPosition: { x: 3, y: 0 } },
+    ]);
+    expect(history.present.keyframes[1]).toEqual({ id: 'new', pose: { torso: 2 }, rootPosition: { x: 3, y: 0 } });
   });
 
-  it('ignores an insertion after an unknown frame', () => {
+  it('ignores an insertion after an unknown keyframe, or with an id already used', () => {
     const start = createHistory(project());
-    expect(apply(start, [{ type: 'insertFrame', afterFrameId: 'ghost', frameId: 'new' }])).toBe(start);
+    expect(apply(start, [{ type: 'insertKeyframe', afterKeyframeId: 'ghost', keyframeId: 'new' }])).toBe(start);
+    expect(apply(start, [{ type: 'insertKeyframe', afterKeyframeId: 'f1', keyframeId: 'f2' }])).toBe(start);
   });
 
-  it('deletes a frame', () => {
-    const history = apply(createHistory(project()), [{ type: 'deleteFrame', frameId: 'f1' }]);
+  it('deletes a keyframe', () => {
+    const history = apply(createHistory(project()), [{ type: 'deleteKeyframe', keyframeId: 'f1' }]);
     expect(ids(history)).toEqual(['f2']);
   });
 
-  it('refuses to delete the last frame', () => {
-    const start = createHistory(project({ frames: [frame('only')] }));
-    expect(apply(start, [{ type: 'deleteFrame', frameId: 'only' }])).toBe(start);
+  it('refuses to delete the last keyframe', () => {
+    const start = createHistory(project({ keyframes: [frame('only')] }));
+    expect(apply(start, [{ type: 'deleteKeyframe', keyframeId: 'only' }])).toBe(start);
   });
 
-  it('poses a frame and turns a generated frame into a keyframe', () => {
-    const start = createHistory(project({ frames: [frame('g', true)] }));
-    const posed = apply(start, [{ type: 'poseFrame', frameId: 'g', pose: { torso: 1 }, rootPosition: { x: 5, y: 0 } }]);
-    expect(posed.present.frames[0]).toEqual({ id: 'g', pose: { torso: 1 }, rootPosition: { x: 5, y: 0 }, generated: false });
+  it('poses a keyframe', () => {
+    const posed = apply(createHistory(project()), [
+      { type: 'poseKeyframe', keyframeId: 'f1', pose: { torso: 1 }, rootPosition: { x: 5, y: 0 } },
+    ]);
+    expect(posed.present.keyframes[0]).toEqual({ id: 'f1', pose: { torso: 1 }, rootPosition: { x: 5, y: 0 } });
   });
 
-  it('ignores a pose for an unknown frame', () => {
+  it('ignores a pose for an unknown keyframe', () => {
     const start = createHistory(project());
-    expect(apply(start, [{ type: 'poseFrame', frameId: 'ghost', pose: {}, rootPosition: { x: 0, y: 0 } }])).toBe(start);
+    expect(apply(start, [{ type: 'poseKeyframe', keyframeId: 'ghost', pose: {}, rootPosition: { x: 0, y: 0 } }])).toBe(start);
   });
 });
 
@@ -180,7 +181,7 @@ describe('undo / redo', () => {
   });
 
   it('undoes a frame insertion', () => {
-    const changed = apply(createHistory(project()), [{ type: 'insertFrame', afterFrameId: 'f2', frameId: 'new' }]);
+    const changed = apply(createHistory(project()), [{ type: 'insertKeyframe', afterKeyframeId: 'f2', keyframeId: 'new' }]);
     expect(ids(undo(changed))).toEqual(['f1', 'f2']);
   });
 
@@ -265,13 +266,39 @@ describe('grouping quick changes into one step', () => {
 
   it('groups a drag (successive poses of the same frame) into one step', () => {
     const poses: ProjectChange[] = [0.1, 0.2, 0.3].map((torso) => ({
-      type: 'poseFrame',
-      frameId: 'f1',
+      type: 'poseKeyframe',
+      keyframeId: 'f1',
       pose: { torso },
       rootPosition: { x: 0, y: 0 },
     }));
     const history = apply(createHistory(project()), poses, 0, near);
-    expect(undo(history).present.frames[0]?.pose).toEqual({});
+    expect(undo(history).present.keyframes[0]?.pose).toEqual({});
+  });
+
+  it('groups a keyframe inserted with a pose with the poses that follow (converting a generated frame by dragging)', () => {
+    const history = apply(
+      createHistory(project()),
+      [
+        { type: 'insertKeyframe', afterKeyframeId: 'f1', keyframeId: 'new', pose: { torso: 0.1 }, rootPosition: { x: 0, y: 0 } },
+        { type: 'poseKeyframe', keyframeId: 'new', pose: { torso: 0.2 }, rootPosition: { x: 0, y: 0 } },
+      ],
+      0,
+      near,
+    );
+    expect(ids(undo(history))).toEqual(['f1', 'f2']);
+  });
+
+  it('never groups a plain insertion (copy) with what follows', () => {
+    const history = apply(
+      createHistory(project()),
+      [
+        { type: 'insertKeyframe', afterKeyframeId: 'f1', keyframeId: 'new' },
+        { type: 'poseKeyframe', keyframeId: 'new', pose: { torso: 0.2 }, rootPosition: { x: 0, y: 0 } },
+      ],
+      0,
+      near,
+    );
+    expect(ids(undo(history))).toEqual(['f1', 'new', 'f2']);
   });
 
   it('starts a new step after an undo', () => {

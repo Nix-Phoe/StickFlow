@@ -189,6 +189,8 @@ src/animation/playback.ts     # frameDuration / advancePlayhead : horloge de lec
 src/animation/player.ts       # connectPlayer : avance la tête de lecture tant que la Session lit (planificateur et horloge injectables)
 src/animation/onion-skin.ts   # onionSkinFrame : frame précédente, hors lecture
 src/render/thumbnail.ts       # paintThumbnail : vignette Canvas 2D d'une frame (même cadrage vertical que la scène)
+src/model/sequence.ts         # deriveSequence : images clés + frames générées (candidat 2)
+src/core/selectors.ts         # sequenceOf / activeFrame : lectures dérivées de l'état
 ```
 `render/camera.ts` gagne `worldToScreen`. La Session gagne `onionSkin` et `clipboard` (pose copiée).
 Il n’y a pas de `core/history.ts` : l’historique est interne au module Projet (`src/model/project/`), par instantanés (voir `docs/adr/0001-historique-par-instantanes.md`).
@@ -206,9 +208,9 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 - **Repère du monde** : origine au centre de la scène, y vers le haut, angles en radians (0 = vers +x). La caméra montre une hauteur fixe de monde ; la largeur suit le rapport d'aspect.
 - **Rendu** : `main.ts` passe le canvas `#stage` à `connectStickmanView`. Le rendu lit la taille au moment de dessiner (`canvas.width`/`height`), redessine tout de suite sur `canvas:resize` (évite un clignotement) et à la demande sinon. Les couleurs lues par WebGL viennent des tokens CSS et doivent rester en **hexadécimal** (ex. `--color-stickman`).
 - **Manipulation** : `CanvasArea` émet le pointeur brut (`stage:pointer:*`, en pixels CSS avec la taille du canvas) et les touches (`node:cycle`, `node:nudge`, `node:select`) ; `interaction/node-manipulation.ts` fait la sélection et le glisser, et émet `frame:pose:change` (frame désignée par son **id**). Zone de saisie d'une poignée : 22 px CSS de rayon (cible de 44 px). Pas de manipulation pendant la lecture ; les poignées ne s'affichent qu'en mode Personnage.
-- **Règles de manipulation** : glisser un nœud le fait tourner autour du bout de son parent (ses descendants suivent) ; glisser la racine déplace toute la figure ; modifier une frame générée la convertit en image clé. Clavier sur le canvas : ↑ / ↓ choisir un nœud, ← / → tourner de 5° (Maj : 1°), Échap désélectionner.
+- **Règles de manipulation** : glisser un nœud le fait tourner autour du bout de son parent (ses descendants suivent) ; glisser la racine déplace toute la figure ; modifier une frame générée (glisser, coller, « + ») la convertit en nouvelle image clé entre ses voisines, qui devient la frame active. Clavier sur le canvas : ↑ / ↓ choisir un nœud, ← / → tourner de 5° (Maj : 1°), Échap désélectionner.
 - **Lecture** : boucle sur toutes les frames au rythme IPS × vitesse ; un saut de plus de 250 ms (onglet masqué) est plafonné. Pause garde la frame courante ; **Stop** revient à la frame active au lancement. Espace bascule lecture / pause (y compris sur les boutons de lecture, pas sur les autres boutons ni dans un champ). La lecture ne touche jamais au Projet (`playback:frame` met à jour la Session).
-- **Frames** : « + » insère une copie de la frame active juste après elle (c'est aussi « dupliquer ») ; Supprimer (bouton ou Suppr sur une vignette) retire la frame active, jamais la dernière ; Copier / Coller la pose passe par la Session, et coller est annulable. Vignettes : conservées par id de frame, seule celle qui change est repeinte ; frames générées dessinées en couleur d'accent.
+- **Frames** : « + » insère une copie de la frame active juste après elle (c'est aussi « dupliquer ») ; Supprimer (bouton ou Suppr sur une vignette) retire l'image clé active, jamais la dernière, et ne s'applique pas à une frame générée ; Copier / Coller la pose passe par la Session, et coller est annulable. Vignettes : conservées par id de frame, seule celle qui change est repeinte ; frames générées dessinées en couleur d'accent.
 - **Pelure d'oignon** : frame précédente en transparence sous la frame active, réglable dans la section Animation, masquée pendant la lecture.
 - Le panneau gauche devient un tiroir sous **900 px** de large (`DRAWER_MEDIA_QUERY` dans `ui/dom.ts`, dupliqué dans les CSS car les variables CSS sont interdites dans les media queries).
 
@@ -251,18 +253,17 @@ interface SkeletonNode {
   shape: 'segment' | 'circle';   // trait épais, ou disque plein (la tête)
 }
 
-interface Frame {
+interface Keyframe {               // image clé : la seule frame enregistrée (ADR 0002)
   id: string;
-  pose: Record<string, number>;   // angle de chaque nœud
+  pose: Record<string, number>;   // angle de chaque nœud (absent = angle de repos)
   rootPosition: { x: number; y: number };
-  generated: boolean;             // true = créée par l'IA
 }
 
 interface Project {
   name: string;
   fps: number;                    // 1 à 60
   skeleton: SkeletonNode[];
-  frames: Frame[];
+  keyframes: Keyframe[];
   ai: {
     smoothing: { enabled: boolean; intensity: number; curve: 'linear' | 'smooth' | 'ease-in-out' };
     loop: { enabled: boolean; repeatCount: number; infinite: boolean; transitionFrames: number };
@@ -270,20 +271,22 @@ interface Project {
 }
 ```
 
+**Séquence dérivée** (revue d'architecture, candidat 2, **réalisé** — ADR 0002) : `model/sequence.ts` calcule `deriveSequence(project)` = images clés + frames générées (`SequenceFrame`, `kind: 'keyframe' | 'generated'`, avec `from`, `to`, `step`). Pur et mémoïsé : même tableau tant que images clés, squelette et Fluidité sont inchangés, et mêmes objets pour les segments intacts (vignettes non repeintes). Interpolation V1 linéaire (angles par le plus court chemin, position de la racine) ; la courbe n'a pas encore d'effet (phase 5). La Session désigne la frame active par son **id** (`activeFrameId`) ; `core/selectors.ts` fournit `sequenceOf(state)` et `activeFrame(state)` (frame + position). Les événements gardent des **positions** dans la séquence (`frame:select`, `playback:frame`) ; `intents.ts` les traduit en id.
+
 Module Projet (revue d'architecture, candidat 1, **réalisé**) — `src/model/project/` (`changes.ts` : changements nommés et invariants, `history.ts` : historique), `src/core/session.ts`, store `{ project: ProjectHistory, session: Session }` :
 - Le **Projet** (nom, IPS, squelette, frames, réglages IA) est séparé de la **Session** (frame active, lecture, vitesse, mode, tiroir, format d'export). Voir `GLOSSARY.md`.
 - Toute modification du Projet est annulable ; aucune modification de la Session ne l'est.
 - Les valeurs hors limites sont ramenées dans leurs bornes, jamais rejetées.
-- Un Projet contient toujours au moins une frame.
+- Un Projet contient toujours au moins une image clé.
 - Le nombre de répétitions est conservé même en répétition infinie (`repeatCount` + `infinite`, et non plus `repeat: number | 'infinite'`).
 - Le module Projet est testé avec **Vitest**, uniquement par son interface, sans DOM.
 - Le module Projet est **pur** (état d’historique + changement → nouvel état d’historique) ; le store tient tout l’état en deux parties, `project` et `session`.
-- Après chaque changement du Projet (y compris annuler / rétablir), la frame active est seulement ramenée dans la liste des frames.
+- Après chaque changement du Projet (y compris annuler / rétablir), la frame active est gardée si elle existe encore, sinon remplacée par la frame à la même place dans la nouvelle séquence (`fitSessionToSequence`).
 - L'interface décrit un changement du Projet par une **liste fermée de changements nommés** (régler l'IPS, ajouter une frame, modifier la Fluidité…), jamais par un correctif libre.
 - `intents.ts` n'est plus qu'un aiguillage sans règle : changement nommé vers le Projet ou mise à jour de la Session, avec l'heure du changement (le module Projet reste pur).
 - Les boutons Annuler / Rétablir sont désactivés quand il n'y a rien à annuler / rétablir.
 - Seul le module Projet applique les bornes ; le stepper ne corrige plus les valeurs (il rejette seulement les saisies non numériques).
-- Changements nommés : `setFps`, `updateSmoothing`, `updateLoop`, `insertFrame` (après une frame, en copiant sa pose), `deleteFrame` (pas encore relié à l'interface), `poseFrame`. Regroupés en une étape s'ils sont du même réglage et à moins de 1 s d'intervalle ; les bascules (activé, courbe, infini) et les ajouts / suppressions de frames ne sont jamais regroupés. Le « + » de la timeline insère après la frame active et la sélectionne.
+- Changements nommés : `setFps`, `updateSmoothing`, `updateLoop`, `insertKeyframe` (après une image clé, avec une pose donnée ou une copie de la précédente), `deleteKeyframe`, `poseKeyframe`. Regroupés en une étape s'ils sont du même réglage et à moins de 1 s d'intervalle ; une image clé insérée **avec** une pose se regroupe avec les poses qui la suivent (conversion d'une frame générée par glisser = une étape). Les bascules (activé, courbe, infini), les copies et les suppressions ne sont jamais regroupées.
 - L'interface ne lit que `state.project.present`, `canUndo(state.project)` / `canRedo(state.project)` et `state.session`.
 - Raccourcis : Ctrl/⌘+Z annuler, Ctrl/⌘+Maj+Z ou Ctrl+Y rétablir (sauf dans un champ de saisie).
 
@@ -296,6 +299,7 @@ Module Projet (revue d'architecture, candidat 1, **réalisé**) — `src/model/p
 3. **Phase 3 — Manipulation** : sélection et rotation des nœuds au toucher / à la souris. ✅
    - Puis : module Projet (candidat 1 de la revue d'architecture, voir 5.3). ✅
 4. **Phase 4 — Animation** : frames, timeline fonctionnelle, lecture, pelure d'oignon, annuler / rétablir. ✅
+   - Puis : séquence dérivée (candidat 2, ADR 0002). ✅
 5. **Phase 5 — Fluidité et Répétition (V1)** : splines + easing, boucle intelligente.
 6. **Phase 6 — Sauvegarde et export** : IndexedDB, GIF / PNG / MP4.
 7. **Phase 7 — PWA et Android** : `vite-plugin-pwa`, Capacitor, test fermé Google Play.

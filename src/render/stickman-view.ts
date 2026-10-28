@@ -3,6 +3,7 @@
 
 import { onionSkinFrame } from '../animation/onion-skin';
 import type { AppEventBus } from '../core/events';
+import { activeFrame, sequenceOf } from '../core/selectors';
 import type { Store } from '../core/store';
 import type { Vec2 } from '../core/types';
 import { solvePose } from '../model/kinematics';
@@ -31,15 +32,17 @@ export function connectStickmanView({ bus, store, canvas }: StickmanViewOptions)
   function draw(): void {
     cancelAnimationFrame(pendingFrame);
     pendingFrame = 0;
-    const { skeleton, frames } = store.state.project.present;
-    const { activeFrameIndex, selectedNodeId, isPlaying, editorMode, onionSkin } = store.state.session;
-    const frame = frames[activeFrameIndex];
+    const { skeleton } = store.state.project.present;
+    const { selectedNodeId, isPlaying, editorMode, onionSkin } = store.state.session;
+    const sequence = sequenceOf(store.state);
+    const active = activeFrame(store.state);
+    const frame = active?.frame;
     const posed = solvePose(skeleton, frame?.pose ?? {}, frame?.rootPosition ?? ORIGIN);
     const stickmanColor = readColor(canvas, COLOR_TOKENS.stickman);
     const stickman: DrawLayer = { capsules: buildCapsules(skeleton, posed, DEFAULT_STICKMAN_STYLE), color: stickmanColor };
 
     // Pelure d'oignon : la frame précédente, en transparence, sous tout le reste.
-    const previous = onionSkinFrame(frames, activeFrameIndex, { enabled: onionSkin, isPlaying });
+    const previous = onionSkinFrame(sequence, active?.index ?? 0, { enabled: onionSkin, isPlaying });
     const onion: DrawLayer = {
       capsules: previous
         ? buildCapsules(skeleton, solvePose(skeleton, previous.pose, previous.rootPosition), DEFAULT_STICKMAN_STYLE)
@@ -74,8 +77,8 @@ export function connectStickmanView({ bus, store, canvas }: StickmanViewOptions)
 
   const unsubscribers = [
     store.watch((s) => s.project.present.skeleton, scheduleDraw),
-    store.watch((s) => s.project.present.frames, scheduleDraw),
-    store.watch((s) => s.session.activeFrameIndex, scheduleDraw),
+    store.watch(sequenceOf, scheduleDraw),
+    store.watch((s) => s.session.activeFrameId, scheduleDraw),
     store.watch((s) => s.session.selectedNodeId, scheduleDraw),
     store.watch((s) => s.session.isPlaying, scheduleDraw),
     store.watch((s) => s.session.editorMode, scheduleDraw),

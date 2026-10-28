@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createEventBus } from '../core/events';
 import { connectIntents } from '../core/intents';
+import { activeFrame } from '../core/selectors';
 import { createInitialState, Store } from '../core/store';
 import { createDefaultSkeleton, sortSkeleton } from '../model/skeleton';
 import { connectPlayer, MAX_STEP_MS, type FrameScheduler } from './player';
@@ -41,9 +42,9 @@ function setup() {
   const clock = createFakeScheduler();
   connectIntents(bus, store);
   connectPlayer({ bus, store, scheduler: clock.scheduler, now: clock.now });
-  // 5 frames de démonstration à 10 IPS : une frame toutes les 100 ms.
+  // Séquence de départ : 2 images clés + 3 frames générées = 5 frames ; à 10 IPS, une toutes les 100 ms.
   bus.emit('animation:fps:change', { fps: 10 });
-  return { bus, store, clock, active: () => store.state.session.activeFrameIndex };
+  return { bus, store, clock, active: () => activeFrame(store.state)?.index };
 }
 
 describe('connectPlayer', () => {

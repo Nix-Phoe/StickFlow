@@ -1,7 +1,8 @@
 import { createHistory, type ProjectHistory } from '../model/project';
+import { deriveSequence } from '../model/sequence';
 import { createId } from './id';
-import { createSession, type Session } from './session';
-import type { Frame, SkeletonNode } from './types';
+import { createSession, fitSessionToSequence, type Session } from './session';
+import type { SkeletonNode } from './types';
 
 /** État global de l'application : le Projet (avec son historique) et la Session. */
 export interface AppState {
@@ -54,26 +55,27 @@ export class Store {
   }
 }
 
-function createDemoFrame(generated: boolean): Frame {
-  return { id: createId(), pose: {}, rootPosition: { x: 0, y: 0 }, generated };
-}
+/** Pose de démonstration de la 2e image clé : le bras droit salue (angles relatifs, en radians). */
+const WAVE_POSE = { upperArmR: -0.8, forearmR: 0.9 };
 
 /**
- * État de départ. Les 5 frames de démonstration sont au repos ;
- * la 3e simule une frame générée.
+ * État de départ : deux images clés (repos, puis salut du bras droit) ; la Fluidité génère
+ * les frames intermédiaires entre elles.
  */
 export function createInitialState(projectName: string, skeleton: SkeletonNode[]): AppState {
-  return {
-    project: createHistory({
-      name: projectName,
-      fps: 12,
-      skeleton,
-      frames: [false, false, true, false, false].map(createDemoFrame),
-      ai: {
-        smoothing: { enabled: true, intensity: 3, curve: 'smooth' },
-        loop: { enabled: false, repeatCount: 3, infinite: true, transitionFrames: 4 },
-      },
-    }),
-    session: createSession(),
-  };
+  const project = createHistory({
+    name: projectName,
+    fps: 12,
+    skeleton,
+    keyframes: [
+      { id: createId(), pose: {}, rootPosition: { x: 0, y: 0 } },
+      { id: createId(), pose: { ...WAVE_POSE }, rootPosition: { x: 0, y: 0 } },
+    ],
+    ai: {
+      smoothing: { enabled: true, intensity: 3, curve: 'smooth' },
+      loop: { enabled: false, repeatCount: 3, infinite: true, transitionFrames: 4 },
+    },
+  });
+  const session = fitSessionToSequence(createSession(), [], deriveSequence(project.present), skeleton);
+  return { project, session };
 }

@@ -4,6 +4,7 @@ import { canRedo, canUndo } from '../model/project';
 import { createDefaultSkeleton, sortSkeleton } from '../model/skeleton';
 import { createEventBus } from './events';
 import { connectIntents } from './intents';
+import { activeFrame, sequenceOf } from './selectors';
 import { createInitialState, Store } from './store';
 
 function setup() {
@@ -16,6 +17,8 @@ function setup() {
     store,
     project: () => store.state.project.present,
     session: () => store.state.session,
+    sequence: () => sequenceOf(store.state),
+    active: () => activeFrame(store.state)?.frame,
     /** Avance l'horloge, pour séparer ou rapprocher les changements. */
     wait: (ms: number) => {
       now += ms;
@@ -60,91 +63,107 @@ describe('connectIntents: Projet', () => {
   });
 });
 
-describe('connectIntents: frames', () => {
-  it('inserts a new frame after the active one and makes it active', () => {
-    const { bus, project, session } = setup();
-    const before = project().frames.map((f) => f.id);
-    bus.emit('frame:select', { index: 1 });
-    bus.emit('frame:add');
-    const after = project().frames.map((f) => f.id);
-    expect(after).toHaveLength(before.length + 1);
-    expect(after[0]).toBe(before[0]);
-    expect(after[1]).toBe(before[1]);
-    expect(after[3]).toBe(before[2]);
-    expect(session().activeFrameIndex).toBe(2);
+describe('connectIntents: sequence and selection', () => {
+  it('starts on the first of 2 keyframes with 3 generated frames between them', () => {
+    const { sequence, active } = setup();
+    expect(sequence().map((f) => f.kind)).toEqual(['keyframe', 'generated', 'generated', 'generated', 'keyframe']);
+    expect(active()?.id).toBe(sequence()[0]?.id);
   });
 
-  it('keeps the active frame within the frames after an undo', () => {
-    const { bus, project, session } = setup();
-    const count = project().frames.length;
-    bus.emit('frame:select', { index: count - 1 });
-    bus.emit('frame:add');
-    expect(session().activeFrameIndex).toBe(count);
-    bus.emit('history:undo');
-    expect(session().activeFrameIndex).toBe(count - 1);
-  });
-
-  it('clamps the selected frame index', () => {
-    const { bus, session, project } = setup();
+  it('selects a frame of the sequence by its position, clamped', () => {
+    const { bus, sequence, active } = setup();
+    bus.emit('frame:select', { index: 2 });
+    expect(active()?.id).toBe(sequence()[2]?.id);
     bus.emit('frame:select', { index: 99 });
-    expect(session().activeFrameIndex).toBe(project().frames.length - 1);
+    expect(active()?.id).toBe(sequence().at(-1)?.id);
   });
-});
 
-describe('connectIntents: Session', () => {
-  it('never puts Session changes in the undo history', () => {
-    const { bus, store, session } = setup();
-    bus.emit('playback:play');
-    bus.emit('playback:speed:change', { speed: 5 });
-    bus.emit('editor:mode:change', { mode: 'scene' });
-    expect(canUndo(store.state.project)).toBe(false);
-    bus.emit('history:undo');
-    expect(session().isPlaying).toBe(true);
-    expect(session().playbackSpeed).toBe(5);
+  it('stays at the same place when the active generated frame disappears', () => {
+    const { bus, sequence, active } = setup();
+    bus.emit('frame:select', { index: 2 });
+    bus.emit('ai:smoothing:change', { enabled: false });
+    expect(sequence()).toHaveLength(2);
+    expect(active()?.id).toBe(sequence()[1]?.id);
   });
 });
 
 describe('connectIntents: frame actions', () => {
-  it('deletes the active frame and keeps a valid active frame', () => {
-    const { bus, project, session } = setup();
-    const ids = project().frames.map((f) => f.id);
-    bus.emit('frame:select', { index: ids.length - 1 });
-    bus.emit('frame:delete');
-    expect(project().frames.map((f) => f.id)).toEqual(ids.slice(0, -1));
-    expect(session().activeFrameIndex).toBe(ids.length - 2);
+  it('inserts a copy of the active keyframe after it and makes it active', () => {
+    const { bus, project, active } = setup();
+    bus.emit('frame:add');
+    expect(project().keyframes).toHaveLength(3);
+    expect(active()?.id).toBe(project().keyframes[1]?.id);
+    expect(project().keyframes[1]?.pose).toEqual(project().keyframes[0]?.pose);
   });
 
-  it('never deletes the last remaining frame', () => {
-    const { bus, project } = setup();
-    for (let i = 0; i < 10; i += 1) bus.emit('frame:delete');
-    expect(project().frames).toHaveLength(1);
+  it('turns a generated frame into a keyframe when « + » is pressed on it', () => {
+    const { bus, project, sequence, active } = setup();
+    const generated = sequence()[2];
+    bus.emit('frame:select', { index: 2 });
+    bus.emit('frame:add');
+    expect(project().keyframes).toHaveLength(3);
+    expect(project().keyframes[1]?.pose).toEqual(generated?.pose);
+    expect(active()?.kind).toBe('keyframe');
   });
 
-  it('copies the pose of the active frame and pastes it on another frame', () => {
-    const { bus, project } = setup();
-    const first = project().frames[0];
-    if (!first) throw new Error('no frame');
-    bus.emit('frame:pose:change', { frameId: first.id, pose: { torso: 1 }, rootPosition: { x: 5, y: 0 } });
-    bus.emit('frame:copy');
-    bus.emit('frame:select', { index: 3 });
-    bus.emit('frame:paste');
-    expect(project().frames[3]?.pose).toEqual({ torso: 1 });
-    expect(project().frames[3]?.rootPosition).toEqual({ x: 5, y: 0 });
-  });
-
-  it('makes a paste undoable but not a copy', () => {
-    const { bus, store, project, wait } = setup();
-    bus.emit('frame:copy');
-    expect(canUndo(store.state.project)).toBe(false);
-    const target = project().frames[1];
-    if (!target) throw new Error('no frame');
-    bus.emit('frame:pose:change', { frameId: target.id, pose: { torso: 2 }, rootPosition: { x: 0, y: 0 } });
-    wait(5000);
-    bus.emit('frame:select', { index: 1 });
-    bus.emit('frame:paste');
-    expect(project().frames[1]?.pose).toEqual({});
+  it('turns a posed generated frame into a keyframe between its neighbours, undone in one step', () => {
+    const { bus, project, sequence, active } = setup();
+    const [first, , generated] = sequence();
+    if (!first || !generated) throw new Error('sequence too short');
+    bus.emit('frame:select', { index: 2 });
+    bus.emit('frame:pose:change', { frameId: generated.id, pose: { torso: 1 }, rootPosition: { x: 0, y: 0 } });
+    expect(project().keyframes.map((k) => k.pose.torso)).toEqual([undefined, 1, undefined]);
+    expect(project().keyframes[0]?.id).toBe(first.id);
+    expect(active()?.kind).toBe('keyframe');
+    expect(active()?.pose).toEqual({ torso: 1 });
     bus.emit('history:undo');
-    expect(project().frames[1]?.pose).toEqual({ torso: 2 });
+    expect(project().keyframes).toHaveLength(2);
+  });
+
+  it('deletes the active keyframe and keeps a valid active frame', () => {
+    const { bus, project, active } = setup();
+    const second = project().keyframes[1];
+    bus.emit('frame:select', { index: 4 });
+    bus.emit('frame:delete');
+    expect(project().keyframes.map((k) => k.id)).not.toContain(second?.id);
+    expect(active()?.id).toBe(project().keyframes[0]?.id);
+  });
+
+  it('never deletes the last remaining keyframe', () => {
+    const { bus, project } = setup();
+    for (let i = 0; i < 5; i += 1) bus.emit('frame:delete');
+    expect(project().keyframes).toHaveLength(1);
+  });
+
+  it('does not delete a generated frame', () => {
+    const { bus, store } = setup();
+    const before = store.state.project;
+    bus.emit('frame:select', { index: 2 });
+    bus.emit('frame:delete');
+    expect(store.state.project).toBe(before);
+  });
+
+  it('copies the pose of the active frame and pastes it on another keyframe, undoably', () => {
+    const { bus, project, wait } = setup();
+    bus.emit('frame:select', { index: 4 });
+    bus.emit('frame:copy');
+    const copied = project().keyframes[1]?.pose;
+    bus.emit('frame:select', { index: 0 });
+    wait(5000);
+    bus.emit('frame:paste');
+    expect(project().keyframes[0]?.pose).toEqual(copied);
+    bus.emit('history:undo');
+    expect(project().keyframes[0]?.pose).toEqual({});
+  });
+
+  it('turns a generated frame into a keyframe when pasting on it', () => {
+    const { bus, project, active } = setup();
+    bus.emit('frame:copy');
+    bus.emit('frame:select', { index: 2 });
+    bus.emit('frame:paste');
+    expect(project().keyframes).toHaveLength(3);
+    expect(active()?.kind).toBe('keyframe');
+    expect(active()?.pose).toEqual({});
   });
 
   it('does nothing when pasting with an empty clipboard', () => {
@@ -155,12 +174,24 @@ describe('connectIntents: frame actions', () => {
   });
 });
 
-describe('connectIntents: playback and onion skin', () => {
-  it('moves the playhead without touching the Projet', () => {
+describe('connectIntents: Session', () => {
+  it('never puts Session changes in the undo history', () => {
     const { bus, store, session } = setup();
+    bus.emit('playback:play');
+    bus.emit('playback:speed:change', { speed: 5 });
+    bus.emit('editor:mode:change', { mode: 'scene' });
+    bus.emit('frame:select', { index: 3 });
+    expect(canUndo(store.state.project)).toBe(false);
+    bus.emit('history:undo');
+    expect(session().isPlaying).toBe(true);
+    expect(session().playbackSpeed).toBe(5);
+  });
+
+  it('moves the playhead without touching the Projet', () => {
+    const { bus, store, sequence, active } = setup();
     const before = store.state.project;
     bus.emit('playback:frame', { index: 3 });
-    expect(session().activeFrameIndex).toBe(3);
+    expect(active()?.id).toBe(sequence()[3]?.id);
     expect(store.state.project).toBe(before);
   });
 

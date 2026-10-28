@@ -1,13 +1,15 @@
 // Aiguillage sans règle : chaque événement de l'interface devient soit un changement nommé
 // du Projet (avec l'heure, pour regrouper les gestes), soit une mise à jour de la Session.
-// Les règles vivent dans le module Projet et dans session.ts.
+// Les règles vivent dans le module Projet, dans la séquence dérivée et dans session.ts.
 
 import { applyChange, redo, undo, type ProjectChange, type ProjectHistory } from '../model/project';
+import { deriveSequence, type SequenceFrame } from '../model/sequence';
 import type { AppEventBus } from './events';
 import { createId } from './id';
-import { fitSessionToProject, type Session } from './session';
+import { activeFrame, sequenceOf } from './selectors';
+import { fitSessionToSequence, type Session } from './session';
 import type { Store } from './store';
-import { clamp, type Project } from './types';
+import { clamp, type FramePose } from './types';
 
 export interface IntentOptions {
   /** Horloge en millisecondes (injectable pour les tests). */
@@ -15,21 +17,46 @@ export interface IntentOptions {
 }
 
 export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now }: IntentOptions = {}): () => void {
-  /** Remplace l'historique du Projet puis recale la Session (frame active, sélection). */
-  function setProject(next: ProjectHistory, sessionPatch?: (project: Project) => Partial<Session>): void {
+  /** Remplace l'historique du Projet puis recale la Session sur la nouvelle séquence. */
+  function setProject(next: ProjectHistory, activeFrameId?: string): void {
     const { project, session } = store.state;
     if (next === project) return;
-    const patched = sessionPatch ? { ...session, ...sessionPatch(next.present) } : session;
-    store.update({ project: next, session: fitSessionToProject(patched, next.present) });
+    const patched = activeFrameId ? { ...session, activeFrameId } : session;
+    const fitted = fitSessionToSequence(
+      patched,
+      deriveSequence(project.present),
+      deriveSequence(next.present),
+      next.present.skeleton,
+    );
+    store.update({ project: next, session: fitted });
   }
 
-  const change = (projectChange: ProjectChange, sessionPatch?: (project: Project) => Partial<Session>): void =>
-    setProject(applyChange(store.state.project, projectChange, now()), sessionPatch);
+  const change = (projectChange: ProjectChange, activeFrameId?: string): void =>
+    setProject(applyChange(store.state.project, projectChange, now()), activeFrameId);
 
   const setSession = (patch: Partial<Session>): void =>
     store.update((s) => ({ session: { ...s.session, ...patch } }));
 
-  const activeFrame = () => store.state.project.present.frames[store.state.session.activeFrameIndex];
+  const current = (): SequenceFrame | undefined => activeFrame(store.state)?.frame;
+
+  /** Frame de la séquence à une position donnée (ramenée dans la séquence). */
+  const frameAt = (index: number): SequenceFrame | undefined => {
+    const sequence = sequenceOf(store.state);
+    return sequence[clamp(index, 0, sequence.length - 1)];
+  };
+
+  /**
+   * Donne une pose à une frame. Une image clé est posée directement ; une frame générée
+   * devient une nouvelle image clé entre ses voisines, qui devient la frame active.
+   */
+  function poseFrame(frame: SequenceFrame, { pose, rootPosition }: FramePose): void {
+    if (frame.kind === 'keyframe') {
+      change({ type: 'poseKeyframe', keyframeId: frame.id, pose: { ...pose }, rootPosition });
+      return;
+    }
+    const keyframeId = createId();
+    change({ type: 'insertKeyframe', afterKeyframeId: frame.from, keyframeId, pose: { ...pose }, rootPosition }, keyframeId);
+  }
 
   const unsubscribers = [
     // ---------- Projet ----------
@@ -40,39 +67,35 @@ export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now 
     bus.on('ai:smoothing:change', (changes) => change({ type: 'updateSmoothing', changes })),
     bus.on('ai:loop:change', (changes) => change({ type: 'updateLoop', changes })),
 
+    // « + » : copie de la frame active juste après elle (une frame générée devient image clé).
     bus.on('frame:add', () => {
-      const { project, session } = store.state;
-      const after = project.present.frames[session.activeFrameIndex];
-      if (!after) return;
-      const frameId = createId();
-      change({ type: 'insertFrame', afterFrameId: after.id, frameId }, (p) => ({
-        activeFrameIndex: p.frames.findIndex((f) => f.id === frameId),
-      }));
+      const frame = current();
+      if (!frame) return;
+      if (frame.kind === 'generated') return poseFrame(frame, frame);
+      const keyframeId = createId();
+      change({ type: 'insertKeyframe', afterKeyframeId: frame.id, keyframeId }, keyframeId);
     }),
-    bus.on('frame:pose:change', ({ frameId, pose, rootPosition }) =>
-      change({ type: 'poseFrame', frameId, pose, rootPosition }),
-    ),
+    bus.on('frame:pose:change', ({ frameId, pose, rootPosition }) => {
+      const frame = sequenceOf(store.state).find((f) => f.id === frameId);
+      if (frame) poseFrame(frame, { pose, rootPosition });
+    }),
+    // Seules les images clés se suppriment : une frame générée découle de ses voisines.
     bus.on('frame:delete', () => {
-      const active = activeFrame();
-      if (active) change({ type: 'deleteFrame', frameId: active.id });
+      const frame = current();
+      if (frame?.kind === 'keyframe') change({ type: 'deleteKeyframe', keyframeId: frame.id });
     }),
     bus.on('frame:paste', () => {
-      const active = activeFrame();
+      const frame = current();
       const { clipboard } = store.state.session;
-      if (!active || !clipboard) return;
-      change({ type: 'poseFrame', frameId: active.id, pose: { ...clipboard.pose }, rootPosition: clipboard.rootPosition });
+      if (frame && clipboard) poseFrame(frame, clipboard);
     }),
 
     // ---------- Session ----------
-    bus.on('frame:select', ({ index }) =>
-      setSession({ activeFrameIndex: clamp(index, 0, store.state.project.present.frames.length - 1) }),
-    ),
-    bus.on('playback:frame', ({ index }) =>
-      setSession({ activeFrameIndex: clamp(index, 0, store.state.project.present.frames.length - 1) }),
-    ),
+    bus.on('frame:select', ({ index }) => setSession({ activeFrameId: frameAt(index)?.id ?? null })),
+    bus.on('playback:frame', ({ index }) => setSession({ activeFrameId: frameAt(index)?.id ?? null })),
     bus.on('frame:copy', () => {
-      const active = activeFrame();
-      if (active) setSession({ clipboard: { pose: active.pose, rootPosition: active.rootPosition } });
+      const frame = current();
+      if (frame) setSession({ clipboard: { pose: frame.pose, rootPosition: frame.rootPosition } });
     }),
     bus.on('animation:onion-skin:change', ({ enabled }) => setSession({ onionSkin: enabled })),
     bus.on('node:select', ({ nodeId }) => setSession({ selectedNodeId: nodeId })),

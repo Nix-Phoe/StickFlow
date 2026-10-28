@@ -2,6 +2,7 @@
 // IPS × vitesse, en boucle. Sans DOM : l'horloge et le planificateur sont injectables.
 
 import type { AppEventBus } from '../core/events';
+import { activeFrame, sequenceOf } from '../core/selectors';
 import type { Store } from '../core/store';
 import { advancePlayhead, frameDuration, type Playhead } from './playback';
 
@@ -44,18 +45,19 @@ export function connectPlayer({
     lastTime = time;
 
     const { project, session } = store.state;
+    const current = activeFrame(store.state)?.index ?? 0;
     playhead = advancePlayhead(
-      { index: session.activeFrameIndex, carryMs: playhead.carryMs },
+      { index: current, carryMs: playhead.carryMs },
       elapsed,
       frameDuration(project.present.fps, session.playbackSpeed),
-      project.present.frames.length,
+      sequenceOf(store.state).length,
     );
-    if (playhead.index !== session.activeFrameIndex) bus.emit('playback:frame', { index: playhead.index });
+    if (playhead.index !== current) bus.emit('playback:frame', { index: playhead.index });
     request = scheduler.request(tick);
   }
 
   function start(): void {
-    origin = store.state.session.activeFrameIndex;
+    origin = activeFrame(store.state)?.index ?? 0;
     playhead = { index: origin, carryMs: 0 };
     lastTime = now();
     request = scheduler.request(tick);

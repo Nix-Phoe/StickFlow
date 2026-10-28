@@ -1,6 +1,7 @@
 import '../styles/components/timeline.css';
 
-import type { Frame } from '../../core/types';
+import { activeFrame, sequenceOf } from '../../core/selectors';
+import type { SequenceFrame } from '../../model/sequence';
 import { paintThumbnail } from '../../render/thumbnail';
 import type { Component, ComponentContext } from '../component';
 import { createIconButton } from '../controls/icon-button';
@@ -18,13 +19,13 @@ interface Thumb {
   button: HTMLButtonElement;
   number: HTMLSpanElement;
   canvas: HTMLCanvasElement;
-  frame: Frame;
+  frame: SequenceFrame;
 }
 
 /**
- * Barre inférieure : actions sur la frame active, vignettes montrant la pose de chaque frame
- * (frames générées distinguées), bouton « + ».
- * Clavier : flèches gauche / droite, Début, Fin pour changer de frame ; Suppr pour la supprimer.
+ * Barre inférieure : actions sur la frame active, vignettes de la séquence (images clés et
+ * frames générées, distinguées), bouton « + ».
+ * Clavier : flèches gauche / droite, Début, Fin pour changer de frame ; Suppr pour supprimer une image clé.
  */
 export function createTimeline({ bus, store }: ComponentContext): Component {
   const cleanups: Array<() => void> = [];
@@ -81,14 +82,16 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
     h('div', { class: 'timeline__body' }, [actions, scroller]),
   ]);
 
+  const activeIndex = (): number => activeFrame(store.state)?.index ?? 0;
+
   list.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('.frame-thumb') : null;
     if (target) bus.emit('frame:select', { index: Number(target.dataset.index) });
   });
 
   list.addEventListener('keydown', (event) => {
-    const last = store.state.project.present.frames.length - 1;
-    const current = store.state.session.activeFrameIndex;
+    const last = order.length - 1;
+    const current = activeIndex();
     let next: number;
     switch (event.key) {
       case 'ArrowRight':
@@ -107,7 +110,7 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
       case 'Backspace':
         event.preventDefault();
         bus.emit('frame:delete');
-        order[store.state.session.activeFrameIndex]?.button.focus();
+        order[activeIndex()]?.button.focus();
         return;
       default:
         return;
@@ -117,12 +120,12 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
     order[next]?.button.focus();
   });
 
-  function syncFrames(frames: readonly Frame[]): void {
+  function syncFrames(sequence: readonly SequenceFrame[]): void {
     const dirty: Thumb[] = [];
-    const next = frames.map((frame, index) => {
+    const next = sequence.map((frame, index) => {
       let thumb = thumbsById.get(frame.id);
-      // Le badge et le style dépendent de `generated` : on recrée la vignette s'il change.
-      if (!thumb || thumb.frame.generated !== frame.generated) {
+      // Le badge et le style dépendent de la sorte de frame : on recrée la vignette si elle change.
+      if (!thumb || thumb.frame.kind !== frame.kind) {
         thumb = createThumb(frame);
         thumbsById.set(frame.id, thumb);
         dirty.push(thumb);
@@ -134,21 +137,20 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
       return thumb;
     });
 
-    const ids = new Set(frames.map((f) => f.id));
+    const ids = new Set(sequence.map((f) => f.id));
     for (const id of thumbsById.keys()) if (!ids.has(id)) thumbsById.delete(id);
     if (next.length !== order.length || next.some((thumb, i) => thumb !== order[i])) {
       list.replaceChildren(...next.map((thumb) => thumb.item));
     }
     order = next;
 
-    count.textContent = t.count(frames.length);
-    deleteButton.disabled = frames.length <= 1;
+    count.textContent = t.count(sequence.length);
     dirty.forEach(paint);
-    renderActive(store.state.session.activeFrameIndex);
+    renderActive();
   }
 
   function paint(thumb: Thumb): void {
-    const token = thumb.frame.generated ? THUMB_COLOR_TOKENS.generated : THUMB_COLOR_TOKENS.keyframe;
+    const token = thumb.frame.kind === 'generated' ? THUMB_COLOR_TOKENS.generated : THUMB_COLOR_TOKENS.keyframe;
     const color = getComputedStyle(root).getPropertyValue(token).trim();
     paintThumbnail(thumb.canvas, store.state.project.present.skeleton, thumb.frame, color);
   }
@@ -162,16 +164,20 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
     });
   }
 
-  function renderActive(activeIndex: number): void {
-    order.forEach((thumb, index) => {
-      const active = index === activeIndex;
-      thumb.button.classList.toggle('is-active', active);
-      thumb.button.tabIndex = active ? 0 : -1;
-      if (active) thumb.button.setAttribute('aria-current', 'true');
+  function renderActive(): void {
+    const active = activeFrame(store.state);
+    const index = active?.index ?? 0;
+    order.forEach((thumb, i) => {
+      const isActive = i === index;
+      thumb.button.classList.toggle('is-active', isActive);
+      thumb.button.tabIndex = isActive ? 0 : -1;
+      if (isActive) thumb.button.setAttribute('aria-current', 'true');
       else thumb.button.removeAttribute('aria-current');
     });
+    // Seules les images clés se suppriment, et jamais la dernière.
+    deleteButton.disabled = active?.frame.kind !== 'keyframe' || store.state.project.present.keyframes.length <= 1;
     const smooth = !prefersReducedMotion() && !store.state.session.isPlaying;
-    order[activeIndex]?.button.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: smooth ? 'smooth' : 'auto' });
+    order[index]?.button.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: smooth ? 'smooth' : 'auto' });
   }
 
   const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
@@ -182,9 +188,9 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
     () => colorScheme.removeEventListener('change', repaintAll),
     () => window.removeEventListener('resize', repaintAll),
     () => cancelAnimationFrame(repaintRequest),
-    store.watch((s) => s.project.present.frames, syncFrames),
+    store.watch(sequenceOf, syncFrames),
     store.watch((s) => s.project.present.skeleton, repaintAll),
-    store.watch((s) => s.session.activeFrameIndex, renderActive),
+    store.watch((s) => s.session.activeFrameId, renderActive),
     store.watch((s) => s.session.clipboard, (clipboard) => (pasteButton.disabled = clipboard === null)),
   );
 
@@ -201,23 +207,22 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
   };
 }
 
-function createThumb(frame: Frame): Thumb {
+function createThumb(frame: SequenceFrame): Thumb {
+  const generated = frame.kind === 'generated';
   const number = h('span', { class: 'frame-thumb__number', 'aria-hidden': 'true' });
   const canvas = h('canvas', { class: 'frame-thumb__canvas', 'aria-hidden': 'true' });
   const button = h(
     'button',
     {
       type: 'button',
-      class: frame.generated ? 'frame-thumb frame-thumb--generated' : 'frame-thumb',
+      class: generated ? 'frame-thumb frame-thumb--generated' : 'frame-thumb',
       'data-action': 'frame:select',
       'data-frame-id': frame.id,
     },
     [
       canvas,
       number,
-      ...(frame.generated
-        ? [h('span', { class: 'frame-thumb__badge', 'aria-hidden': 'true' }, [icon('sparkles')])]
-        : []),
+      ...(generated ? [h('span', { class: 'frame-thumb__badge', 'aria-hidden': 'true' }, [icon('sparkles')])] : []),
     ],
   );
   return { item: h('li', { class: 'timeline__item' }, [button]), button, number, canvas, frame };
@@ -228,5 +233,5 @@ function setThumbIndex(thumb: Thumb, index: number): void {
   if (thumb.number.textContent === label) return;
   thumb.number.textContent = label;
   thumb.button.dataset.index = String(index);
-  thumb.button.setAttribute('aria-label', t.frameLabel(index + 1, thumb.frame.generated));
+  thumb.button.setAttribute('aria-label', t.frameLabel(index + 1, thumb.frame.kind === 'generated'));
 }

@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { createEventBus, type AppEventBus } from '../core/events';
 import { connectIntents } from '../core/intents';
+import { sequenceOf } from '../core/selectors';
 import { createInitialState, Store } from '../core/store';
-import type { Frame, Vec2 } from '../core/types';
+import type { Vec2 } from '../core/types';
 import { solvePose } from '../model/kinematics';
+import type { SequenceFrame } from '../model/sequence';
 import { createDefaultSkeleton, sortSkeleton } from '../model/skeleton';
 import { connectNodeManipulation } from './node-manipulation';
 
@@ -34,8 +36,8 @@ const down = (bus: AppEventBus, p: Vec2, id = 1): void => bus.emit('stage:pointe
 const move = (bus: AppEventBus, p: Vec2, id = 1): void => bus.emit('stage:pointer:move', screen(p, id));
 const up = (bus: AppEventBus, p: Vec2, id = 1): void => bus.emit('stage:pointer:up', screen(p, id));
 
-function frameAt(store: Store, index: number): Frame {
-  const frame = store.state.project.present.frames[index];
+function frameAt(store: Store, index: number): SequenceFrame {
+  const frame = sequenceOf(store.state)[index];
   if (!frame) throw new Error(`missing frame ${index}`);
   return frame;
 }
@@ -98,13 +100,12 @@ describe('connectNodeManipulation: dragging', () => {
   });
 
   it('only edits the active frame', () => {
-    const { bus, store, handle } = setup();
-    bus.emit('frame:select', { index: 1 });
+    const { bus, store } = setup();
+    bus.emit('frame:select', { index: 4 });
     down(bus, { x: 0, y: 0 });
     move(bus, { x: 10, y: 0 });
-    expect(frameAt(store, 1).rootPosition).toEqual({ x: 10, y: 0 });
+    expect(frameAt(store, 4).rootPosition).toEqual({ x: 10, y: 0 });
     expect(frameAt(store, 0).rootPosition).toEqual({ x: 0, y: 0 });
-    expect(handle('hip')).toEqual({ x: 0, y: 0 });
   });
 
   it('undoes a whole drag in one step', () => {
@@ -117,15 +118,18 @@ describe('connectNodeManipulation: dragging', () => {
     expect(frameAt(store, 0).pose).toEqual({});
   });
 
-  it('turns an edited generated frame into a keyframe', () => {
+  it('turns a dragged generated frame into a keyframe, undone in one step', () => {
     const { bus, store } = setup();
     bus.emit('frame:select', { index: 2 });
-    expect(frameAt(store, 2).generated).toBe(true);
+    expect(frameAt(store, 2).kind).toBe('generated');
     down(bus, { x: 0, y: 0 });
-    move(bus, { x: 10, y: 0 });
-    expect(frameAt(store, 2).generated).toBe(false);
-  });
-});
+    for (const x of [5, 10, 15]) move(bus, { x, y: 0 });
+    up(bus, { x: 15, y: 0 });
+    expect(store.state.project.present.keyframes).toHaveLength(3);
+    expect(store.state.project.present.keyframes[1]?.rootPosition.x).toBeCloseTo(15, 6);
+    bus.emit('history:undo');
+    expect(store.state.project.present.keyframes).toHaveLength(2);
+  });});
 
 describe('connectNodeManipulation: keyboard', () => {
   it('walks through the nodes in skeleton order', () => {

@@ -18,13 +18,15 @@ export interface Vec2 {
   y: number;
 }
 
-export interface Frame {
+/**
+ * Image clé : une frame posée par l'utilisateur. C'est la seule sorte de frame enregistrée ;
+ * les frames générées sont dérivées des images clés (voir model/sequence.ts, ADR 0002).
+ */
+export interface Keyframe {
   id: string;
-  /** Angle de chaque nœud, indexé par id de nœud. */
+  /** Angle de chaque nœud, indexé par id de nœud ; un nœud absent garde son angle de repos. */
   pose: Record<string, number>;
   rootPosition: Vec2;
-  /** true = créée par l'IA. */
-  generated: boolean;
 }
 
 /** Ce qui définit la pose d'une frame (copiée / collée, modifiée en manipulant les nœuds). */
@@ -60,7 +62,7 @@ export interface Project {
   /** 1 à 60. */
   fps: number;
   skeleton: SkeletonNode[];
-  frames: Frame[];
+  keyframes: Keyframe[];
   ai: AiSettings;
 }
 

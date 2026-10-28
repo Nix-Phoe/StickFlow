@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Frame } from '../core/types';
+import type { SequenceFrame } from '../model/sequence';
 import { onionSkinFrame } from './onion-skin';
 
-const frame = (id: string): Frame => ({ id, pose: {}, rootPosition: { x: 0, y: 0 }, generated: false });
+const frame = (id: string): SequenceFrame => ({ kind: 'keyframe', id, pose: {}, rootPosition: { x: 0, y: 0 } });
 const frames = [frame('a'), frame('b'), frame('c')];
 
 describe('onionSkinFrame', () => {

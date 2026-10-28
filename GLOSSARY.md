@@ -29,16 +29,20 @@ _Avoid_ : point de contrôle, handle
 ## Frames
 
 **Frame** :
-Une pose du squelette à un instant de l'animation. Un Projet contient toujours au moins une frame.
+Une pose du squelette à un instant de l'animation : une image clé ou une frame générée.
 _Avoid_ : image (sauf dans les textes affichés à l'utilisateur), pose (pour désigner la frame entière)
 
 **Image clé** :
-Une frame posée par l'utilisateur. L'IA ne la modifie jamais.
+Une frame posée par l'utilisateur ; c'est la seule sorte de frame enregistrée dans le Projet, qui en contient toujours au moins une. L'IA ne la modifie jamais.
 _Avoid_ : keyframe, frame utilisateur
 
 **Frame générée** :
-Une frame créée par l'IA à partir des images clés ; l'utilisateur peut la convertir en image clé.
+Une frame calculée par l'IA entre deux images clés voisines, jamais enregistrée ; la modifier la convertit en image clé.
 _Avoid_ : frame IA, intercalaire
+
+**Séquence** :
+La suite des frames affichées dans la timeline et jouées : les images clés et, entre elles, les frames générées.
+_Avoid_ : timeline (pour désigner les données), liste des frames
 
 **Frame active** :
 La frame affichée et modifiable sur le canvas ; elle fait partie de la Session.

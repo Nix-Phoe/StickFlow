@@ -2,6 +2,7 @@
 // et en nouvelles poses de la frame active. Sans DOM : écoute et émet sur le bus.
 
 import type { AppEventBus, StagePointer } from '../core/events';
+import { activeFrame } from '../core/selectors';
 import type { Store } from '../core/store';
 import type { Vec2 } from '../core/types';
 import { solvePose } from '../model/kinematics';
@@ -19,16 +20,15 @@ export interface NodeManipulationOptions {
 }
 
 export function connectNodeManipulation({ bus, store }: NodeManipulationOptions): () => void {
-  let drag: { pointerId: number; frameId: string; session: NodeDrag } | null = null;
+  let drag: { pointerId: number; session: NodeDrag } | null = null;
 
   const toWorld = (p: StagePointer): Vec2 => screenToWorld(p, p, STAGE_WORLD_HEIGHT);
 
-  function activeFrame() {
-    return store.state.project.present.frames[store.state.session.activeFrameIndex];
-  }
+  /** La manipulation porte toujours sur la frame active (une frame générée devient image clé au premier geste). */
+  const current = () => activeFrame(store.state)?.frame;
 
   function onDown(pointer: StagePointer): void {
-    const frame = activeFrame();
+    const frame = current();
     if (drag || store.state.session.isPlaying || !frame) return;
 
     const { skeleton } = store.state.project.present;
@@ -38,14 +38,16 @@ export function connectNodeManipulation({ bus, store }: NodeManipulationOptions)
 
     bus.emit('node:select', { nodeId });
     if (nodeId) {
-      drag = { pointerId: pointer.pointerId, frameId: frame.id, session: startNodeDrag(skeleton, posed, frame, nodeId, point) };
+      drag = { pointerId: pointer.pointerId, session: startNodeDrag(skeleton, posed, frame, nodeId, point) };
     }
   }
 
   function onMove(pointer: StagePointer): void {
     if (!drag || pointer.pointerId !== drag.pointerId) return;
+    const frame = current();
+    if (!frame) return;
     const { pose, rootPosition } = drag.session.update(toWorld(pointer));
-    bus.emit('frame:pose:change', { frameId: drag.frameId, pose: { ...pose }, rootPosition });
+    bus.emit('frame:pose:change', { frameId: frame.id, pose: { ...pose }, rootPosition });
   }
 
   function onUp(pointer: StagePointer): void {
@@ -64,7 +66,7 @@ export function connectNodeManipulation({ bus, store }: NodeManipulationOptions)
       bus.emit('node:select', { nodeId: cycleNode(project.present.skeleton, session.selectedNodeId, direction) });
     }),
     bus.on('node:nudge', ({ radians }) => {
-      const frame = activeFrame();
+      const frame = current();
       const nodeId = store.state.session.selectedNodeId;
       if (!frame || !nodeId || store.state.session.isPlaying) return;
       bus.emit('frame:pose:change', {

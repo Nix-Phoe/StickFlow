@@ -1,7 +1,5 @@
-import type { Frame } from '../core/types';
-
-/** Frame à afficher en pelure d'oignon : la précédente, hors lecture et si l'option est active. */
-export function onionSkinFrame(
+/** Frame à afficher en pelure d'oignon : la précédente dans la séquence, hors lecture et si l'option est active. */
+export function onionSkinFrame<Frame>(
   frames: readonly Frame[],
   activeIndex: number,
   { enabled, isPlaying }: { enabled: boolean; isPlaying: boolean },

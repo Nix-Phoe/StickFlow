@@ -1,6 +1,6 @@
 // Textes de l'interface, centralisés pour une traduction future.
 
-import type { EditorMode, ExportFormat, SmoothingCurve } from '../core/types';
+import type { EditorMode, ExportFormat, NoticeCode, SmoothingCurve } from '../core/types';
 
 const plural = (n: number, singular: string, pluralForm: string): string =>
   `${n} ${n > 1 ? pluralForm : singular}`;
@@ -18,7 +18,25 @@ export const strings = {
 
   panel: {
     project: 'Projet',
-    save: 'Sauvegarder le projet',
+    projectName: 'Nom du projet',
+    save: 'Enregistrer le projet (Ctrl+S)',
+    open: 'Ouvrir…',
+    saveAs: 'Enregistrer sous',
+    copyName: (name: string): string => `${name} (copie)`,
+    saveStatus: {
+      unsaved: 'Pas encore enregistré',
+      saved: 'Enregistré',
+      modified: 'Modifications non enregistrées',
+    },
+    exporting: (progress: number): string => `Export… ${Math.round(progress * 100)} %`,
+    notices: {
+      saved: 'Projet enregistré',
+      'save-failed': 'Échec de l’enregistrement',
+      opened: 'Projet ouvert',
+      'open-failed': 'Impossible d’ouvrir le projet',
+      exported: 'Fichier exporté',
+      'export-failed': 'Échec de l’export',
+    } satisfies Record<NoticeCode, string>,
     closeDrawer: 'Fermer le panneau de réglages',
     modeLabel: "Mode d'édition",
     modes: {
@@ -103,6 +121,14 @@ export const strings = {
     deleteFrame: 'Supprimer l’image',
     frameLabel: (n: number, generated: boolean): string =>
       generated ? `Image ${n}, générée par l’IA` : `Image ${n}`,
+  },
+
+  projects: {
+    title: 'Ouvrir un projet',
+    empty: 'Aucun projet enregistré pour l’instant.',
+    close: 'Fermer',
+    savedAt: (date: Date): string =>
+      `Enregistré le ${new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(date)}`,
   },
 
   stepper: {

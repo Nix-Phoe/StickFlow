@@ -1,0 +1,90 @@
+/* Dialogue « Ouvrir un projet ». */
+
+.projects-dialog {
+  width: min(var(--dialog-width), calc(100vw - 2 * var(--space-2)));
+  max-height: min(var(--dialog-max-height), calc(100dvh - 2 * var(--space-2)));
+  padding: 0;
+  overflow: hidden;
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-lg);
+  background: var(--material-thick);
+  color: var(--color-label);
+  box-shadow: var(--shadow-panel);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .projects-dialog {
+    -webkit-backdrop-filter: var(--material-blur);
+    backdrop-filter: var(--material-blur);
+  }
+}
+
+.projects-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.projects-dialog::backdrop {
+  background: var(--color-scrim);
+}
+
+.projects-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  border-bottom: var(--border-hairline) solid var(--color-separator);
+}
+
+.projects-dialog__title {
+  font-size: var(--font-size-headline);
+}
+
+.projects-dialog__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-1);
+}
+
+.projects-dialog__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-half);
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  text-align: left;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .projects-dialog__item:hover {
+    background: var(--color-fill);
+  }
+}
+
+.projects-dialog__item:active {
+  background: var(--color-fill-pressed);
+}
+
+.projects-dialog__name {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+.projects-dialog__date {
+  color: var(--color-label-tertiary);
+  font-size: var(--font-size-caption);
+}
+
+.projects-dialog__empty {
+  padding: var(--space-3) var(--space-2);
+  color: var(--color-label-tertiary);
+  text-align: center;
+}

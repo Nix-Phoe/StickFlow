@@ -5,7 +5,10 @@ import {
   type EditorMode,
   type ExportFormat,
   type FramePose,
+  type LibraryEntry,
+  type Notice,
   type PlaybackSpeed,
+  type Project,
   type SkeletonNode,
 } from './types';
 
@@ -23,6 +26,15 @@ export interface Session {
   onionSkin: boolean;
   /** Pose copiée, prête à être collée sur une autre frame. */
   clipboard: FramePose | null;
+  /** Id du projet enregistré en cours d'édition ; `null` s'il n'a jamais été enregistré. */
+  documentId: string | null;
+  /** Projet tel qu'il a été enregistré ou ouvert, pour savoir s'il a changé depuis. */
+  savedProject: Project | null;
+  /** Liste des projets enregistrés quand le dialogue « Ouvrir » est affiché. */
+  library: LibraryEntry[] | null;
+  notice: Notice | null;
+  /** Avancement de l'export en cours (0 à 1), `null` sans export. */
+  exportProgress: number | null;
 }
 
 export function createSession(): Session {
@@ -36,6 +48,11 @@ export function createSession(): Session {
     drawerOpen: false,
     onionSkin: true,
     clipboard: null,
+    documentId: null,
+    savedProject: null,
+    library: null,
+    notice: null,
+    exportProgress: null,
   };
 }
 

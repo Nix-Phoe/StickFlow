@@ -105,10 +105,17 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
     store.watch((s) => canRedo(s.project), (can) => (redoButton.disabled = !can)),
   );
 
-  // Raccourcis : Espace lecture / pause ; Ctrl/⌘+Z annuler, Ctrl/⌘+Maj+Z ou Ctrl+Y rétablir.
-  // Les champs de saisie gardent leurs raccourcis, et Espace active toujours les autres boutons ;
-  // sur les boutons de lecture, Espace bascule lecture / pause (sinon il relancerait le bouton).
+  // Raccourcis : Ctrl/⌘+S enregistrer, Ctrl/⌘+O ouvrir (partout, y compris dans un champ) ;
+  // Espace lecture / pause ; Ctrl/⌘+Z annuler, Ctrl/⌘+Maj+Z ou Ctrl+Y rétablir.
+  // Les champs de saisie gardent leurs autres raccourcis, et Espace active toujours les autres
+  // boutons ; sur les boutons de lecture, Espace bascule lecture / pause (sinon il relancerait le bouton).
   const onShortcut = (event: KeyboardEvent): void => {
+    const command = event.ctrlKey || event.metaKey;
+    if (command && !event.shiftKey && !event.altKey && (event.key === 's' || event.key === 'o')) {
+      event.preventDefault();
+      bus.emit(event.key === 's' ? 'project:save' : 'project:library:request');
+      return;
+    }
     if (isEditable(event.target)) return;
     if (event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey) {
       if (event.target instanceof HTMLButtonElement && !event.target.dataset.action?.startsWith('playback:')) return;

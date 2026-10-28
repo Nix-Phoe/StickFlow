@@ -8,6 +8,10 @@
 L'animation que l'utilisateur crée et sauvegarde : son nom, son IPS, son squelette, ses frames et ses réglages IA. Toute modification d'un Projet peut être annulée.
 _Avoid_ : document, fichier, animation (pour désigner l'ensemble)
 
+**Bibliothèque** :
+L'ensemble des Projets enregistrés sur l'appareil, que l'on rouvre depuis « Ouvrir ».
+_Avoid_ : galerie, historique, fichiers récents
+
 **Session** :
 L'état de travail du moment : frame active, lecture en cours, vitesse de prévisualisation, mode d'édition, format d'export. Elle n'est ni sauvegardée ni annulable.
 _Avoid_ : état d'interface, préférences

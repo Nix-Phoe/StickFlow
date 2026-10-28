@@ -3,8 +3,10 @@
 import {
   ClipboardPaste,
   Copy,
+  CopyPlus,
   createElement,
   Download,
+  FolderOpen,
   Gauge,
   Infinity as InfinityIcon,
   Layers,
@@ -27,6 +29,8 @@ import {
 
 const registry = {
   copy: Copy,
+  open: FolderOpen,
+  saveAs: CopyPlus,
   paste: ClipboardPaste,
   onionSkin: Layers,
   stop: Square,

@@ -75,6 +75,40 @@
   transform: scale(0.98);
 }
 
+/* ---------- Bouton secondaire ---------- */
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-fill);
+  color: var(--color-accent);
+  font-size: var(--font-size-subhead);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.button-secondary .icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+@media (hover: hover) {
+  .button-secondary:hover {
+    background: var(--color-fill-hover);
+  }
+}
+
+.button-secondary:active {
+  background: var(--color-fill-pressed);
+}
+
 /* ---------- Puce bascule (ex. « Infini ») ---------- */
 .chip {
   display: inline-flex;

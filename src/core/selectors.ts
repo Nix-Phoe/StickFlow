@@ -8,6 +8,12 @@ export function sequenceOf(state: Readonly<AppState>): readonly SequenceFrame[] 
   return deriveSequence(state.project.present);
 }
 
+/** État d'enregistrement : jamais enregistré, à jour, ou modifié depuis. */
+export function saveStatus(state: Readonly<AppState>): 'unsaved' | 'saved' | 'modified' {
+  if (state.session.documentId === null) return 'unsaved';
+  return state.project.present === state.session.savedProject ? 'saved' : 'modified';
+}
+
 /** Frame active et sa position dans la séquence (la première si l'id n'y est pas). */
 export function activeFrame(state: Readonly<AppState>): { frame: SequenceFrame; index: number } | null {
   const sequence = sequenceOf(state);

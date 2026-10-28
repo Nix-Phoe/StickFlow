@@ -308,3 +308,30 @@ describe('grouping quick changes into one step', () => {
     expect(undo(history).present.fps).toBe(12);
   });
 });
+
+describe('applyChange: rename', () => {
+  it('renames the project, trimming spaces', () => {
+    const history = apply(createHistory(project()), [{ type: 'rename', name: '  Saut périlleux  ' }]);
+    expect(history.present.name).toBe('Saut périlleux');
+  });
+
+  it('keeps the old name when the new one is empty', () => {
+    const start = createHistory(project());
+    expect(apply(start, [{ type: 'rename', name: '   ' }])).toBe(start);
+  });
+
+  it('cuts names that are too long', () => {
+    const history = apply(createHistory(project()), [{ type: 'rename', name: 'x'.repeat(500) }]);
+    expect(history.present.name).toHaveLength(80);
+  });
+
+  it('is undoable, typing included in one step', () => {
+    const history = apply(
+      createHistory(project()),
+      ['S', 'Sa', 'Sau', 'Saut'].map((name): ProjectChange => ({ type: 'rename', name })),
+      0,
+      COALESCE_WINDOW_MS / 4,
+    );
+    expect(undo(history).present.name).toBe('Test');
+  });
+});

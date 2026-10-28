@@ -63,6 +63,7 @@ export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now 
     bus.on('history:undo', () => setProject(undo(store.state.project))),
     bus.on('history:redo', () => setProject(redo(store.state.project))),
 
+    bus.on('project:rename', ({ name }) => change({ type: 'rename', name })),
     bus.on('animation:fps:change', ({ fps }) => change({ type: 'setFps', fps })),
     bus.on('ai:smoothing:change', (changes) => change({ type: 'updateSmoothing', changes })),
     bus.on('ai:loop:change', (changes) => change({ type: 'updateLoop', changes })),

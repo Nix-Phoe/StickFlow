@@ -95,6 +95,8 @@
   --icon-size-lg: 24px;
   --panel-width: 320px;
   --drawer-max-width: 85vw;
+  --dialog-width: 420px;
+  --dialog-max-height: 560px;
   --control-height: 44px;
   --segment-inset: 2px;
   --switch-width: 51px;

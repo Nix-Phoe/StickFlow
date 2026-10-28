@@ -9,16 +9,20 @@ import { createEventBus } from './core/events';
 import { connectIntents } from './core/intents';
 import { connectPlayer } from './animation';
 import type { AppEventName } from './core/events';
+import { connectExporter } from './export';
 import { createInitialState, Store } from './core/store';
 import { connectNodeManipulation } from './interaction';
 import { createDefaultSkeleton, sortSkeleton } from './model';
 import { connectStickmanView } from './render';
+import { connectProjectStorage, createIdbStore, createMemoryStore, createProjectLibrary } from './storage';
 import type { Component, ComponentContext } from './ui/component';
 import { createCanvasArea } from './ui/components/canvas-area';
+import { createProjectsDialog } from './ui/components/projects-dialog';
 import { createSidePanel } from './ui/components/side-panel';
 import { createTimeline } from './ui/components/timeline';
 import { createToolbar } from './ui/components/toolbar';
 import { h, ids } from './ui/dom';
+import { downloadBlob } from './ui/download';
 import { strings } from './ui/strings';
 
 const root = document.querySelector<HTMLElement>('#app');
@@ -29,6 +33,11 @@ const store = new Store(createInitialState(strings.defaultProjectName, sortSkele
 connectIntents(bus, store);
 connectNodeManipulation({ bus, store });
 connectPlayer({ bus, store });
+// IndexedDB si le navigateur l'autorise (absent en navigation privée sur certains navigateurs) ;
+// sinon les projets ne vivent que le temps de la session.
+const library = createProjectLibrary(typeof indexedDB === 'undefined' ? createMemoryStore() : createIdbStore());
+connectProjectStorage({ bus, store, library });
+connectExporter({ bus, store, download: downloadBlob });
 
 // Débogage : chaque événement est journalisé, sauf ceux émis en continu (glisser, lecture).
 const QUIET_EVENTS: ReadonlySet<AppEventName> = new Set(['stage:pointer:move', 'frame:pose:change', 'playback:frame']);
@@ -50,6 +59,7 @@ const components: Array<[Component, HTMLElement]> = [
   [createToolbar(context), regions.toolbar],
   [createCanvasArea(context), regions.stage],
   [createTimeline(context), regions.timeline],
+  [createProjectsDialog(context), root],
 ];
 components.forEach(([component, parent]) => component.mount(parent));
 

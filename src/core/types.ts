@@ -66,6 +66,24 @@ export interface Project {
   ai: AiSettings;
 }
 
+/** Projet enregistré, tel que la liste « Ouvrir » l'affiche. */
+export interface LibraryEntry {
+  id: string;
+  name: string;
+  /** Date d'enregistrement, en millisecondes depuis l'époque Unix. */
+  savedAt: number;
+}
+
+/** Message bref affiché après une action longue (sauvegarde, ouverture, export). */
+export type NoticeCode = 'saved' | 'save-failed' | 'opened' | 'open-failed' | 'exported' | 'export-failed';
+
+export interface Notice {
+  kind: 'success' | 'error';
+  code: NoticeCode;
+  /** Détail technique (message d'erreur, nom de fichier exporté). */
+  detail?: string;
+}
+
 export type EditorMode = 'character' | 'selection' | 'scene';
 
 export type PlaybackSpeed = 1 | 2 | 5 | 10;
@@ -83,6 +101,7 @@ export const LIMITS = {
   smoothingIntensity: { min: 1, max: 8 },
   loopRepeat: { min: 1, max: 99 },
   loopTransitionFrames: { min: 1, max: 12 },
+  projectNameLength: 80,
 } as const;
 
 export function clamp(value: number, min: number, max: number): number {

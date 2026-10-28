@@ -1,5 +1,6 @@
 import '../styles/components/side-panel.css';
 
+import { saveStatus } from '../../core/selectors';
 import {
   EDITOR_MODES,
   EXPORT_FORMATS,
@@ -7,6 +8,7 @@ import {
   SMOOTHING_CURVES,
   type EditorMode,
   type ExportFormat,
+  type Notice,
   type SmoothingCurve,
 } from '../../core/types';
 import type { Component, ComponentContext } from '../component';
@@ -31,7 +33,38 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
   let focusBeforeOpen: HTMLElement | null = null;
 
   // ---------- En-tête ----------
-  const projectName = h('h1', { class: 'side-panel__project-name' });
+  // Le nom se modifie directement ; chaque frappe est un changement du Projet (regroupés en une étape).
+  const projectName = h('input', {
+    type: 'text',
+    class: 'side-panel__project-name',
+    'aria-label': t.projectName,
+    maxlength: LIMITS.projectNameLength,
+    autocomplete: 'off',
+    spellcheck: false,
+    'data-action': 'project:rename',
+  });
+  projectName.addEventListener('input', () => bus.emit('project:rename', { name: projectName.value }));
+  // Un nom vide est refusé : en quittant le champ, il retrouve le nom du Projet.
+  projectName.addEventListener('change', () => (projectName.value = store.state.project.present.name));
+  projectName.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') projectName.blur();
+  });
+  const saveStatusText = h('p', { class: 'side-panel__save-status' });
+
+  const openButton = h(
+    'button',
+    { type: 'button', class: 'button-secondary', 'data-action': 'project:library:request' },
+    [icon('open'), t.open],
+  );
+  openButton.addEventListener('click', () => bus.emit('project:library:request'));
+  const saveAsButton = h(
+    'button',
+    { type: 'button', class: 'button-secondary', 'data-action': 'project:save-as' },
+    [icon('saveAs'), t.saveAs],
+  );
+  saveAsButton.addEventListener('click', () =>
+    bus.emit('project:save-as', { name: t.copyName(store.state.project.present.name) }),
+  );
   const closeButton = createIconButton({
     icon: 'close',
     label: t.closeDrawer,
@@ -62,10 +95,12 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
       h('div', { class: 'side-panel__titles' }, [
         h('p', { class: 'side-panel__app-name' }, [strings.appName]),
         projectName,
+        saveStatusText,
       ]),
       saveButton,
       closeButton,
     ]),
+    h('div', { class: 'side-panel__file-actions' }, [openButton, saveAsButton]),
     modeControl.element,
   ]);
 
@@ -213,15 +248,18 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
     value: store.state.session.exportFormat,
     onChange: (format) => bus.emit('export:format:change', { format }),
   });
+  const exportLabel = h('span', {}, [t.export]);
   const exportButton = h(
     'button',
     { type: 'button', class: 'button-primary side-panel__export', 'data-action': 'export:request' },
-    [icon('download'), t.export],
+    [icon('download'), exportLabel],
   );
   exportButton.addEventListener('click', () =>
     bus.emit('export:request', { format: store.state.session.exportFormat }),
   );
-  const footer = h('footer', { class: 'side-panel__footer' }, [formatControl.element, exportButton]);
+  // Résultat de la dernière action longue (enregistrement, ouverture, export), annoncé aux lecteurs d'écran.
+  const notice = h('p', { class: 'side-panel__notice', role: 'status', 'aria-live': 'polite' });
+  const footer = h('footer', { class: 'side-panel__footer' }, [formatControl.element, exportButton, notice]);
 
   // ---------- Racine ----------
   const panel = h('div', { class: 'side-panel', id: ids.sidePanel, tabindex: -1 }, [header, body, footer]);
@@ -235,7 +273,24 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
 
   // ---------- Abonnements au store ----------
   cleanups.push(
-    store.watch((s) => s.project.present.name, (name) => (projectName.textContent = name)),
+    store.watch(
+      (s) => s.project.present.name,
+      (name) => {
+        if (document.activeElement !== projectName) projectName.value = name;
+      },
+    ),
+    store.watch(saveStatus, (status) => {
+      saveStatusText.textContent = t.saveStatus[status];
+      saveStatusText.dataset.status = status;
+    }),
+    store.watch(
+      (s) => s.session.exportProgress,
+      (progress) => {
+        exportButton.disabled = progress !== null;
+        exportLabel.textContent = progress === null ? t.export : t.exporting(progress);
+      },
+    ),
+    store.watch((s) => s.session.notice, (value) => (notice.textContent = value ? noticeText(value) : '')),
     store.watch((s) => s.session.editorMode, (mode) => modeControl.setValue(mode)),
     store.watch(
       (s) => s.project.present.ai.smoothing,
@@ -353,6 +408,14 @@ function stackedRow(label: HTMLElement, value: HTMLElement | null, control: HTML
 
 function labelFor(id: string, text: string): HTMLLabelElement {
   return h('label', { class: 'group__label', for: id }, [text]);
+}
+
+/** Texte de la notification : nom du fichier pour un export, détail technique pour un échec. */
+function noticeText({ code, kind, detail }: Notice): string {
+  const text = t.notices[code];
+  if (code === 'exported' && detail) return `${text} : ${detail}`;
+  if (kind === 'error' && detail) return `${text} (${detail})`;
+  return text;
 }
 
 function setRowDisabled(row: HTMLElement, disabled: boolean): void {

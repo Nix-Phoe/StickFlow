@@ -57,6 +57,13 @@ export interface AppEvents {
   'node:nudge': { radians: number };
 
   'project:save': void;
+  /** Enregistre une copie sous ce nom, qui devient le document courant. */
+  'project:save-as': { name: string };
+  'project:open': { projectId: string };
+  'project:rename': { name: string };
+  /** Demande la liste des projets enregistrés (dialogue Ouvrir) ; `close` la referme. */
+  'project:library:request': void;
+  'project:library:close': void;
   'editor:mode:change': { mode: EditorMode };
 
   'ai:smoothing:change': Partial<SmoothingSettings>;

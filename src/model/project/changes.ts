@@ -14,6 +14,7 @@ import {
 
 /** Liste fermée des modifications possibles d'un Projet. */
 export type ProjectChange =
+  | { type: 'rename'; name: string }
   | { type: 'setFps'; fps: number }
   | { type: 'updateSmoothing'; changes: Partial<SmoothingSettings> }
   | { type: 'updateLoop'; changes: Partial<LoopSettings> }
@@ -40,6 +41,7 @@ const TOGGLES: ReadonlySet<string> = new Set(['enabled', 'curve', 'infinite']);
  */
 export function coalesceKey(change: ProjectChange): string | null {
   switch (change.type) {
+    case 'rename':
     case 'setFps':
       return change.type;
     case 'updateSmoothing':
@@ -59,6 +61,11 @@ export function coalesceKey(change: ProjectChange): string | null {
 
 export function applyToProject(project: Project, change: ProjectChange): Project {
   switch (change.type) {
+    case 'rename': {
+      // Nom vide : on garde l'ancien ; trop long : on le coupe.
+      const name = change.name.trim().slice(0, LIMITS.projectNameLength);
+      return name === '' || name === project.name ? project : { ...project, name };
+    }
     case 'setFps': {
       const fps = toLimit(change.fps, LIMITS.fps, project.fps);
       return fps === project.fps ? project : { ...project, fps };

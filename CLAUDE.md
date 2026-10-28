@@ -110,8 +110,8 @@ Référence : https://developer.apple.com/design/human-interface-guidelines
 | Rendu | **WebGL 2** (GLSL `#version 300 es`) |
 | Maths | **gl-matrix** |
 | Icônes | **Lucide** |
-| Stockage | **IndexedDB** via `idb-keyval`, projets au format **JSON** |
-| Export | **gif.js** (GIF), **MediaRecorder** (vidéo), `canvas.toBlob` (PNG) |
+| Stockage | **IndexedDB** via `idb-keyval`, projets au format **JSON** versionné |
+| Export | **gifenc** (GIF ; remplace gif.js, non maintenu et qui exige un fichier worker), **MediaRecorder** (vidéo MP4, ou WebM si le navigateur n'enregistre pas le MP4), `canvas.toBlob` + **fflate** (séquence PNG en archive ZIP) |
 | IA (V2) | Entraînement **PyTorch** → inférence **ONNX Runtime Web** |
 | Web | **PWA** (`vite-plugin-pwa`), hébergement Cloudflare Pages / Netlify |
 | Android | **Capacitor** |
@@ -191,7 +191,23 @@ src/animation/onion-skin.ts   # onionSkinFrame : frame précédente, hors lectur
 src/render/thumbnail.ts       # paintThumbnail : vignette Canvas 2D d'une frame (même cadrage vertical que la scène)
 src/model/sequence.ts         # deriveSequence : images clés + frames générées + transition de Répétition (candidat 2, phase 5)
 src/model/interpolation.ts    # interpolateKeyframes : linéaire / Catmull-Rom / ease-in-out (phase 5)
-src/core/selectors.ts         # sequenceOf / activeFrame : lectures dérivées de l'état
+src/core/selectors.ts         # sequenceOf / activeFrame / saveStatus : lectures dérivées de l'état
+```
+
+Fichiers ajoutés en phase 6 (sauvegarde et export) :
+```
+src/storage/project-file.ts     # Format de fichier versionné (stickflow-project v1) + validation à la lecture
+src/storage/library.ts          # Bibliothèque de projets sur un magasin clé-valeur (port KeyValueStore)
+src/storage/idb-store.ts        # Adaptateur IndexedDB (idb-keyval, base « stickflow », table « projects »)
+src/storage/memory-store.ts     # Adaptateur mémoire (tests, repli sans IndexedDB)
+src/storage/project-storage.ts  # Contrôleur : enregistrer, enregistrer sous, ouvrir, liste
+src/export/export-plan.ts       # Plan d'export pur : frames, passages, délai, compteur de boucle GIF, nom de fichier
+src/export/gif.ts / zip.ts      # Encodeurs GIF (gifenc) et ZIP (fflate), testés sans navigateur
+src/export/exporter.ts          # Rendu hors écran + encodage GIF / PNG / vidéo (navigateur uniquement)
+src/render/canvas2d.ts          # paintPose : dessin Canvas 2D partagé par les vignettes et l'export
+src/ui/components/projects-dialog.ts  # Dialogue « Ouvrir un projet » (<dialog> natif)
+src/ui/download.ts              # Remise du fichier exporté (lien de téléchargement)
+src/types/gifenc.d.ts           # Types minimaux de gifenc
 ```
 `render/camera.ts` gagne `worldToScreen`. La Session gagne `onionSkin` et `clipboard` (pose copiée).
 Il n’y a pas de `core/history.ts` : l’historique est interne au module Projet (`src/model/project/`), par instantanés (voir `docs/adr/0001-historique-par-instantanes.md`).
@@ -213,6 +229,8 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 - **Lecture** : parcourt la séquence au rythme IPS × vitesse, autant de fois que la Répétition l'indique (coupée : une fois puis arrêt sur la dernière frame ; « Infini » : en boucle ; sinon N passages). Lancée depuis la dernière frame, elle repart du début ; un saut de plus de 250 ms (onglet masqué) est plafonné. Pause garde la frame courante ; **Stop** revient à la frame active au lancement. Espace bascule lecture / pause (y compris sur les boutons de lecture, pas sur les autres boutons ni dans un champ). La lecture ne touche jamais au Projet (`playback:frame` met à jour la Session).
 - **Frames** : « + » insère une copie de la frame active juste après elle (c'est aussi « dupliquer ») ; Supprimer (bouton ou Suppr sur une vignette) retire l'image clé active, jamais la dernière, et ne s'applique pas à une frame générée ; Copier / Coller la pose passe par la Session, et coller est annulable. Vignettes : conservées par id de frame, seule celle qui change est repeinte ; frames générées dessinées en couleur d'accent.
 - **Pelure d'oignon** : frame précédente en transparence sous la frame active, réglable dans la section Animation, masquée pendant la lecture.
+- **Sauvegarde** : le fichier (`stickflow-project`, version 1) ne contient que nom, IPS, squelette, images clés et réglages IA. À la lecture, la structure est vérifiée (`ProjectFileError`, version plus récente refusée), puis `createHistory` applique les bornes. La bibliothèque passe par le port `KeyValueStore` (deux adaptateurs : IndexedDB, mémoire). La Session retient `documentId` et `savedProject` ; `saveStatus` vaut « jamais enregistré », « enregistré » ou « modifié » (comparaison par référence du Projet). Ouvrir remplace le Projet et repart d'un historique vierge. « Enregistrer sous » renomme en « <nom> (copie) » et enregistre sous un nouvel id. Le nom du projet se modifie dans l'en-tête (changement nommé `rename`, annulable, frappes regroupées). Raccourcis : Ctrl/⌘+S enregistrer, Ctrl/⌘+O ouvrir. Les erreurs et confirmations passent par `session.notice`, affichée sous le bouton Exporter.
+- **Export** : 1280 × 720, mêmes couleurs quel que soit le thème (fond blanc, stickman foncé ; PNG sur fond transparent). Répétition coupée : une lecture ; infinie : GIF en boucle, vidéo et PNG d'un passage ; N répétitions : compteur de boucle du GIF, N passages dans la vidéo, un passage en PNG. La vidéo est enregistrée en temps réel (une image par frame, au rythme de l'IPS) ; une vidéo vide est signalée comme un échec. `session.exportProgress` (0 à 1) désactive le bouton et affiche l'avancement.
 - Le panneau gauche devient un tiroir sous **900 px** de large (`DRAWER_MEDIA_QUERY` dans `ui/dom.ts`, dupliqué dans les CSS car les variables CSS sont interdites dans les media queries).
 
 ### 5.2 bis Événements du bus (`AppEvents` dans `core/events.ts`)
@@ -241,6 +259,10 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 | `playback:stop` | — |
 | `playback:frame` | `{ index }` (émis par le lecteur) |
 | `animation:onion-skin:change` | `{ enabled }` |
+| `project:rename` | `{ name }` |
+| `project:save-as` | `{ name }` |
+| `project:open` | `{ projectId }` |
+| `project:library:request`, `project:library:close` | — (dialogue « Ouvrir ») |
 
 La vitesse de prévisualisation comprend **x1** (vitesse normale) en plus de x2 / x5 / x10, pour qu'une valeur soit toujours sélectionnée.
 
@@ -302,7 +324,7 @@ Module Projet (revue d'architecture, candidat 1, **réalisé**) — `src/model/p
 4. **Phase 4 — Animation** : frames, timeline fonctionnelle, lecture, pelure d'oignon, annuler / rétablir. ✅
    - Puis : séquence dérivée (candidat 2, ADR 0002). ✅
 5. **Phase 5 — Fluidité et Répétition (V1)** : splines + easing, boucle intelligente. ✅
-6. **Phase 6 — Sauvegarde et export** : IndexedDB, GIF / PNG / MP4.
+6. **Phase 6 — Sauvegarde et export** : IndexedDB, GIF / PNG / MP4. ✅
 7. **Phase 7 — PWA et Android** : `vite-plugin-pwa`, Capacitor, test fermé Google Play.
 8. **Phase 8 — IA avancée** : modèle de *motion in-betweening*, effets prédéfinis, prompt.
 

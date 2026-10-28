@@ -1,2 +1,2 @@
-// Phase 6 : export GIF, PNG et MP4.
-export {};
+// Export GIF, PNG (séquence en ZIP) et vidéo.
+export { connectExporter } from './exporter';

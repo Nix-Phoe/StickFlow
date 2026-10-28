@@ -6,11 +6,12 @@ import type { Component, ComponentContext } from '../component';
 import { createIconButton } from '../controls/icon-button';
 import { createSegmented } from '../controls/segmented';
 import { h, ids } from '../dom';
+import { icon } from '../icons';
 import { strings } from '../strings';
 
 const t = strings.toolbar;
 
-/** Barre supérieure : tiroir (petits écrans), annuler / rétablir, lecture / pause, vitesse. */
+/** Barre supérieure : tiroir (petits écrans), annuler / rétablir, lecture / pause (un seul bouton), stop, vitesse. */
 export function createToolbar({ bus, store }: ComponentContext): Component {
   const cleanups: Array<() => void> = [];
 
@@ -38,20 +39,16 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
     variant: 'filled',
     onClick: () => bus.emit('history:redo'),
   });
+  // Bouton unique Lecture / Pause : les deux icônes sont superposées, la CSS fond l'une dans l'autre.
   const playButton = createIconButton({
     icon: 'play',
     label: t.play,
-    action: 'playback:play',
+    action: 'playback:toggle',
     variant: 'filled',
-    onClick: () => bus.emit('playback:play'),
+    className: 'toolbar__play',
+    onClick: () => bus.emit('playback:toggle'),
   });
-  const pauseButton = createIconButton({
-    icon: 'pause',
-    label: t.pause,
-    action: 'playback:pause',
-    variant: 'filled',
-    onClick: () => bus.emit('playback:pause'),
-  });
+  playButton.append(icon('pause', 'icon toolbar__pause-icon'));
 
   const stopButton = createIconButton({
     icon: 'stop',
@@ -81,11 +78,7 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
         undoButton,
         redoButton,
       ]),
-      h('div', { class: 'toolbar__group', role: 'group', 'aria-label': `${t.play} / ${t.pause}` }, [
-        playButton,
-        pauseButton,
-        stopButton,
-      ]),
+      h('div', { class: 'toolbar__group', role: 'group', 'aria-label': t.playbackGroup }, [playButton, stopButton]),
       speedControl.element,
     ]),
     h('div', { class: 'toolbar__end' }),
@@ -95,8 +88,10 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
     store.watch(
       (s) => s.session.isPlaying,
       (isPlaying) => {
+        const label = isPlaying ? t.pause : t.play;
         playButton.setAttribute('aria-pressed', String(isPlaying));
-        pauseButton.setAttribute('aria-pressed', String(!isPlaying));
+        playButton.setAttribute('aria-label', label);
+        playButton.title = label;
       },
     ),
     store.watch((s) => s.session.playbackSpeed, (speed) => speedControl.setValue(speed)),
@@ -119,7 +114,7 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
     if (isEditable(event.target)) return;
     if (event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey) {
       if (event.target instanceof HTMLButtonElement && !event.target.dataset.action?.startsWith('playback:')) return;
-      bus.emit(store.state.session.isPlaying ? 'playback:pause' : 'playback:play');
+      bus.emit('playback:toggle');
       event.preventDefault();
       return;
     }

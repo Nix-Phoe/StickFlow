@@ -102,6 +102,8 @@ export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now 
     bus.on('node:select', ({ nodeId }) => setSession({ selectedNodeId: nodeId })),
     bus.on('playback:play', () => setSession({ isPlaying: true })),
     bus.on('playback:pause', () => setSession({ isPlaying: false })),
+    // Relayé en lecture / pause, que d'autres modules écoutent (ex. arrêt d'un glisser).
+    bus.on('playback:toggle', () => bus.emit(store.state.session.isPlaying ? 'playback:pause' : 'playback:play')),
     bus.on('playback:speed:change', ({ speed }) => setSession({ playbackSpeed: speed })),
     bus.on('editor:mode:change', ({ mode }) => setSession({ editorMode: mode })),
     bus.on('export:format:change', ({ format }) => setSession({ exportFormat: format })),

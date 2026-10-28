@@ -79,3 +79,26 @@
     display: none;
   }
 }
+
+/* Bouton Lecture / Pause : icône Lecture à l'arrêt, Pause pendant la lecture, en fondu. */
+.toolbar__play > .icon {
+  grid-area: 1 / 1;
+  transition: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+
+.toolbar__play .toolbar__pause-icon,
+.toolbar__play[aria-pressed="true"] > .icon:first-child {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.toolbar__play[aria-pressed="true"] .toolbar__pause-icon {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toolbar__play > .icon {
+    transition: none;
+  }
+}

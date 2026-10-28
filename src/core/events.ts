@@ -27,6 +27,8 @@ export interface AppEvents {
 
   'playback:play': void;
   'playback:pause': void;
+  /** Bouton unique Lecture / Pause : lance la lecture, ou la met en pause. */
+  'playback:toggle': void;
   /** Arrête la lecture et revient à la frame où elle avait commencé. */
   'playback:stop': void;
   /** Le lecteur avance la tête de lecture (émis en continu pendant la lecture). */

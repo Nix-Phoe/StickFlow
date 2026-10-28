@@ -195,6 +195,14 @@ describe('connectIntents: Session', () => {
     expect(store.state.project).toBe(before);
   });
 
+  it('toggles between play and pause with a single event', () => {
+    const { bus, session } = setup();
+    bus.emit('playback:toggle');
+    expect(session().isPlaying).toBe(true);
+    bus.emit('playback:toggle');
+    expect(session().isPlaying).toBe(false);
+  });
+
   it('switches the onion skin on and off', () => {
     const { bus, session } = setup();
     bus.emit('animation:onion-skin:change', { enabled: false });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ORIGIN, testCharacter } from '../test/fixtures';
-import { characterBounds, partColor, placeNewCharacter, posedCharacter } from './character';
+import { characterBounds, partColor, placeNewCharacter, posedCharacter, restSize } from './character';
 
 describe('placeNewCharacter', () => {
   it('puts the first character at the origin', () => {
@@ -57,5 +57,15 @@ describe('partColor', () => {
     expect(partColor(character, 'head', '#000000')).toBe('#ff0000');
     expect(partColor(character, 'torso', '#000000')).toBe('#00ff00');
     expect(partColor(testCharacter('c'), 'torso', '#000000')).toBe('#000000');
+  });
+});
+
+describe('restSize', () => {
+  it('measures the character in its rest pose at 100 %, whatever its current size', () => {
+    const normal = restSize(testCharacter('c'));
+    const big = restSize(testCharacter('c', { appearance: { scale: 2, defaultColor: null, segmentColors: {} } }));
+    expect(big).toEqual(normal);
+    expect(normal.height).toBeGreaterThan(normal.width);
+    expect(normal.height).toBeGreaterThan(200);
   });
 });

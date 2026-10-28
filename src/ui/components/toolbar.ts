@@ -25,6 +25,18 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
   });
   menuButton.setAttribute('aria-controls', ids.sidePanel);
 
+  // Ouvre le panneau « Personnages & Environnement » (ancré sous ce bouton).
+  const editorButton = createIconButton({
+    icon: 'editor',
+    label: strings.editorPanel.open,
+    action: 'panel:toggle',
+    variant: 'filled',
+    onClick: () => bus.emit('panel:toggle', { open: !store.state.session.panelOpen }),
+  });
+  editorButton.id = ids.editorButton;
+  editorButton.setAttribute('aria-controls', ids.editorPanel);
+  editorButton.setAttribute('aria-haspopup', 'dialog');
+
   const undoButton = createIconButton({
     icon: 'undo',
     label: t.undo,
@@ -74,6 +86,7 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
   const root = h('div', { class: 'toolbar' }, [
     h('div', { class: 'toolbar__start' }, [menuButton]),
     h('div', { class: 'toolbar__center' }, [
+      editorButton,
       h('div', { class: 'toolbar__group', role: 'group', 'aria-label': `${t.undo} / ${t.redo}` }, [
         undoButton,
         redoButton,
@@ -96,6 +109,10 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
     ),
     store.watch((s) => s.session.playbackSpeed, (speed) => speedControl.setValue(speed)),
     store.watch((s) => s.session.drawerOpen, (open) => menuButton.setAttribute('aria-expanded', String(open))),
+    store.watch((s) => s.session.panelOpen, (open) => {
+      editorButton.setAttribute('aria-expanded', String(open));
+      editorButton.classList.toggle('is-active', open);
+    }),
     store.watch((s) => canUndo(s.project), (can) => (undoButton.disabled = !can)),
     store.watch((s) => canRedo(s.project), (can) => (redoButton.disabled = !can)),
   );

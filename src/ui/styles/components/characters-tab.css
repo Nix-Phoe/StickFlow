@@ -1,0 +1,183 @@
+/* Onglet Personnages : liste groupée, actions, inspecteur Apparence. */
+
+.character-list {
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.character-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-half);
+  min-height: var(--touch-target);
+  padding: var(--space-half) var(--space-1);
+}
+
+.character-row + .character-row {
+  border-top: var(--border-hairline) solid var(--color-separator);
+}
+
+.character-row.is-selected {
+  background: var(--color-accent-soft);
+}
+
+.character-row.is-hidden .character-row__thumb,
+.character-row.is-hidden .character-row__name {
+  opacity: var(--opacity-muted);
+}
+
+.character-row__select {
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.character-row__thumb {
+  width: var(--character-thumb-width);
+  height: var(--character-thumb-height);
+  border-radius: var(--radius-sm);
+  background: var(--color-thumb-bg);
+}
+
+.character-row__select[aria-pressed="true"] .character-row__thumb {
+  outline: var(--border-strong) solid var(--color-accent);
+}
+
+.character-row__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-label);
+  font: inherit;
+  font-size: var(--font-size-body);
+}
+
+.character-row__name:hover,
+.character-row__name:focus {
+  background: var(--color-fill);
+}
+
+.character-row__toggle {
+  color: var(--color-accent);
+}
+
+.character-row__toggle.is-off {
+  color: var(--color-label-tertiary);
+}
+
+.character-list__add {
+  width: 100%;
+  margin-top: var(--space-1);
+}
+
+.characters-tab__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.characters-tab__actions[hidden],
+.appearance[hidden],
+.appearance__caption[hidden],
+.characters-tab .button-secondary[hidden] {
+  display: none;
+}
+
+.appearance__selection {
+  margin: 0 0 var(--space-1);
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-subhead);
+  font-weight: var(--font-weight-semibold);
+}
+
+.appearance__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  margin: var(--space-half) calc(-1 * var(--space-1));
+}
+
+.appearance__color-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-1) 0;
+}
+
+.appearance__hex,
+.color-picker__hex,
+.appearance__scale-input {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-1);
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-sm);
+  background: var(--color-fill);
+  color: var(--color-label);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.appearance__hex,
+.color-picker__hex {
+  width: var(--hex-field-width);
+  text-transform: lowercase;
+}
+
+.appearance__scale-input {
+  width: var(--number-field-width);
+  text-align: end;
+}
+
+.appearance__caption {
+  margin: var(--space-half) 0 0;
+  padding: 0 var(--space-2);
+  color: var(--color-label-tertiary);
+  font-size: var(--font-size-caption);
+}
+
+.group__row .appearance__caption {
+  padding: 0;
+}
+
+/* Pastille de couleur : cible de 44 px, disque de 28 px. */
+.swatch {
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+}
+
+.swatch::before {
+  content: "";
+  width: var(--swatch-size);
+  height: var(--swatch-size);
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-pill);
+  background: var(--swatch-color, transparent);
+}
+
+.swatch[aria-pressed="true"]::before {
+  box-shadow: 0 0 0 var(--border-strong) var(--color-surface), 0 0 0 calc(2 * var(--border-strong)) var(--color-accent);
+}
+
+/* « Automatique » : moitié claire, moitié foncée (suit le thème). */
+.swatch--auto::before {
+  background: linear-gradient(135deg, var(--color-surface) 50%, var(--color-stickman) 50%);
+}

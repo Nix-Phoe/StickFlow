@@ -1,0 +1,68 @@
+/* Onglet Environnement : grille d'outils et réglages de l'outil actif. */
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--tool-button-height), 1fr));
+  gap: var(--space-half);
+  padding: var(--space-half);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.tool-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-half);
+  min-height: var(--tool-button-height);
+  padding: var(--space-half);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-label);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.tool-button:hover {
+  background: var(--color-fill);
+}
+
+.tool-button[aria-pressed="true"] {
+  background: var(--color-accent-soft-strong);
+  color: var(--color-accent);
+}
+
+.tool-button__label {
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-tight);
+  text-align: center;
+}
+
+.environment-tab__shape-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-half);
+  margin-bottom: var(--space-1);
+  padding: 0 var(--space-2);
+}
+
+.environment-tab__shape-actions .group__label {
+  flex: 1 1 auto;
+}
+
+.environment-tab__shape-actions[hidden],
+.environment-tab__settings .group[hidden],
+.environment-tab__settings .group__row[hidden],
+.environment-tab__settings .appearance__caption[hidden] {
+  display: none;
+}
+
+.environment-tab__settings .appearance__caption {
+  margin: 0 0 var(--space-1);
+  padding: 0 var(--space-2);
+  color: var(--color-label-tertiary);
+  font-size: var(--font-size-caption);
+}

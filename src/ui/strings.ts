@@ -1,6 +1,6 @@
 // Textes de l'interface, centralisés pour une traduction future.
 
-import type { EditorMode, ExportFormat, NoticeCode, SmoothingCurve } from '../core/types';
+import type { ColorHarmony, EditorMode, ExportFormat, NoticeCode, SmoothingCurve, ToolId } from '../core/types';
 
 const plural = (n: number, singular: string, pluralForm: string): string =>
   `${n} ${n > 1 ? pluralForm : singular}`;
@@ -16,6 +16,117 @@ export const strings = {
 
   characters: {
     defaultName: (n: number): string => `Personnage ${n}`,
+    copyName: (name: string): string => `${name} (copie)`,
+    list: 'Personnages de la scène',
+    add: 'Ajouter un personnage',
+    name: (name: string): string => `Nom de ${name}`,
+    select: (name: string): string => `Sélectionner ${name}`,
+    show: (name: string): string => `Afficher ${name}`,
+    hide: (name: string): string => `Masquer ${name}`,
+    lock: (name: string): string => `Verrouiller ${name}`,
+    unlock: (name: string): string => `Déverrouiller ${name}`,
+    actions: 'Actions sur le personnage sélectionné',
+    duplicate: 'Dupliquer',
+    moveUp: 'Monter (au premier plan)',
+    moveDown: 'Descendre (à l’arrière-plan)',
+    remove: 'Supprimer',
+    confirmRemove: (name: string): string => `Supprimer « ${name} » de toute l’animation ?`,
+    noSelection: 'Sélectionnez un personnage dans la liste ou sur la scène.',
+  },
+
+  /** Noms des parties du stickman par défaut (id du nœud qui termine le segment). */
+  parts: {
+    torso: 'Torse',
+    head: 'Tête',
+    upperArmL: 'Bras gauche',
+    forearmL: 'Avant-bras gauche',
+    upperArmR: 'Bras droit',
+    forearmR: 'Avant-bras droit',
+    thighL: 'Cuisse gauche',
+    shinL: 'Jambe gauche',
+    thighR: 'Cuisse droite',
+    shinR: 'Jambe droite',
+  } as Readonly<Record<string, string>>,
+
+  appearance: {
+    title: 'Apparence',
+    whole: 'Personnage entier',
+    part: (nodeId: string): string => strings.parts[nodeId] ?? nodeId,
+    parts: (n: number): string => `${n} parties`,
+    color: 'Couleur',
+    swatches: 'Couleurs prédéfinies',
+    swatch: (hex: string): string => `Couleur ${hex}`,
+    automatic: 'Automatique (couleur du thème)',
+    hex: 'Code HEX',
+    openPalette: 'Grande palette',
+    applyToAll: 'Appliquer à tout le personnage',
+    size: 'Taille',
+    sizePercent: (percent: number): string => `${percent} %`,
+    originalSize: (width: number, height: number): string => `Taille d’origine · ${width} × ${height} px`,
+  },
+
+  colorPicker: {
+    wheel: 'Roue chromatique : flèches gauche / droite pour la teinte, haut / bas pour la saturation',
+    brightness: 'Luminosité',
+    harmony: 'Harmonie',
+    harmonies: {
+      none: 'Aucune',
+      analogous: 'Analogue',
+      complementary: 'Complém.',
+      triadic: 'Triadique',
+    } satisfies Record<ColorHarmony, string>,
+    harmoniesLong: {
+      none: 'Aucune harmonie',
+      analogous: 'Couleurs analogues',
+      complementary: 'Couleur complémentaire',
+      triadic: 'Couleurs triadiques',
+    } satisfies Record<ColorHarmony, string>,
+    harmonyColor: (hex: string): string => `Choisir la couleur harmonique ${hex}`,
+    white: 'Blanc',
+    black: 'Noir',
+    eyedropper: 'Pipette : prendre une couleur à l’écran',
+    eyedropperFallback: 'Pipette : touchez la scène pour prendre une couleur',
+    recent: 'Couleurs récentes',
+    noRecent: 'Aucune couleur récente.',
+  },
+
+  editorPanel: {
+    open: 'Ajouter ou modifier un personnage ou l’environnement',
+    title: 'Personnages et environnement',
+    close: 'Fermer le panneau',
+    tabs: 'Contexte d’édition',
+  },
+
+  environment: {
+    shapes: 'Formes',
+    drawing: 'Outils de dessin',
+    tools: {
+      select: 'Sélection',
+      square: 'Carré',
+      circle: 'Cercle',
+      rectangle: 'Rectangle',
+      triangle: 'Triangle',
+      line: 'Ligne',
+      fill: 'Remplir',
+      pen: 'Stylo fin',
+      marker: 'Feutre',
+      brush: 'Pinceau',
+      eraser: 'Gomme',
+      nib: 'Plume',
+      airbrush: 'Aérographe',
+    } satisfies Record<ToolId, string>,
+    settings: 'Réglages de l’outil',
+    shapeSettings: 'Forme sélectionnée',
+    strokeWidth: 'Épaisseur',
+    opacity: 'Opacité',
+    style: 'Style',
+    outline: 'Contour',
+    filled: 'Rempli',
+    deleteShape: 'Supprimer la forme',
+    duplicateShape: 'Dupliquer la forme',
+    selectHint: 'Touchez une forme pour la sélectionner, la déplacer ou la redimensionner.',
+    units: (n: number): string => `${n} px`,
+    percent: (n: number): string => `${n} %`,
   },
 
   regions: {

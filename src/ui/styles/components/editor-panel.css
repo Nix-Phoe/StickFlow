@@ -1,0 +1,111 @@
+/* Panneau flottant « Personnages & Environnement » : popover iOS ancré sous son bouton,
+   feuille du bas sur téléphone. */
+
+.editor-panel {
+  position: fixed;
+  top: var(--editor-panel-top, var(--space-6));
+  left: var(--editor-panel-left, var(--space-2));
+  z-index: var(--z-drawer);
+  display: flex;
+  flex-direction: column;
+  width: min(var(--editor-panel-width), calc(100vw - 2 * var(--space-2)));
+  max-height: calc(100dvh - var(--editor-panel-top, var(--space-6)) - var(--space-2));
+  overflow: hidden;
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-lg);
+  background: var(--material-fallback);
+  color: var(--color-label);
+  box-shadow: var(--shadow-raised);
+  animation: editor-panel-in var(--duration-base) var(--ease-emphasized);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .editor-panel {
+    background: var(--material-thick);
+    -webkit-backdrop-filter: var(--material-blur);
+    backdrop-filter: var(--material-blur);
+  }
+}
+
+.editor-panel[hidden] {
+  display: none;
+}
+
+@keyframes editor-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-1))) scale(0.98);
+  }
+}
+
+.editor-panel__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  border-bottom: var(--border-hairline) solid var(--color-separator);
+}
+
+.editor-panel__tabs {
+  flex: 1 1 auto;
+}
+
+.editor-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-2);
+}
+
+.editor-panel__tab[hidden] {
+  display: none;
+}
+
+.editor-panel__section-title {
+  margin: var(--space-2) 0 var(--space-1);
+  padding: 0 var(--space-2);
+  color: var(--color-label-tertiary);
+  font-size: var(--font-size-footnote);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+}
+
+.editor-panel__section-title:first-child {
+  margin-top: 0;
+}
+
+/* Bouton d'ouverture actif dans la barre d'outils. */
+.icon-button.is-active {
+  background: var(--color-accent-soft-strong);
+  color: var(--color-accent);
+}
+
+/* Téléphone : feuille du bas, pour ne pas cacher le canvas. */
+@media (max-width: 599px) {
+  .editor-panel {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    max-height: var(--sheet-max-height);
+    padding-bottom: env(safe-area-inset-bottom);
+    border-bottom: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    animation-name: editor-sheet-in;
+  }
+}
+
+@keyframes editor-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor-panel {
+    animation: none;
+  }
+}

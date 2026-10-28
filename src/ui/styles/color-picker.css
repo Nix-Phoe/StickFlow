@@ -1,0 +1,107 @@
+/* Grande palette : roue chromatique, luminosité, harmonies, raccourcis, HEX, récentes. */
+
+.color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.color-picker[hidden] {
+  display: none;
+}
+
+.color-picker__wheel {
+  position: relative;
+  align-self: center;
+  width: var(--color-wheel-size);
+  height: var(--color-wheel-size);
+  border-radius: var(--radius-pill);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.color-picker__wheel-canvas,
+.color-picker__lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.color-picker__lines line {
+  stroke: var(--color-on-accent);
+  stroke-width: 0.012;
+  opacity: 0.85;
+}
+
+.color-picker__cursor,
+.color-picker__harmony-dot {
+  position: absolute;
+  border: var(--border-strong) solid var(--color-on-accent);
+  border-radius: var(--radius-pill);
+  background: var(--picker-color, transparent);
+  box-shadow: var(--shadow-thumb);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.color-picker__cursor {
+  width: var(--color-wheel-cursor-size);
+  height: var(--color-wheel-cursor-size);
+}
+
+.color-picker__harmony-dot {
+  width: var(--harmony-dot-size);
+  height: var(--harmony-dot-size);
+}
+
+.color-picker__label {
+  margin: 0;
+  color: var(--color-label-secondary);
+  font-size: var(--font-size-footnote);
+}
+
+.color-picker__harmony-swatches,
+.color-picker__recent {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 calc(-1 * var(--space-1));
+}
+
+.color-picker__harmony-swatches[hidden] {
+  display: none;
+}
+
+.color-picker__empty {
+  padding: 0 var(--space-1);
+  color: var(--color-label-tertiary);
+  font-size: var(--font-size-caption);
+}
+
+.color-picker__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.color-picker__hex {
+  margin-inline-start: auto;
+}
+
+/* Blanc et noir : pastilles de 44 px, toujours blanche et noire quel que soit le thème. */
+.color-picker__quick {
+  flex: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.color-picker__quick--white {
+  background: var(--color-picker-white);
+}
+
+.color-picker__quick--black {
+  background: var(--color-picker-black);
+}

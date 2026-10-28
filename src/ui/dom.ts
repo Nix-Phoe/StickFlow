@@ -25,7 +25,15 @@ export const DRAWER_MEDIA_QUERY = '(max-width: 899px)';
 export const ids = {
   sidePanel: 'side-panel',
   stage: 'stage',
+  editorButton: 'editor-panel-button',
+  editorPanel: 'editor-panel',
+  /** Emplacements des onglets du panneau flottant, remplis par leurs composants. */
+  charactersTab: 'editor-panel-characters',
+  environmentTab: 'editor-panel-environment',
 } as const;
+
+/** Media query sous laquelle le panneau flottant devient une feuille du bas (voir editor-panel.css). */
+export const SHEET_MEDIA_QUERY = '(max-width: 599px)';
 
 export function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;

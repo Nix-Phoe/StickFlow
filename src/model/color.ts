@@ -66,3 +66,37 @@ const HARMONY_OFFSETS: Record<ColorHarmony, readonly number[]> = {
 export function harmonyHues(hue: number, harmony: ColorHarmony): number[] {
   return HARMONY_OFFSETS[harmony].map((offset) => (((hue + offset) % 360) + 360) % 360);
 }
+
+/**
+ * Point de la roue chromatique (rayon 1, y vers le haut) d'une teinte et d'une saturation :
+ * la teinte est l'angle (rouge à droite, sens antihoraire), la saturation la distance au centre.
+ */
+export function wheelPoint(hue: number, saturation: number): { x: number; y: number } {
+  const angle = (hue * Math.PI) / 180;
+  const x = saturation * Math.cos(angle);
+  const y = saturation * Math.sin(angle);
+  // Évite les « -0 » et les poussières d'arrondi aux angles droits.
+  const tidy = (v: number): number => (Math.abs(v) < 1e-12 ? 0 : v);
+  return { x: tidy(x), y: tidy(y) };
+}
+
+/** Teinte et saturation d'un point de la roue ; un point hors de la roue est ramené sur son bord. */
+export function wheelHueSaturation({ x, y }: { x: number; y: number }): { h: number; s: number } {
+  const s = Math.min(1, Math.hypot(x, y));
+  if (s === 0) return { h: 0, s: 0 };
+  const h = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+  return { h, s };
+}
+
+/** Pastilles prédéfinies : blanc, gris, noir, puis les couleurs vives du système. */
+export const PRESET_COLORS: readonly string[] = [
+  '#ffffff',
+  '#8e8e93',
+  '#1c1c1e',
+  '#ff3b30',
+  '#ff9500',
+  '#ffcc00',
+  '#34c759',
+  '#007aff',
+  '#af52de',
+];

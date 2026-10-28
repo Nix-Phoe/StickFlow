@@ -18,6 +18,9 @@ import { connectStageView } from './render';
 import { connectProjectStorage, createIdbStore, createMemoryStore, createProjectLibrary } from './storage';
 import type { Component, ComponentContext } from './ui/component';
 import { createCanvasArea } from './ui/components/canvas-area';
+import { createCharactersTab } from './ui/components/characters-tab';
+import { createEditorPanel } from './ui/components/editor-panel';
+import { createEnvironmentTab } from './ui/components/environment-tab';
 import { createProjectsDialog } from './ui/components/projects-dialog';
 import { createSidePanel } from './ui/components/side-panel';
 import { createTimeline } from './ui/components/timeline';
@@ -64,8 +67,19 @@ const components: Array<[Component, HTMLElement]> = [
   [createCanvasArea(context), regions.stage],
   [createTimeline(context), regions.timeline],
   [createProjectsDialog(context), root],
+  [createEditorPanel(context), root],
 ];
 components.forEach(([component, parent]) => component.mount(parent));
+
+// Les onglets du panneau flottant se montent dans les emplacements qu'il a créés.
+const tabs: Array<[Component, string]> = [
+  [createCharactersTab(context), ids.charactersTab],
+  [createEnvironmentTab(context), ids.environmentTab],
+];
+for (const [component, slotId] of tabs) {
+  const slot = document.getElementById(slotId);
+  if (slot) component.mount(slot);
+}
 
 // Le rendu dessine dans le canvas monté par CanvasArea ; l'UI, elle, ne dessine jamais.
 const stage = document.getElementById(ids.stage);

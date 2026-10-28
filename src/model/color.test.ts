@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { harmonyHues, hexToHsv, hsvToHex, normalizeHex } from './color';
+import { harmonyHues, hexToHsv, hsvToHex, normalizeHex, wheelHueSaturation, wheelPoint } from './color';
 
 describe('normalizeHex', () => {
   it('accepts #rgb and #rrggbb, with or without #, in any case', () => {
@@ -46,5 +46,26 @@ describe('harmonyHues', () => {
     expect(harmonyHues(10, 'analogous')).toEqual([340, 40]);
     expect(harmonyHues(10, 'complementary')).toEqual([190]);
     expect(harmonyHues(300, 'triadic')).toEqual([60, 180]);
+  });
+});
+
+describe('color wheel geometry', () => {
+  it('puts hue on the angle (red to the right, counter-clockwise) and saturation on the radius', () => {
+    expect(wheelPoint(0, 1)).toEqual({ x: 1, y: 0 });
+    const green = wheelPoint(120, 0.5);
+    expect(green.x).toBeCloseTo(-0.25, 9);
+    expect(green.y).toBeCloseTo(0.5 * Math.sin((2 * Math.PI) / 3), 9);
+  });
+
+  it('reads hue and saturation back from a point, clamping outside the wheel', () => {
+    expect(wheelHueSaturation({ x: 0, y: 1 })).toEqual({ h: 90, s: 1 });
+    expect(wheelHueSaturation({ x: -3, y: 0 })).toEqual({ h: 180, s: 1 });
+    expect(wheelHueSaturation({ x: 0, y: 0 })).toEqual({ h: 0, s: 0 });
+  });
+
+  it('round-trips', () => {
+    const { h, s } = wheelHueSaturation(wheelPoint(250, 0.3));
+    expect(h).toBeCloseTo(250, 9);
+    expect(s).toBeCloseTo(0.3, 9);
   });
 });

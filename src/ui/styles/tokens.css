@@ -36,6 +36,8 @@
   --color-grid-line: rgba(60, 60, 67, 0.06);
   --color-grid-line-major: rgba(60, 60, 67, 0.12);
   --color-thumb-bg: #f7f7fa;
+  --color-picker-white: #ffffff;
+  --color-picker-black: #000000;
 
   /* Matériaux translucides */
   --material-regular: rgba(255, 255, 255, 0.72);
@@ -108,6 +110,17 @@
   --stepper-value-width: 44px;
   --feature-icon-size: 32px;
   --brand-icon-size: 36px;
+  --editor-panel-width: 360px;
+  --sheet-max-height: 72dvh;
+  --color-wheel-size: 200px;
+  --color-wheel-cursor-size: 22px;
+  --harmony-dot-size: 14px;
+  --swatch-size: 28px;
+  --character-thumb-width: 36px;
+  --character-thumb-height: 44px;
+  --tool-button-height: 64px;
+  --hex-field-width: 96px;
+  --number-field-width: 64px;
   --thumb-width: 112px;
   --thumb-height: 70px;
   --thumb-generated-scale: 0.82;

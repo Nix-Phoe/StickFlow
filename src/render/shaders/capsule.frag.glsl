@@ -8,8 +8,8 @@ in vec2 v_world;
 flat in vec2 v_start;
 flat in vec2 v_end;
 flat in float v_radius;
+flat in vec4 v_color;          // RGBA non prémultiplié
 
-uniform vec4 u_color;          // RGBA non prémultiplié
 uniform float u_pixelsPerUnit;
 
 out vec4 outColor;
@@ -26,6 +26,6 @@ void main() {
   float coverage = clamp(0.5 - distancePx, 0.0, 1.0);
   if (coverage <= 0.0) discard;
 
-  float alpha = u_color.a * coverage;
-  outColor = vec4(u_color.rgb * alpha, alpha);   // sortie prémultipliée
+  float alpha = v_color.a * coverage;
+  outColor = vec4(v_color.rgb * alpha, alpha);   // sortie prémultipliée
 }

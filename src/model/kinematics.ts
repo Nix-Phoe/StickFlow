@@ -14,11 +14,13 @@ export interface PosedNode {
 /**
  * Calcule la position de chaque nœud. `skeleton` doit être trié parents avant enfants
  * (voir `sortSkeleton`). Les nœuds absents de `pose` gardent leur angle de repos.
+ * `scale` multiplie toutes les longueurs (taille du personnage).
  */
 export function solvePose(
   skeleton: readonly SkeletonNode[],
   pose: Readonly<Record<string, number>>,
   rootPosition: Vec2,
+  scale = 1,
 ): PosedNode[] {
   const placed = new Map<string, PosedNode>();
 
@@ -34,8 +36,8 @@ export function solvePose(
 
     const angle = parentAngle + (pose[node.id] ?? node.angle);
     const end = {
-      x: start.x + node.length * Math.cos(angle),
-      y: start.y + node.length * Math.sin(angle),
+      x: start.x + node.length * scale * Math.cos(angle),
+      y: start.y + node.length * scale * Math.sin(angle),
     };
     const posed: PosedNode = { id: node.id, start, end, angle };
     placed.set(node.id, posed);

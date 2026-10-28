@@ -1,16 +1,18 @@
-// Vignette d'une frame : traits plus épais que sur la scène pour rester lisibles en petit.
+// Vignette d'une frame : tous les personnages visibles, d'une seule couleur, avec des traits
+// plus épais que sur la scène pour rester lisibles en petit.
 
-import type { FramePose, SkeletonNode } from '../core/types';
-import { paintPose } from './canvas2d';
+import type { Character, FramePose } from '../core/types';
+import { paintCharacters } from './canvas2d';
+import { parseHexColor } from './color';
 import type { StickmanStyle } from './scene';
 
 const THUMBNAIL_STYLE: StickmanStyle = { strokeWidth: 16 };
 
-/** Dessine la pose dans `canvas`, à sa taille affichée (pixels physiques). `color` : couleur CSS. */
+/** Dessine les poses dans `canvas`, à sa taille affichée (pixels physiques). `color` : couleur HEX. */
 export function paintThumbnail(
   canvas: HTMLCanvasElement,
-  skeleton: readonly SkeletonNode[],
-  frame: FramePose,
+  characters: readonly Character[],
+  poses: Readonly<Record<string, FramePose>>,
   color: string,
 ): void {
   const ratio = window.devicePixelRatio || 1;
@@ -22,5 +24,5 @@ export function paintThumbnail(
   if (canvas.height !== height) canvas.height = height;
 
   context.clearRect(0, 0, width, height);
-  paintPose(context, { width, height }, skeleton, frame, THUMBNAIL_STYLE, color);
+  paintCharacters(context, { width, height }, characters, poses, THUMBNAIL_STYLE, parseHexColor(color));
 }

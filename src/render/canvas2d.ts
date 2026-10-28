@@ -1,39 +1,133 @@
-// Dessin d'une pose en Canvas 2D (vignettes de la timeline, export). Même géométrie que le
-// rendu WebGL de la scène (capsules), même cadrage vertical (STAGE_WORLD_HEIGHT).
+// Dessin de la scène en Canvas 2D (vignettes de la timeline, export). Mêmes couches et même
+// géométrie que le rendu WebGL (scene-layers.ts), même cadrage vertical (STAGE_WORLD_HEIGHT).
 
-import type { FramePose, SkeletonNode } from '../core/types';
-import { solvePose } from '../model/kinematics';
+import type { Character, FramePose } from '../core/types';
+import { posedCharacter } from '../model/character';
+import { triangleVertices } from '../model/shape';
 import { STAGE_WORLD_HEIGHT, worldToScreen, type Viewport } from './camera';
-import { buildCapsules, type StickmanStyle } from './scene';
+import type { Rgba } from './color';
+import { buildCapsules, type ColoredCapsule, type ShapeInstance, type StickmanStyle } from './scene';
+import type { SceneLayer } from './scene-layers';
 
-/** Dessine la pose dans `context`, sur une zone de `viewport` pixels, avec la couleur CSS `color`. */
-export function paintPose(
+/** Image du calque de dessin et son rectangle dans le monde (coin bas-gauche, taille). */
+export interface DrawingImage {
+  image: CanvasImageSource;
+  bounds: { x: number; y: number; width: number; height: number };
+}
+
+/** Dessine les couches de la scène dans `context`, sur une zone de `viewport` pixels. */
+export function paintScene(
   context: CanvasRenderingContext2D,
   viewport: Viewport,
-  skeleton: readonly SkeletonNode[],
-  frame: FramePose,
-  style: StickmanStyle,
-  color: string,
+  layers: readonly SceneLayer[],
+  drawing: DrawingImage | null,
 ): void {
   const scale = viewport.height / STAGE_WORLD_HEIGHT;
-  context.fillStyle = color;
-  context.strokeStyle = color;
-  context.lineCap = 'round';
+  for (const layer of layers) {
+    if (layer.kind === 'drawing') {
+      if (!drawing || layer.opacity <= 0) continue;
+      const { x, y, width, height } = drawing.bounds;
+      const topLeft = worldToScreen({ x, y: y + height }, viewport, STAGE_WORLD_HEIGHT);
+      context.globalAlpha = layer.opacity;
+      context.drawImage(drawing.image, topLeft.x, topLeft.y, width * scale, height * scale);
+      context.globalAlpha = 1;
+    } else if (layer.kind === 'shapes') {
+      layer.shapes.forEach((shape) => paintShape(context, viewport, shape));
+    } else {
+      paintCapsules(context, viewport, layer.capsules);
+    }
+  }
+}
 
-  const posed = solvePose(skeleton, frame.pose, frame.rootPosition);
-  for (const capsule of buildCapsules(skeleton, posed, style)) {
+/** Dessine des personnages d'une seule couleur CSS (vignettes). */
+export function paintCharacters(
+  context: CanvasRenderingContext2D,
+  viewport: Viewport,
+  characters: readonly Character[],
+  poses: Readonly<Record<string, FramePose>>,
+  style: StickmanStyle,
+  color: Rgba,
+): void {
+  const capsules = characters.flatMap((character) => {
+    const pose = poses[character.id];
+    if (!character.visible || !pose) return [];
+    return buildCapsules(character.skeleton, posedCharacter(character, pose), style, character.appearance.scale).map(
+      (capsule) => ({ ...capsule, color }),
+    );
+  });
+  paintCapsules(context, viewport, capsules);
+}
+
+export function paintCapsules(context: CanvasRenderingContext2D, viewport: Viewport, capsules: readonly ColoredCapsule[]): void {
+  const scale = viewport.height / STAGE_WORLD_HEIGHT;
+  context.lineCap = 'round';
+  for (const capsule of capsules) {
     const a = worldToScreen(capsule.a, viewport, STAGE_WORLD_HEIGHT);
     const b = worldToScreen(capsule.b, viewport, STAGE_WORLD_HEIGHT);
     const radius = capsule.radius * scale;
+    const color = cssColor(capsule.color);
     context.beginPath();
     if (a.x === b.x && a.y === b.y) {
+      context.fillStyle = color;
       context.arc(a.x, a.y, radius, 0, 2 * Math.PI);
       context.fill();
     } else {
+      context.strokeStyle = color;
       context.lineWidth = 2 * radius;
       context.moveTo(a.x, a.y);
       context.lineTo(b.x, b.y);
       context.stroke();
     }
   }
+}
+
+function paintShape(context: CanvasRenderingContext2D, viewport: Viewport, shape: ShapeInstance): void {
+  const scale = viewport.height / STAGE_WORLD_HEIGHT;
+  const center = worldToScreen(shape, viewport, STAGE_WORLD_HEIGHT);
+  const hw = (shape.width / 2) * scale;
+  const hh = (shape.height / 2) * scale;
+  context.save();
+  context.translate(center.x, center.y);
+  // L'écran a y vers le bas : la rotation du monde s'inverse.
+  context.rotate(-shape.rotation);
+  context.beginPath();
+  switch (shape.kind) {
+    case 'square':
+    case 'rectangle':
+      context.rect(-hw, -hh, 2 * hw, 2 * hh);
+      break;
+    case 'circle':
+      context.ellipse(0, 0, hw, hh, 0, 0, 2 * Math.PI);
+      break;
+    case 'triangle': {
+      const [a, b, c] = triangleVertices(shape).map((p) => ({ x: p.x * scale, y: -p.y * scale }));
+      if (a && b && c) {
+        context.moveTo(a.x, a.y);
+        context.lineTo(b.x, b.y);
+        context.lineTo(c.x, c.y);
+        context.closePath();
+      }
+      break;
+    }
+    case 'line':
+      context.moveTo(-hw, 0);
+      context.lineTo(hw, 0);
+      break;
+  }
+  if (shape.fill) {
+    context.fillStyle = cssColor(shape.fill);
+    context.fill();
+  }
+  if (shape.strokeWidth > 0) {
+    context.strokeStyle = cssColor(shape.stroke);
+    context.lineWidth = shape.strokeWidth * scale;
+    context.lineCap = 'round';
+    context.lineJoin = 'miter';
+    context.stroke();
+  }
+  context.restore();
+}
+
+export function cssColor([r, g, b, a]: Rgba): string {
+  return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${a})`;
 }

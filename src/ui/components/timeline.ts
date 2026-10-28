@@ -152,7 +152,7 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
   function paint(thumb: Thumb): void {
     const token = thumb.frame.kind === 'generated' ? THUMB_COLOR_TOKENS.generated : THUMB_COLOR_TOKENS.keyframe;
     const color = getComputedStyle(root).getPropertyValue(token).trim();
-    paintThumbnail(thumb.canvas, store.state.project.present.skeleton, thumb.frame, color);
+    paintThumbnail(thumb.canvas, store.state.project.present.characters, thumb.frame.poses, color);
   }
 
   /** Repeint toutes les vignettes (squelette, thème ou taille modifiés), une fois par image d'affichage. */
@@ -189,7 +189,8 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
     () => window.removeEventListener('resize', repaintAll),
     () => cancelAnimationFrame(repaintRequest),
     store.watch(sequenceOf, syncFrames),
-    store.watch((s) => s.project.present.skeleton, repaintAll),
+    // Personnages ajoutés, masqués, redimensionnés… : toutes les vignettes changent.
+    store.watch((s) => s.project.present.characters, repaintAll),
     store.watch((s) => s.session.activeFrameId, renderActive),
     store.watch((s) => s.session.clipboard, (clipboard) => (pasteButton.disabled = clipboard === null)),
   );

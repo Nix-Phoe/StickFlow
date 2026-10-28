@@ -9,6 +9,15 @@ export const strings = {
   appName: 'StickFlow',
   defaultProjectName: 'Projet sans titre',
 
+  modes: {
+    characters: 'Personnages',
+    environment: 'Environnement',
+  } satisfies Record<EditorMode, string>,
+
+  characters: {
+    defaultName: (n: number): string => `Personnage ${n}`,
+  },
+
   regions: {
     panel: 'Réglages',
     toolbar: "Barre d'outils",
@@ -38,12 +47,7 @@ export const strings = {
       'export-failed': 'Échec de l’export',
     } satisfies Record<NoticeCode, string>,
     closeDrawer: 'Fermer le panneau de réglages',
-    modeLabel: "Mode d'édition",
-    modes: {
-      character: 'Personnage',
-      selection: 'Sélection',
-      scene: 'Décor',
-    } satisfies Record<EditorMode, string>,
+    modeIndicator: (mode: EditorMode): string => `Mode : ${strings.modes[mode]}`,
 
     aiSection: 'Améliorations IA',
     smoothing: {

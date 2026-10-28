@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { SkeletonNode } from '../core/types';
 import type { PosedNode } from '../model/kinematics';
-import { buildCapsules, buildHandles, FLOATS_PER_CAPSULE, packCapsules, type Capsule } from './scene';
+import { buildCapsules, buildHandles, FLOATS_PER_CAPSULE, FLOATS_PER_SHAPE, packCapsules, packShapes, type ColoredCapsule } from './scene';
 
 const style = { strokeWidth: 8 };
 
@@ -26,16 +26,22 @@ describe('buildCapsules', () => {
   });
 
   it('draws a segment as a capsule from its start to its end, half the stroke wide', () => {
-    expect(capsules[0]).toEqual({ a: { x: 0, y: 0 }, b: { x: 0, y: 10 }, radius: 4 });
+    expect(capsules[0]).toEqual({ nodeId: 'body', a: { x: 0, y: 0 }, b: { x: 0, y: 10 }, radius: 4 });
   });
 
   it('draws a circle as a filled disc spanning the segment', () => {
-    expect(capsules[1]).toEqual({ a: { x: 0, y: 13 }, b: { x: 0, y: 13 }, radius: 3 });
+    expect(capsules[1]).toEqual({ nodeId: 'head', a: { x: 0, y: 13 }, b: { x: 0, y: 13 }, radius: 3 });
   });
 
   it('follows the skeleton order so later nodes are drawn on top', () => {
     const reversed = buildCapsules(skeleton, [...posed].reverse(), style);
     expect(reversed).toEqual(capsules);
+  });
+
+  it('scales the stroke and the head with the character size', () => {
+    const big = buildCapsules(skeleton, posed, style, 2);
+    expect(big[0]?.radius).toBe(8);
+    expect(big[1]?.radius).toBe(6);
   });
 
   it('rejects a posed node that is missing', () => {
@@ -44,17 +50,17 @@ describe('buildCapsules', () => {
 });
 
 describe('packCapsules', () => {
-  const capsules: Capsule[] = [
-    { a: { x: 1, y: 2 }, b: { x: 3, y: 4 }, radius: 5 },
-    { a: { x: 6, y: 7 }, b: { x: 8, y: 9 }, radius: 10 },
+  const capsules: ColoredCapsule[] = [
+    { a: { x: 1, y: 2 }, b: { x: 3, y: 4 }, radius: 5, color: [0.5, 0.25, 1, 1] },
+    { a: { x: 6, y: 7 }, b: { x: 8, y: 9 }, radius: 10, color: [0, 0, 0, 0.5] },
   ];
 
-  it('packs start, end and radius contiguously for each capsule', () => {
-    expect(Array.from(packCapsules(capsules))).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  it('packs start, end, radius and colour contiguously for each capsule', () => {
+    expect(Array.from(packCapsules(capsules))).toEqual([1, 2, 3, 4, 5, 0.5, 0.25, 1, 1, 6, 7, 8, 9, 10, 0, 0, 0, 0.5]);
   });
 
   it('uses FLOATS_PER_CAPSULE floats per capsule', () => {
-    expect(FLOATS_PER_CAPSULE).toBe(5);
+    expect(FLOATS_PER_CAPSULE).toBe(9);
     expect(packCapsules(capsules)).toHaveLength(2 * FLOATS_PER_CAPSULE);
   });
 
@@ -94,5 +100,25 @@ describe('buildHandles', () => {
 
   it('ignores a selection that is not in the pose', () => {
     expect(buildHandles(skeleton, posed, 'ghost', handleStyle).selected).toEqual([]);
+  });
+});
+
+describe('packShapes', () => {
+  it('packs centre, half size, rotation, kind, stroke width, fill and stroke colours', () => {
+    const data = packShapes([
+      {
+        kind: 'triangle',
+        x: 1,
+        y: 2,
+        width: 6,
+        height: 8,
+        rotation: 0.5,
+        strokeWidth: 3,
+        fill: null,
+        stroke: [1, 0, 0, 0.5],
+      },
+    ]);
+    expect(FLOATS_PER_SHAPE).toBe(15);
+    expect(Array.from(data)).toEqual([1, 2, 3, 4, 0.5, 3, 3, 0, 0, 0, 0, 1, 0, 0, 0.5]);
   });
 });

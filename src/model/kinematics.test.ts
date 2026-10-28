@@ -77,3 +77,15 @@ describe('solvePose', () => {
     expect(() => solvePose([chain[1]!, chain[0]!], {}, { x: 0, y: 0 })).toThrow();
   });
 });
+
+describe('solvePose with a scale', () => {
+  it('multiplies every length, keeping the angles', () => {
+    const skeleton = [
+      { id: 'root', parentId: null, length: 0, angle: 0, shape: 'segment' as const },
+      { id: 'arm', parentId: 'root', length: 10, angle: Math.PI / 2, shape: 'segment' as const },
+    ];
+    const [, arm] = solvePose(skeleton, {}, { x: 1, y: 1 }, 1.5);
+    expect(arm?.end.x).toBeCloseTo(1, 9);
+    expect(arm?.end.y).toBeCloseTo(16, 9);
+  });
+});

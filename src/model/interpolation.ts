@@ -1,15 +1,16 @@
-// Interpolation entre deux images clés (Fluidité V1) : linéaire, ou spline Catmull-Rom
-// à travers les images clés voisines, avec un rythme éventuellement adouci (easing). Pur.
+// Interpolation de la pose d'un personnage entre deux images clés (Fluidité V1) : linéaire,
+// ou spline Catmull-Rom à travers les images clés voisines, avec un rythme éventuellement
+// adouci (easing). Chaque personnage est interpolé indépendamment. Pur.
 
-import type { FramePose, Keyframe, SkeletonNode, SmoothingCurve } from '../core/types';
+import type { FramePose, SkeletonNode, SmoothingCurve } from '../core/types';
 import { normalizeAngle } from './angle';
 
-/** Images clés autour du segment interpolé `from` → `to`. */
-export interface SegmentNeighbours {
-  before: Keyframe;
-  from: Keyframe;
-  to: Keyframe;
-  after: Keyframe;
+/** Poses d'un personnage dans les images clés autour du segment interpolé `from` → `to`. */
+export interface PoseNeighbours {
+  before: FramePose;
+  from: FramePose;
+  to: FramePose;
+  after: FramePose;
 }
 
 /** Ease-in-out cubique : lent au départ et à l'arrivée. */
@@ -31,8 +32,8 @@ export function catmullRom(p0: number, p1: number, p2: number, p3: number, t: nu
  * - `ease-in-out` : même spline, ralentie près des images clés.
  * Les angles tournent toujours par le plus court chemin ; un nœud non posé part de son angle de repos.
  */
-export function interpolateKeyframes(
-  { before, from, to, after }: SegmentNeighbours,
+export function interpolatePose(
+  { before, from, to, after }: PoseNeighbours,
   t: number,
   curve: SmoothingCurve,
   skeleton: readonly SkeletonNode[],
@@ -46,7 +47,7 @@ export function interpolateKeyframes(
   const pose: Record<string, number> = {};
   for (const id of new Set([...Object.keys(from.pose), ...Object.keys(to.pose)])) {
     const rest = skeleton.find((n) => n.id === id)?.angle ?? 0;
-    const angle = (keyframe: Keyframe): number => keyframe.pose[id] ?? rest;
+    const angle = (frame: FramePose): number => frame.pose[id] ?? rest;
     // Déroule les angles autour de `from` pour que la spline ne fasse pas de tour complet.
     const p1 = angle(from);
     const p0 = p1 + normalizeAngle(angle(before) - p1);
@@ -55,7 +56,7 @@ export function interpolateKeyframes(
     pose[id] = mix(p0, p1, p2, p3);
   }
 
-  const axis = (read: (k: Keyframe) => number): number => mix(read(before), read(from), read(to), read(after));
+  const axis = (read: (frame: FramePose) => number): number => mix(read(before), read(from), read(to), read(after));
   return {
     pose,
     rootPosition: { x: axis((k) => k.rootPosition.x), y: axis((k) => k.rootPosition.y) },

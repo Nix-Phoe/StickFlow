@@ -98,6 +98,14 @@
   color: var(--color-accent);
 }
 
+/* Rappel du mode d'édition (choisi dans le panneau Personnages & Environnement). */
+.side-panel__mode {
+  padding: 0 var(--space-half);
+  color: var(--color-accent);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}
+
 .side-panel__file-actions {
   display: flex;
   gap: var(--space-1);

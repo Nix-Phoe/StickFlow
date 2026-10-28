@@ -6,6 +6,7 @@ import { createEventBus } from './events';
 import { connectIntents } from './intents';
 import { activeFrame, sequenceOf } from './selectors';
 import { createInitialState, Store } from './store';
+import type { FramePose } from './types';
 
 function setup() {
   const bus = createEventBus();
@@ -19,6 +20,8 @@ function setup() {
     session: () => store.state.session,
     sequence: () => sequenceOf(store.state),
     active: () => activeFrame(store.state)?.frame,
+    /** Id du personnage de départ. */
+    hero: () => store.state.project.present.characters[0]?.id ?? '',
     /** Avance l'horloge, pour séparer ou rapprocher les changements. */
     wait: (ms: number) => {
       now += ms;
@@ -87,35 +90,38 @@ describe('connectIntents: sequence and selection', () => {
   });
 });
 
+/** Pose d'un personnage dans une frame (image clé ou frame de la séquence). */
+const poseOf = (frame: { poses: Readonly<Record<string, FramePose>> } | undefined, id: string) => frame?.poses[id]?.pose;
+
 describe('connectIntents: frame actions', () => {
   it('inserts a copy of the active keyframe after it and makes it active', () => {
-    const { bus, project, active } = setup();
+    const { bus, project, active, hero } = setup();
     bus.emit('frame:add');
     expect(project().keyframes).toHaveLength(3);
     expect(active()?.id).toBe(project().keyframes[1]?.id);
-    expect(project().keyframes[1]?.pose).toEqual(project().keyframes[0]?.pose);
+    expect(poseOf(project().keyframes[1], hero())).toEqual(poseOf(project().keyframes[0], hero()));
   });
 
   it('turns a generated frame into a keyframe when « + » is pressed on it', () => {
-    const { bus, project, sequence, active } = setup();
+    const { bus, project, sequence, active, hero } = setup();
     const generated = sequence()[2];
     bus.emit('frame:select', { index: 2 });
     bus.emit('frame:add');
     expect(project().keyframes).toHaveLength(3);
-    expect(project().keyframes[1]?.pose).toEqual(generated?.pose);
+    expect(poseOf(project().keyframes[1], hero())).toEqual(poseOf(generated, hero()));
     expect(active()?.kind).toBe('keyframe');
   });
 
   it('turns a posed generated frame into a keyframe between its neighbours, undone in one step', () => {
-    const { bus, project, sequence, active } = setup();
+    const { bus, project, sequence, active, hero } = setup();
     const [first, , generated] = sequence();
     if (!first || !generated) throw new Error('sequence too short');
     bus.emit('frame:select', { index: 2 });
-    bus.emit('frame:pose:change', { frameId: generated.id, pose: { torso: 1 }, rootPosition: { x: 0, y: 0 } });
-    expect(project().keyframes.map((k) => k.pose.torso)).toEqual([undefined, 1, undefined]);
+    bus.emit('frame:pose:change', { frameId: generated.id, characterId: hero(), pose: { torso: 1 }, rootPosition: { x: 0, y: 0 } });
+    expect(project().keyframes.map((k) => poseOf(k, hero())?.torso)).toEqual([undefined, 1, undefined]);
     expect(project().keyframes[0]?.id).toBe(first.id);
     expect(active()?.kind).toBe('keyframe');
-    expect(active()?.pose).toEqual({ torso: 1 });
+    expect(poseOf(active(), hero())).toEqual({ torso: 1 });
     bus.emit('history:undo');
     expect(project().keyframes).toHaveLength(2);
   });
@@ -144,26 +150,26 @@ describe('connectIntents: frame actions', () => {
   });
 
   it('copies the pose of the active frame and pastes it on another keyframe, undoably', () => {
-    const { bus, project, wait } = setup();
+    const { bus, project, wait, hero } = setup();
     bus.emit('frame:select', { index: 4 });
     bus.emit('frame:copy');
-    const copied = project().keyframes[1]?.pose;
+    const copied = poseOf(project().keyframes[1], hero());
     bus.emit('frame:select', { index: 0 });
     wait(5000);
     bus.emit('frame:paste');
-    expect(project().keyframes[0]?.pose).toEqual(copied);
+    expect(poseOf(project().keyframes[0], hero())).toEqual(copied);
     bus.emit('history:undo');
-    expect(project().keyframes[0]?.pose).toEqual({});
+    expect(poseOf(project().keyframes[0], hero())).toEqual({});
   });
 
   it('turns a generated frame into a keyframe when pasting on it', () => {
-    const { bus, project, active } = setup();
+    const { bus, project, active, hero } = setup();
     bus.emit('frame:copy');
     bus.emit('frame:select', { index: 2 });
     bus.emit('frame:paste');
     expect(project().keyframes).toHaveLength(3);
     expect(active()?.kind).toBe('keyframe');
-    expect(active()?.pose).toEqual({});
+    expect(poseOf(active(), hero())).toEqual({});
   });
 
   it('does nothing when pasting with an empty clipboard', () => {
@@ -179,7 +185,9 @@ describe('connectIntents: Session', () => {
     const { bus, store, session } = setup();
     bus.emit('playback:play');
     bus.emit('playback:speed:change', { speed: 5 });
-    bus.emit('editor:mode:change', { mode: 'scene' });
+    bus.emit('editMode:change', { mode: 'environment' });
+    bus.emit('panel:toggle', { open: true });
+    bus.emit('tool:select', { tool: 'pen' });
     bus.emit('frame:select', { index: 3 });
     expect(canUndo(store.state.project)).toBe(false);
     bus.emit('history:undo');
@@ -207,5 +215,145 @@ describe('connectIntents: Session', () => {
     const { bus, session } = setup();
     bus.emit('animation:onion-skin:change', { enabled: false });
     expect(session().onionSkin).toBe(false);
+  });
+});
+
+describe('connectIntents: characters', () => {
+  it('starts with one character, selected', () => {
+    const { project, session, hero } = setup();
+    expect(project().characters).toHaveLength(1);
+    expect(session().selectedCharacterId).toBe(hero());
+  });
+
+  it('adds a character, selects it, and undoes the addition', () => {
+    const { bus, project, session } = setup();
+    bus.emit('character:add', { name: 'Personnage 2' });
+    const added = project().characters[1];
+    expect(added?.name).toBe('Personnage 2');
+    expect(session().selectedCharacterId).toBe(added?.id);
+    bus.emit('history:undo');
+    expect(project().characters).toHaveLength(1);
+    expect(session().selectedCharacterId).toBeNull();
+  });
+
+  it('duplicates, renames, reorders, hides, locks and removes a character', () => {
+    const { bus, project, session, hero, wait } = setup();
+    bus.emit('character:duplicate', { characterId: hero(), name: 'Copie' });
+    const copy = session().selectedCharacterId ?? '';
+    expect(project().characters.map((c) => c.name)).toEqual([project().characters[0]?.name, 'Copie']);
+    wait(5000);
+    bus.emit('character:rename', { characterId: copy, name: 'Bob' });
+    bus.emit('character:reorder', { characterId: copy, direction: -1 });
+    expect(project().characters[0]?.name).toBe('Bob');
+    bus.emit('character:visibility', { characterId: copy, visible: false });
+    bus.emit('character:lock', { characterId: copy, locked: true });
+    expect(project().characters[0]).toMatchObject({ visible: false, locked: true });
+    bus.emit('character:remove', { characterId: copy });
+    expect(project().characters.map((c) => c.id)).toEqual([hero()]);
+  });
+
+  it('unselects a character that gets locked', () => {
+    const { bus, session, hero } = setup();
+    bus.emit('character:lock', { characterId: hero(), locked: true });
+    expect(session().selectedCharacterId).toBeNull();
+  });
+
+  it('selects parts, with Maj to add more', () => {
+    const { bus, session, hero } = setup();
+    bus.emit('segment:select', { characterId: hero(), nodeId: 'head', additive: false });
+    bus.emit('segment:select', { characterId: hero(), nodeId: 'torso', additive: true });
+    expect(session().selectedParts).toEqual(['head', 'torso']);
+    bus.emit('character:select', { characterId: null });
+    expect(session().selectedParts).toEqual([]);
+  });
+
+  it('colours parts and scales a character, undoably, recording the committed colour', () => {
+    const { bus, project, hero, wait } = setup();
+    bus.emit('appearance:color', { characterId: hero(), parts: ['head'], color: '#ff0000' });
+    bus.emit('color:commit', { color: '#ff0000' });
+    wait(5000);
+    bus.emit('appearance:scale', { characterId: hero(), scale: 1.5 });
+    expect(project().characters[0]?.appearance).toMatchObject({ scale: 1.5, segmentColors: { head: '#ff0000' } });
+    expect(project().recentColors).toEqual(['#ff0000']);
+    bus.emit('history:undo');
+    bus.emit('history:undo');
+    expect(project().characters[0]?.appearance.segmentColors).toEqual({});
+    expect(project().recentColors).toEqual(['#ff0000']);
+  });
+
+  it('poses the given character only', () => {
+    const { bus, project, hero, active } = setup();
+    bus.emit('character:add', { name: 'B' });
+    const other = project().characters[1]?.id ?? '';
+    const frameId = active()?.id ?? '';
+    bus.emit('frame:pose:change', { frameId, characterId: other, pose: { torso: 2 }, rootPosition: { x: 9, y: 0 } });
+    expect(poseOf(project().keyframes[0], other)).toEqual({ torso: 2 });
+    expect(poseOf(project().keyframes[0], hero())).toEqual({});
+  });
+});
+
+describe('connectIntents: environment', () => {
+  const shape = {
+    id: 's1',
+    kind: 'square' as const,
+    x: 0,
+    y: 0,
+    width: 10,
+    height: 10,
+    rotation: 0,
+    stroke: '#000000',
+    fill: null,
+    strokeWidth: 2,
+    opacity: 1,
+  };
+
+  it('creates, selects, updates, duplicates and removes shapes', () => {
+    const { bus, project, session } = setup();
+    bus.emit('shape:create', { shape });
+    expect(session().selectedShapeId).toBe('s1');
+    bus.emit('shape:update', { shapeId: 's1', changes: { x: 20 } });
+    expect(project().environment.shapes[0]?.x).toBe(20);
+    bus.emit('shape:duplicate', { shapeId: 's1' });
+    expect(project().environment.shapes).toHaveLength(2);
+    expect(session().selectedShapeId).toBe(project().environment.shapes[1]?.id);
+    bus.emit('shape:remove', { shapeId: session().selectedShapeId ?? '' });
+    expect(project().environment.shapes).toHaveLength(1);
+    expect(session().selectedShapeId).toBeNull();
+  });
+
+  it('records a drawing stroke as one undo step', () => {
+    const { bus, project } = setup();
+    bus.emit('drawing:stroke', { tiles: { '0,0': 'data:a' } });
+    expect(project().environment.drawing.tiles).toEqual({ '0,0': 'data:a' });
+    bus.emit('history:undo');
+    expect(project().environment.drawing.tiles).toEqual({});
+  });
+
+  it('switches mode, opens the panel and picks tools without touching the history', () => {
+    const { bus, store, session } = setup();
+    bus.emit('editMode:change', { mode: 'environment' });
+    bus.emit('panel:toggle', { open: true });
+    bus.emit('tool:select', { tool: 'rectangle' });
+    bus.emit('tool:settings', { strokeWidth: 12, filled: true });
+    expect(session()).toMatchObject({ editorMode: 'environment', panelOpen: true, tool: 'rectangle' });
+    expect(session().toolSettings).toMatchObject({ strokeWidth: 12, filled: true });
+    expect(canUndo(store.state.project)).toBe(false);
+  });
+
+  it('unselects the shape when going back to the Personnages mode, and the character in Environnement', () => {
+    const { bus, session } = setup();
+    bus.emit('shape:create', { shape });
+    bus.emit('editMode:change', { mode: 'characters' });
+    expect(session().selectedShapeId).toBeNull();
+    bus.emit('editMode:change', { mode: 'environment' });
+    expect(session().selectedCharacterId).toBeNull();
+  });
+
+  it('stops the eyedropper once a colour is picked', () => {
+    const { bus, session } = setup();
+    bus.emit('eyedropper:start');
+    expect(session().eyedropper).toBe(true);
+    bus.emit('eyedropper:pick', { color: '#123456' });
+    expect(session().eyedropper).toBe(false);
   });
 });

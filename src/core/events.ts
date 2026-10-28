@@ -3,13 +3,22 @@ import type {
   ExportFormat,
   LoopSettings,
   PlaybackSpeed,
+  Shape,
   SmoothingSettings,
+  ToolId,
+  ToolSettings,
   Vec2,
 } from './types';
 
 /** Pointeur sur la scène, en pixels CSS depuis le coin haut-gauche du canvas, avec sa taille. */
 export interface StagePointer {
   pointerId: number;
+  /** Doigt, stylet ou souris : la zone de saisie est plus large au toucher. */
+  pointerType?: 'mouse' | 'pen' | 'touch';
+  /** Maj enfoncée (sélection multiple, proportions contraintes). */
+  shiftKey?: boolean;
+  /** Pression du stylet (0 à 1), 0,5 pour une souris. */
+  pressure?: number;
   x: number;
   y: number;
   width: number;
@@ -44,8 +53,8 @@ export interface AppEvents {
   'frame:copy': void;
   /** Colle la pose copiée sur la frame active. */
   'frame:paste': void;
-  /** Nouvelle pose d'une frame (désignée par son id) ; une frame générée devient image clé. */
-  'frame:pose:change': { frameId: string; pose: Record<string, number>; rootPosition: Vec2 };
+  /** Nouvelle pose d'un personnage dans une frame (désignée par son id) ; une frame générée devient image clé. */
+  'frame:pose:change': { frameId: string; characterId: string; pose: Record<string, number>; rootPosition: Vec2 };
 
   'stage:pointer:down': StagePointer;
   'stage:pointer:move': StagePointer;
@@ -66,7 +75,44 @@ export interface AppEvents {
   /** Demande la liste des projets enregistrés (dialogue Ouvrir) ; `close` la referme. */
   'project:library:request': void;
   'project:library:close': void;
-  'editor:mode:change': { mode: EditorMode };
+  /** Contexte d'édition : Personnages ou Environnement (onglet du panneau flottant). */
+  'editMode:change': { mode: EditorMode };
+  /** Ouvre ou ferme le panneau flottant « Personnages & Environnement ». */
+  'panel:toggle': { open: boolean };
+
+  /** Ajoute un stickman de base (nom fourni par l'interface), qui devient le personnage sélectionné. */
+  'character:add': { name: string };
+  'character:remove': { characterId: string };
+  'character:duplicate': { characterId: string; name: string };
+  /** `null` : plus aucun personnage sélectionné. */
+  'character:select': { characterId: string | null };
+  'character:rename': { characterId: string; name: string };
+  /** Monte (1) ou descend (-1) dans l'ordre d'affichage. */
+  'character:reorder': { characterId: string; direction: 1 | -1 };
+  'character:visibility': { characterId: string; visible: boolean };
+  'character:lock': { characterId: string; locked: boolean };
+  /** Sélectionne une partie d'un personnage (`nodeId` à `null` : le personnage entier) ; Maj = ajouter. */
+  'segment:select': { characterId: string; nodeId: string | null; additive: boolean };
+  /** Colore des parties (aucune = tout le personnage) ; `null` = couleur automatique. */
+  'appearance:color': { characterId: string; parts: readonly string[]; color: string | null };
+  'appearance:scale': { characterId: string; scale: number };
+  /** Fin d'un geste de couleur : la couleur rejoint les couleurs récentes. */
+  'color:commit': { color: string };
+  /** Pipette de secours : le prochain appui sur la scène lit un pixel et émet `eyedropper:pick`. */
+  'eyedropper:start': void;
+  'eyedropper:pick': { color: string };
+  'eyedropper:cancel': void;
+
+  'tool:select': { tool: ToolId };
+  'tool:settings': Partial<ToolSettings>;
+  /** Ajoute une forme au décor ; elle devient la forme sélectionnée. */
+  'shape:create': { shape: Shape };
+  'shape:update': { shapeId: string; changes: Partial<Omit<Shape, 'id'>> };
+  'shape:remove': { shapeId: string };
+  'shape:select': { shapeId: string | null };
+  'shape:duplicate': { shapeId: string };
+  /** Trait terminé sur le calque de dessin : tuiles repeintes (PNG en data URL, `null` = transparente). */
+  'drawing:stroke': { tiles: Record<string, string | null> };
 
   'ai:smoothing:change': Partial<SmoothingSettings>;
   'ai:loop:change': Partial<LoopSettings>;

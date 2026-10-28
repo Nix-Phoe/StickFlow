@@ -11,9 +11,10 @@ import { connectPlayer } from './animation';
 import type { AppEventName } from './core/events';
 import { connectExporter } from './export';
 import { createInitialState, Store } from './core/store';
-import { connectNodeManipulation } from './interaction';
+import { connectCharacterManipulation } from './interaction';
 import { createDefaultSkeleton, sortSkeleton } from './model';
-import { connectStickmanView } from './render';
+import { createDrawingSurface } from './drawing/surface';
+import { connectStageView } from './render';
 import { connectProjectStorage, createIdbStore, createMemoryStore, createProjectLibrary } from './storage';
 import type { Component, ComponentContext } from './ui/component';
 import { createCanvasArea } from './ui/components/canvas-area';
@@ -29,15 +30,18 @@ const root = document.querySelector<HTMLElement>('#app');
 if (!root) throw new Error('Élément #app introuvable');
 
 const bus = createEventBus();
-const store = new Store(createInitialState(strings.defaultProjectName, sortSkeleton(createDefaultSkeleton())));
+const store = new Store(
+  createInitialState(strings.defaultProjectName, sortSkeleton(createDefaultSkeleton()), strings.characters.defaultName(1)),
+);
+const drawing = createDrawingSurface();
 connectIntents(bus, store);
-connectNodeManipulation({ bus, store });
+connectCharacterManipulation({ bus, store });
 connectPlayer({ bus, store });
 // IndexedDB si le navigateur l'autorise (absent en navigation privée sur certains navigateurs) ;
 // sinon les projets ne vivent que le temps de la session.
 const library = createProjectLibrary(typeof indexedDB === 'undefined' ? createMemoryStore() : createIdbStore());
 connectProjectStorage({ bus, store, library });
-connectExporter({ bus, store, download: downloadBlob });
+connectExporter({ bus, store, download: downloadBlob, drawing });
 
 // Débogage : chaque événement est journalisé, sauf ceux émis en continu (glisser, lecture).
 const QUIET_EVENTS: ReadonlySet<AppEventName> = new Set(['stage:pointer:move', 'frame:pose:change', 'playback:frame']);
@@ -67,7 +71,7 @@ components.forEach(([component, parent]) => component.mount(parent));
 const stage = document.getElementById(ids.stage);
 if (stage instanceof HTMLCanvasElement) {
   try {
-    connectStickmanView({ bus, store, canvas: stage });
+    connectStageView({ bus, store, canvas: stage, drawing });
   } catch (error) {
     console.error('[render] Rendu indisponible :', error);
   }

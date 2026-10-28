@@ -9,23 +9,38 @@ import {
   type Notice,
   type PlaybackSpeed,
   type Project,
-  type SkeletonNode,
+  type ToolId,
+  type ToolSettings,
 } from './types';
 
 export interface Session {
   /** Frame active de la séquence, désignée par son id (stable) ; `null` avant la première. */
   activeFrameId: string | null;
+  /** Personnage sélectionné (liste de l'onglet Personnages et scène). */
+  selectedCharacterId: string | null;
+  /** Nœud du personnage sélectionné (poignée mise en évidence, rotation au clavier). */
   selectedNodeId: string | null;
+  /** Parties du personnage sélectionné, colorées par l'inspecteur ; vide = personnage entier. */
+  selectedParts: readonly string[];
+  selectedShapeId: string | null;
   isPlaying: boolean;
   playbackSpeed: PlaybackSpeed;
+  /** Contexte d'édition de la scène, choisi par l'onglet du panneau flottant (mémorisé). */
   editorMode: EditorMode;
+  /** Panneau flottant « Personnages & Environnement » ouvert. */
+  panelOpen: boolean;
+  /** Outil de l'environnement. */
+  tool: ToolId;
+  toolSettings: ToolSettings;
+  /** Pipette de secours : le prochain appui sur la scène lit la couleur d'un pixel. */
+  eyedropper: boolean;
   exportFormat: ExportFormat;
   /** Tiroir du panneau gauche ouvert (petits écrans uniquement). */
   drawerOpen: boolean;
   /** Pelure d'oignon : frame précédente affichée en transparence. */
   onionSkin: boolean;
-  /** Pose copiée, prête à être collée sur une autre frame. */
-  clipboard: FramePose | null;
+  /** Poses copiées (une par personnage), prêtes à être collées sur une autre frame. */
+  clipboard: Readonly<Record<string, FramePose>> | null;
   /** Id du projet enregistré en cours d'édition ; `null` s'il n'a jamais été enregistré. */
   documentId: string | null;
   /** Projet tel qu'il a été enregistré ou ouvert, pour savoir s'il a changé depuis. */
@@ -37,13 +52,22 @@ export interface Session {
   exportProgress: number | null;
 }
 
+export const DEFAULT_TOOL_SETTINGS: ToolSettings = { color: '#1c1c1e', strokeWidth: 4, opacity: 1, filled: false };
+
 export function createSession(): Session {
   return {
     activeFrameId: null,
+    selectedCharacterId: null,
     selectedNodeId: null,
+    selectedParts: [],
+    selectedShapeId: null,
     isPlaying: false,
     playbackSpeed: 1,
-    editorMode: 'character',
+    editorMode: 'characters',
+    panelOpen: false,
+    tool: 'select',
+    toolSettings: DEFAULT_TOOL_SETTINGS,
+    eyedropper: false,
     exportFormat: 'gif',
     drawerOpen: false,
     onionSkin: true,
@@ -57,26 +81,60 @@ export function createSession(): Session {
 }
 
 /**
- * Recale la Session quand la séquence change (`previous` → `next`) : si la frame active
- * a disparu, on garde sa place dans la séquence ; une sélection de nœud disparu est effacée.
- * Même objet si rien ne change.
+ * Recale la Session quand le Projet ou la séquence change (`previous` → `next`) : si la frame
+ * active a disparu, on garde sa place dans la séquence ; une sélection (personnage verrouillé,
+ * masqué ou supprimé, nœud, partie ou forme disparus) est effacée. Même objet si rien ne change.
  */
 export function fitSessionToSequence(
   session: Session,
   previous: readonly { id: string }[],
   next: readonly { id: string }[],
-  skeleton: readonly SkeletonNode[],
+  project: Project,
 ): Session {
   let { activeFrameId } = session;
   if (!next.some((frame) => frame.id === activeFrameId)) {
     const place = previous.findIndex((frame) => frame.id === activeFrameId);
     activeFrameId = next[clamp(place === -1 ? 0 : place, 0, next.length - 1)]?.id ?? null;
   }
-  const selectedNodeId =
-    session.selectedNodeId !== null && skeleton.some((n) => n.id === session.selectedNodeId)
-      ? session.selectedNodeId
+
+  const character = project.characters.find((c) => c.id === session.selectedCharacterId && c.visible && !c.locked);
+  const inSkeleton = (id: string): boolean => character?.skeleton.some((n) => n.id === id) ?? false;
+  const selectedCharacterId = character?.id ?? null;
+  const selectedNodeId = session.selectedNodeId !== null && inSkeleton(session.selectedNodeId) ? session.selectedNodeId : null;
+  const parts = session.selectedParts.filter(inSkeleton);
+  const selectedParts = parts.length === session.selectedParts.length ? session.selectedParts : parts;
+  const selectedShapeId =
+    session.selectedShapeId !== null && project.environment.shapes.some((s) => s.id === session.selectedShapeId)
+      ? session.selectedShapeId
       : null;
-  return activeFrameId === session.activeFrameId && selectedNodeId === session.selectedNodeId
+
+  return activeFrameId === session.activeFrameId &&
+    selectedCharacterId === session.selectedCharacterId &&
+    selectedNodeId === session.selectedNodeId &&
+    selectedParts === session.selectedParts &&
+    selectedShapeId === session.selectedShapeId
     ? session
-    : { ...session, activeFrameId, selectedNodeId };
+    : { ...session, activeFrameId, selectedCharacterId, selectedNodeId, selectedParts, selectedShapeId };
+}
+
+/**
+ * Sélectionne un personnage (`nodeId` à `null`) ou une de ses parties. Avec `additive` (Maj),
+ * la partie s'ajoute à celles du même personnage, ou s'en retire si elle y était déjà.
+ */
+export function selectPart(session: Session, characterId: string, nodeId: string | null, additive: boolean): Session {
+  const base = { ...session, selectedCharacterId: characterId, selectedShapeId: null };
+  if (nodeId === null) return { ...base, selectedNodeId: null, selectedParts: [] };
+  if (!additive || session.selectedCharacterId !== characterId) {
+    return { ...base, selectedNodeId: nodeId, selectedParts: [nodeId] };
+  }
+  if (session.selectedParts.includes(nodeId)) {
+    const selectedParts = session.selectedParts.filter((id) => id !== nodeId);
+    return { ...base, selectedParts, selectedNodeId: selectedParts.at(-1) ?? null };
+  }
+  return { ...base, selectedNodeId: nodeId, selectedParts: [...session.selectedParts, nodeId] };
+}
+
+/** Plus rien de sélectionné (clic dans le vide). */
+export function clearSelection(session: Session): Session {
+  return { ...session, selectedCharacterId: null, selectedNodeId: null, selectedParts: [], selectedShapeId: null };
 }

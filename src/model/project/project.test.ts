@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Keyframe, Project } from '../../core/types';
-import { createDefaultSkeleton, sortSkeleton } from '../skeleton';
+import { ORIGIN, testFrame, testProject } from '../../test/fixtures';
 import {
   applyChange,
   canRedo,
@@ -15,27 +14,8 @@ import {
   type ProjectHistory,
 } from '.';
 
-const skeleton = sortSkeleton(createDefaultSkeleton());
-
-const frame = (id: string, pose: Record<string, number> = {}): Keyframe => ({
-  id,
-  pose,
-  rootPosition: { x: 0, y: 0 },
-});
-
-function project(overrides: Partial<Project> = {}): Project {
-  return {
-    name: 'Test',
-    fps: 12,
-    skeleton,
-    keyframes: [frame('f1'), frame('f2')],
-    ai: {
-      smoothing: { enabled: true, intensity: 3, curve: 'smooth' },
-      loop: { enabled: false, repeatCount: 3, infinite: false, transitionFrames: 4 },
-    },
-    ...overrides,
-  };
-}
+const frame = testFrame;
+const project = testProject;
 
 /** Applique une suite de changements, à des heures croissantes et bien séparées par défaut. */
 function apply(history: ProjectHistory, changes: ProjectChange[], start = 0, step = 10 * COALESCE_WINDOW_MS) {
@@ -74,7 +54,7 @@ describe('createHistory', () => {
   it('gives a project without keyframes one keyframe in the rest pose', () => {
     const { present } = createHistory(project({ keyframes: [] }));
     expect(present.keyframes).toHaveLength(1);
-    expect(present.keyframes[0]?.pose).toEqual({});
+    expect(present.keyframes[0]?.poses.c1?.pose).toEqual({});
   });
 });
 
@@ -121,7 +101,7 @@ describe('applyChange: settings', () => {
     apply(createHistory(original), [
       { type: 'setFps', fps: 30 },
       { type: 'updateLoop', changes: { infinite: true } },
-      { type: 'poseKeyframe', keyframeId: 'f1', pose: { torso: 1 }, rootPosition: { x: 5, y: 5 } },
+      { type: 'poseKeyframe', keyframeId: 'f1', poses: { c1: { pose: { torso: 1 }, rootPosition: { x: 5, y: 5 } } } },
     ]);
     expect(original).toEqual(snapshot);
   });
@@ -132,14 +112,14 @@ describe('applyChange: keyframes', () => {
     const start = createHistory(project({ keyframes: [frame('f1', { torso: 1 }), frame('f2')] }));
     const history = apply(start, [{ type: 'insertKeyframe', afterKeyframeId: 'f1', keyframeId: 'new' }]);
     expect(ids(history)).toEqual(['f1', 'new', 'f2']);
-    expect(history.present.keyframes[1]?.pose).toEqual({ torso: 1 });
+    expect(history.present.keyframes[1]?.poses.c1?.pose).toEqual({ torso: 1 });
   });
 
   it('inserts a keyframe with its own pose when one is given', () => {
     const history = apply(createHistory(project()), [
-      { type: 'insertKeyframe', afterKeyframeId: 'f1', keyframeId: 'new', pose: { torso: 2 }, rootPosition: { x: 3, y: 0 } },
+      { type: 'insertKeyframe', afterKeyframeId: 'f1', keyframeId: 'new', poses: { c1: { pose: { torso: 2 }, rootPosition: { x: 3, y: 0 } } } },
     ]);
-    expect(history.present.keyframes[1]).toEqual({ id: 'new', pose: { torso: 2 }, rootPosition: { x: 3, y: 0 } });
+    expect(history.present.keyframes[1]).toEqual(frame('new', { torso: 2 }, { x: 3, y: 0 }));
   });
 
   it('ignores an insertion after an unknown keyframe, or with an id already used', () => {
@@ -160,14 +140,14 @@ describe('applyChange: keyframes', () => {
 
   it('poses a keyframe', () => {
     const posed = apply(createHistory(project()), [
-      { type: 'poseKeyframe', keyframeId: 'f1', pose: { torso: 1 }, rootPosition: { x: 5, y: 0 } },
+      { type: 'poseKeyframe', keyframeId: 'f1', poses: { c1: { pose: { torso: 1 }, rootPosition: { x: 5, y: 0 } } } },
     ]);
-    expect(posed.present.keyframes[0]).toEqual({ id: 'f1', pose: { torso: 1 }, rootPosition: { x: 5, y: 0 } });
+    expect(posed.present.keyframes[0]).toEqual(frame('f1', { torso: 1 }, { x: 5, y: 0 }));
   });
 
   it('ignores a pose for an unknown keyframe', () => {
     const start = createHistory(project());
-    expect(apply(start, [{ type: 'poseKeyframe', keyframeId: 'ghost', pose: {}, rootPosition: { x: 0, y: 0 } }])).toBe(start);
+    expect(apply(start, [{ type: 'poseKeyframe', keyframeId: 'ghost', poses: { c1: { pose: {}, rootPosition: { x: 0, y: 0 } } } }])).toBe(start);
   });
 });
 
@@ -268,19 +248,18 @@ describe('grouping quick changes into one step', () => {
     const poses: ProjectChange[] = [0.1, 0.2, 0.3].map((torso) => ({
       type: 'poseKeyframe',
       keyframeId: 'f1',
-      pose: { torso },
-      rootPosition: { x: 0, y: 0 },
+      poses: { c1: { pose: { torso }, rootPosition: ORIGIN } },
     }));
     const history = apply(createHistory(project()), poses, 0, near);
-    expect(undo(history).present.keyframes[0]?.pose).toEqual({});
+    expect(undo(history).present.keyframes[0]?.poses.c1?.pose).toEqual({});
   });
 
   it('groups a keyframe inserted with a pose with the poses that follow (converting a generated frame by dragging)', () => {
     const history = apply(
       createHistory(project()),
       [
-        { type: 'insertKeyframe', afterKeyframeId: 'f1', keyframeId: 'new', pose: { torso: 0.1 }, rootPosition: { x: 0, y: 0 } },
-        { type: 'poseKeyframe', keyframeId: 'new', pose: { torso: 0.2 }, rootPosition: { x: 0, y: 0 } },
+        { type: 'insertKeyframe', afterKeyframeId: 'f1', keyframeId: 'new', poses: { c1: { pose: { torso: 0.1 }, rootPosition: { x: 0, y: 0 } } } },
+        { type: 'poseKeyframe', keyframeId: 'new', poses: { c1: { pose: { torso: 0.2 }, rootPosition: { x: 0, y: 0 } } } },
       ],
       0,
       near,
@@ -293,7 +272,7 @@ describe('grouping quick changes into one step', () => {
       createHistory(project()),
       [
         { type: 'insertKeyframe', afterKeyframeId: 'f1', keyframeId: 'new' },
-        { type: 'poseKeyframe', keyframeId: 'new', pose: { torso: 0.2 }, rootPosition: { x: 0, y: 0 } },
+        { type: 'poseKeyframe', keyframeId: 'new', poses: { c1: { pose: { torso: 0.2 }, rootPosition: { x: 0, y: 0 } } } },
       ],
       0,
       near,

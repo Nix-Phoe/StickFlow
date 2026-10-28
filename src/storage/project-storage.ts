@@ -2,7 +2,7 @@
 // Sans DOM ; la bibliothèque (et donc IndexedDB) est injectée.
 
 import type { AppEventBus } from '../core/events';
-import { fitSessionToSequence, type Session } from '../core/session';
+import { clearSelection, fitSessionToSequence, type Session } from '../core/session';
 import type { Store } from '../core/store';
 import type { Notice } from '../core/types';
 import { createHistory } from '../model/project';
@@ -55,9 +55,8 @@ export function connectProjectStorage({ bus, store, library }: ProjectStorageOpt
         const history = createHistory(await library.load(projectId));
         const { session } = store.state;
         const reset: Session = {
-          ...session,
+          ...clearSelection(session),
           activeFrameId: null,
-          selectedNodeId: null,
           isPlaying: false,
           documentId: projectId,
           savedProject: history.present,
@@ -66,7 +65,7 @@ export function connectProjectStorage({ bus, store, library }: ProjectStorageOpt
         };
         store.update({
           project: history,
-          session: fitSessionToSequence(reset, [], deriveSequence(history.present), history.present.skeleton),
+          session: fitSessionToSequence(reset, [], deriveSequence(history.present), history.present),
         });
       } catch (error) {
         fail('open-failed', error);

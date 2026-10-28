@@ -1,7 +1,8 @@
+import { DEFAULT_APPEARANCE } from '../model/character';
 import { createHistory, type ProjectHistory } from '../model/project';
 import { deriveSequence } from '../model/sequence';
 import { createId } from './id';
-import { createSession, fitSessionToSequence, type Session } from './session';
+import { createSession, fitSessionToSequence, selectPart, type Session } from './session';
 import type { SkeletonNode } from './types';
 
 /** État global de l'application : le Projet (avec son historique) et la Session. */
@@ -59,23 +60,32 @@ export class Store {
 const WAVE_POSE = { upperArmR: -0.8, forearmR: 0.9 };
 
 /**
- * État de départ : deux images clés (repos, puis salut du bras droit) ; la Fluidité génère
- * les frames intermédiaires entre elles.
+ * État de départ : un personnage, sélectionné, et deux images clés (repos, puis salut du bras
+ * droit) ; la Fluidité génère les frames intermédiaires entre elles. Décor vide.
  */
-export function createInitialState(projectName: string, skeleton: SkeletonNode[]): AppState {
+export function createInitialState(projectName: string, skeleton: SkeletonNode[], characterName = 'Personnage 1'): AppState {
+  const characterId = createId();
+  const rest = { x: 0, y: 0 };
   const project = createHistory({
     name: projectName,
     fps: 12,
-    skeleton,
+    characters: [{ id: characterId, name: characterName, visible: true, locked: false, skeleton, appearance: { ...DEFAULT_APPEARANCE } }],
     keyframes: [
-      { id: createId(), pose: {}, rootPosition: { x: 0, y: 0 } },
-      { id: createId(), pose: { ...WAVE_POSE }, rootPosition: { x: 0, y: 0 } },
+      { id: createId(), poses: { [characterId]: { pose: {}, rootPosition: rest } } },
+      { id: createId(), poses: { [characterId]: { pose: { ...WAVE_POSE }, rootPosition: rest } } },
     ],
+    environment: { background: null, shapes: [], drawing: { tiles: {} } },
+    recentColors: [],
     ai: {
       smoothing: { enabled: true, intensity: 3, curve: 'smooth' },
       loop: { enabled: false, repeatCount: 3, infinite: true, transitionFrames: 4 },
     },
   });
-  const session = fitSessionToSequence(createSession(), [], deriveSequence(project.present), skeleton);
+  const session = fitSessionToSequence(
+    selectPart(createSession(), characterId, null, false),
+    [],
+    deriveSequence(project.present),
+    project.present,
+  );
   return { project, session };
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Keyframe, LoopSettings, Project, SkeletonNode, SmoothingSettings } from '../core/types';
+import type { Character, Keyframe, LoopSettings, Project, SkeletonNode, SmoothingSettings } from '../core/types';
 import { catmullRom } from './interpolation';
 import { deriveSequence } from './sequence';
 
@@ -9,10 +9,22 @@ const skeleton: SkeletonNode[] = [
   { id: 'arm', parentId: 'root', length: 10, angle: 1, shape: 'segment' },
 ];
 
-const key = (id: string, pose: Record<string, number> = {}, x = 0): Keyframe => ({
+const character: Character = {
+  id: 'c',
+  name: 'c',
+  visible: true,
+  locked: false,
+  skeleton,
+  appearance: { scale: 1, defaultColor: null, segmentColors: {} },
+};
+
+/** Image clé du seul personnage « c » ; `other` pose aussi un second personnage « d ». */
+const key = (id: string, pose: Record<string, number> = {}, x = 0, other?: Record<string, number>): Keyframe => ({
   id,
-  pose,
-  rootPosition: { x, y: 0 },
+  poses: {
+    c: { pose, rootPosition: { x, y: 0 } },
+    ...(other ? { d: { pose: other, rootPosition: { x: 50, y: 0 } } } : {}),
+  },
 });
 
 function project(
@@ -23,8 +35,10 @@ function project(
   return {
     name: 'Test',
     fps: 12,
-    skeleton,
+    characters: [character],
     keyframes,
+    environment: { background: null, shapes: [], drawing: { tiles: {} } },
+    recentColors: [],
     ai: {
       smoothing: { enabled: true, intensity: 3, curve: 'linear', ...smoothing },
       loop: { enabled: false, repeatCount: 3, infinite: false, transitionFrames: 4, ...loop },
@@ -81,28 +95,28 @@ describe('deriveSequence: interpolation (linéaire)', () => {
   it('interpolates angles evenly between the two keyframes', () => {
     // 3 intermédiaires : t = 1/4, 2/4, 3/4.
     const sequence = deriveSequence(project([key('a', { arm: 0 }), key('b', { arm: 1 })]));
-    expect(sequence.slice(1, 4).map((f) => f.pose.arm)).toEqual([0.25, 0.5, 0.75]);
+    expect(sequence.slice(1, 4).map((f) => f.poses.c?.pose.arm)).toEqual([0.25, 0.5, 0.75]);
   });
 
   it('turns the short way round across ±π', () => {
     const [, middle] = deriveSequence(project([key('a', { arm: 3 }), key('b', { arm: -3 })], { intensity: 1 }));
-    expect(Math.abs(middle?.pose.arm ?? 0)).toBeCloseTo(Math.PI, 6);
+    expect(Math.abs(middle?.poses.c?.pose.arm ?? 0)).toBeCloseTo(Math.PI, 6);
   });
 
   it('uses the rest angle for a node posed in only one keyframe', () => {
     // Repos de arm = 1 ; b le pose à 2 : le milieu vaut 1,5.
     const [, middle] = deriveSequence(project([key('a'), key('b', { arm: 2 })], { intensity: 1 }));
-    expect(middle?.pose.arm).toBeCloseTo(1.5, 9);
+    expect(middle?.poses.c?.pose.arm).toBeCloseTo(1.5, 9);
   });
 
   it('leaves out nodes posed in neither keyframe', () => {
     const [, middle] = deriveSequence(project([key('a'), key('b')], { intensity: 1 }));
-    expect(middle?.pose).toEqual({});
+    expect(middle?.poses.c?.pose).toEqual({});
   });
 
   it('interpolates the root position', () => {
     const [, middle] = deriveSequence(project([key('a', {}, 0), key('b', {}, 10)], { intensity: 1 }));
-    expect(middle?.rootPosition).toEqual({ x: 5, y: 0 });
+    expect(middle?.poses.c?.rootPosition).toEqual({ x: 5, y: 0 });
   });
 });
 
@@ -110,7 +124,7 @@ describe('deriveSequence: non destructif et mémoïsé', () => {
   it('copies keyframes unchanged into the sequence', () => {
     const a = key('a', { arm: 0.3 }, 4);
     const [first] = deriveSequence(project([a, key('b')]));
-    expect(first).toMatchObject({ kind: 'keyframe', id: 'a', pose: { arm: 0.3 }, rootPosition: { x: 4, y: 0 } });
+    expect(first).toMatchObject({ kind: 'keyframe', id: 'a', poses: { c: { pose: { arm: 0.3 }, rootPosition: { x: 4, y: 0 } } } });
   });
 
   it('never mutates the keyframes', () => {
@@ -142,13 +156,13 @@ describe('deriveSequence: courbes', () => {
     const sequence = deriveSequence(
       project([key('a', { arm: 0 }), key('b', { arm: 1 }), key('c', { arm: 0 })], { intensity: 1, curve: 'smooth' }),
     );
-    expect(sequence[1]?.pose.arm).toBeCloseTo(catmullRom(0, 0, 1, 0, 0.5), 9);
+    expect(sequence[1]?.poses.c?.pose.arm).toBeCloseTo(catmullRom(0, 0, 1, 0, 0.5), 9);
   });
 
   it('changes the generated frames when the curve changes', () => {
     const keyframes = [key('a', { arm: 0 }), key('b', { arm: 1 })];
-    const linear = deriveSequence(project(keyframes, { curve: 'linear' }))[1]?.pose.arm;
-    const eased = deriveSequence(project(keyframes, { curve: 'ease-in-out' }))[1]?.pose.arm;
+    const linear = deriveSequence(project(keyframes, { curve: 'linear' }))[1]?.poses.c?.pose.arm;
+    const eased = deriveSequence(project(keyframes, { curve: 'ease-in-out' }))[1]?.poses.c?.pose.arm;
     expect(eased).not.toBeCloseTo(linear ?? 0, 3);
   });
 });
@@ -187,7 +201,7 @@ describe('deriveSequence: Répétition', () => {
 
   it('brings the pose back towards the first keyframe', () => {
     const sequence = deriveSequence(project(keyframes, { enabled: false, curve: 'linear' }, { enabled: true, transitionFrames: 1 }));
-    expect(sequence[2]?.pose.arm).toBeCloseTo(0.5, 9);
+    expect(sequence[2]?.poses.c?.pose.arm).toBeCloseTo(0.5, 9);
   });
 
   it('treats the animation as a loop for the spline (the first keyframe follows the last)', () => {
@@ -195,19 +209,46 @@ describe('deriveSequence: Répétition', () => {
     const sequence = deriveSequence(
       project([key('a', { arm: 0 }), key('b', { arm: 1 })], { intensity: 1, curve: 'smooth' }, { enabled: true, transitionFrames: 1 }),
     );
-    expect(sequence[1]?.pose.arm).toBeCloseTo(catmullRom(1, 0, 1, 0, 0.5), 9);
+    expect(sequence[1]?.poses.c?.pose.arm).toBeCloseTo(catmullRom(1, 0, 1, 0, 0.5), 9);
   });
 
   it('uses the smooth curve for the transition when smoothing is off', () => {
     const three = [key('a', { arm: 0 }), key('b', { arm: 1 }), key('c', { arm: 2 })];
     const sequence = deriveSequence(project(three, { enabled: false, curve: 'linear' }, { enabled: true, transitionFrames: 1 }));
     // Transition c → a, voisins en boucle : b avant c, b après a.
-    expect(sequence[3]?.pose.arm).toBeCloseTo(catmullRom(1, 2, 0, 1, 0.5), 9);
+    expect(sequence[3]?.poses.c?.pose.arm).toBeCloseTo(catmullRom(1, 2, 0, 1, 0.5), 9);
   });
 
   it('recomputes the sequence when the loop settings change', () => {
     const p = project(keyframes);
     const longer = { ...p, ai: { ...p.ai, loop: { ...p.ai.loop, enabled: true } } };
     expect(deriveSequence(longer)).not.toBe(deriveSequence(p));
+  });
+});
+
+describe('deriveSequence: plusieurs personnages', () => {
+  const second: Character = { ...character, id: 'd', name: 'd' };
+  const duo = (keyframes: Keyframe[]): Project => ({ ...project(keyframes, { intensity: 1 }), characters: [character, second] });
+
+  it('interpolates every character independently', () => {
+    const [, middle] = deriveSequence(duo([key('a', { arm: 0 }, 0, { arm: 2 }), key('b', { arm: 1 }, 0, { arm: 0 })]));
+    expect(middle?.poses.c?.pose.arm).toBeCloseTo(0.5, 9);
+    expect(middle?.poses.d?.pose.arm).toBeCloseTo(1, 9);
+    expect(middle?.poses.d?.rootPosition).toEqual({ x: 50, y: 0 });
+  });
+
+  it('keeps the same sequence when only the appearance of a character changes', () => {
+    const p = duo([key('a', {}, 0, {}), key('b', {}, 0, {})]);
+    const recoloured: Project = {
+      ...p,
+      characters: [{ ...character, appearance: { ...character.appearance, defaultColor: '#ff0000' } }, second],
+    };
+    expect(deriveSequence(recoloured)).toBe(deriveSequence(p));
+  });
+
+  it('recomputes the sequence when a character is added', () => {
+    const p = project([key('a'), key('b')]);
+    const before = deriveSequence(p);
+    expect(deriveSequence({ ...p, characters: [character, second] })).not.toBe(before);
   });
 });

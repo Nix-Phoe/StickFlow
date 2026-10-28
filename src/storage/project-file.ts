@@ -1,21 +1,29 @@
 // Format de fichier d'un Projet : JSON versionné. Seules les images clés sont enregistrées
-// (ADR 0002). À la lecture, la structure est vérifiée ; les bornes des réglages sont ensuite
-// appliquées par le module Projet (`createHistory`).
+// (ADR 0002). À la lecture, un fichier ancien est d'abord migré (migrate.ts), puis sa structure
+// est vérifiée ; les bornes des réglages sont ensuite appliquées par le module Projet (`createHistory`).
 
 import {
+  SHAPE_KINDS,
   SMOOTHING_CURVES,
+  type Character,
+  type Environment,
+  type FramePose,
   type Keyframe,
   type LoopSettings,
   type Project,
+  type Shape,
+  type ShapeKind,
   type SkeletonNode,
   type SmoothingCurve,
   type SmoothingSettings,
   type Vec2,
 } from '../core/types';
+import { normalizeHex } from '../model/color';
 import { SkeletonError, sortSkeleton } from '../model/skeleton';
+import { migrateProject } from './migrate';
 
 export const PROJECT_FILE_FORMAT = 'stickflow-project';
-export const PROJECT_FILE_VERSION = 1;
+export const PROJECT_FILE_VERSION = 2;
 
 export interface ProjectFile {
   format: typeof PROJECT_FILE_FORMAT;
@@ -28,8 +36,12 @@ export class ProjectFileError extends Error {
 }
 
 export function toProjectFile(project: Project): ProjectFile {
-  const { name, fps, skeleton, keyframes, ai } = project;
-  return { format: PROJECT_FILE_FORMAT, version: PROJECT_FILE_VERSION, project: { name, fps, skeleton, keyframes, ai } };
+  const { name, fps, characters, keyframes, environment, recentColors, ai } = project;
+  return {
+    format: PROJECT_FILE_FORMAT,
+    version: PROJECT_FILE_VERSION,
+    project: { name, fps, characters, keyframes, environment, recentColors, ai },
+  };
 }
 
 /** Relit un fichier de Projet (objet JSON déjà parsé). Lève `ProjectFileError` s'il est invalide. */
@@ -41,26 +53,48 @@ export function fromProjectFile(data: unknown): Project {
     throw new ProjectFileError(`Projet enregistré par une version plus récente (version ${version})`);
   }
 
-  const project = record(file.project, 'projet');
-  const skeleton = array(project.skeleton, 'squelette').map(readNode);
+  const project = record(migrateProject(version, file.project), 'projet');
+  const ai = record(project.ai, 'réglages IA');
+  return {
+    name: string(project.name, 'nom'),
+    fps: number(project.fps, 'IPS'),
+    characters: array(project.characters, 'personnages').map(readCharacter),
+    keyframes: array(project.keyframes, 'images clés').map(readKeyframe),
+    environment: readEnvironment(project.environment),
+    recentColors: array(project.recentColors, 'couleurs récentes').map((c) => color(c, 'couleur récente')),
+    ai: { smoothing: readSmoothing(ai.smoothing), loop: readLoop(ai.loop) },
+  };
+}
+
+// ---------- Lecture des parties ----------
+
+function readCharacter(value: unknown): Character {
+  const character = record(value, 'personnage');
+  const skeleton = array(character.skeleton, 'squelette').map(readNode);
   try {
     sortSkeleton(skeleton);
   } catch (error) {
     if (error instanceof SkeletonError) throw new ProjectFileError(`Squelette invalide : ${error.message}`);
     throw error;
   }
-
-  const ai = record(project.ai, 'réglages IA');
+  const appearance = record(character.appearance, 'apparence');
+  const segmentColors: Record<string, string> = {};
+  for (const [id, value] of Object.entries(record(appearance.segmentColors, 'couleurs des parties'))) {
+    segmentColors[id] = color(value, `couleur de ${id}`);
+  }
   return {
-    name: string(project.name, 'nom'),
-    fps: number(project.fps, 'IPS'),
+    id: string(character.id, 'id de personnage'),
+    name: string(character.name, 'nom de personnage'),
+    visible: boolean(character.visible, 'personnage visible'),
+    locked: boolean(character.locked, 'personnage verrouillé'),
     skeleton,
-    keyframes: array(project.keyframes, 'images clés').map(readKeyframe),
-    ai: { smoothing: readSmoothing(ai.smoothing), loop: readLoop(ai.loop) },
+    appearance: {
+      scale: number(appearance.scale, 'taille'),
+      defaultColor: appearance.defaultColor === null ? null : color(appearance.defaultColor, 'couleur du personnage'),
+      segmentColors,
+    },
   };
 }
-
-// ---------- Lecture des parties ----------
 
 function readNode(value: unknown): SkeletonNode {
   const node = record(value, 'nœud');
@@ -77,14 +111,52 @@ function readNode(value: unknown): SkeletonNode {
 
 function readKeyframe(value: unknown): Keyframe {
   const keyframe = record(value, 'image clé');
+  const poses: Record<string, FramePose> = {};
+  for (const [id, pose] of Object.entries(record(keyframe.poses, 'poses'))) poses[id] = readPose(pose);
+  return { id: string(keyframe.id, "id d'image clé"), poses };
+}
+
+function readPose(value: unknown): FramePose {
+  const frame = record(value, 'pose');
   const pose: Record<string, number> = {};
-  for (const [id, angle] of Object.entries(record(keyframe.pose, 'pose'))) pose[id] = number(angle, `angle de ${id}`);
-  return { id: string(keyframe.id, "id d'image clé"), pose, rootPosition: readVec2(keyframe.rootPosition) };
+  for (const [id, angle] of Object.entries(record(frame.pose, 'angles'))) pose[id] = number(angle, `angle de ${id}`);
+  return { pose, rootPosition: readVec2(frame.rootPosition) };
 }
 
 function readVec2(value: unknown): Vec2 {
   const point = record(value, 'position');
   return { x: number(point.x, 'x'), y: number(point.y, 'y') };
+}
+
+function readEnvironment(value: unknown): Environment {
+  const environment = record(value, 'décor');
+  const tiles: Record<string, string> = {};
+  for (const [key, tile] of Object.entries(record(record(environment.drawing, 'calque de dessin').tiles, 'tuiles'))) {
+    tiles[key] = string(tile, `tuile ${key}`);
+  }
+  return {
+    background: environment.background === null ? null : color(environment.background, 'arrière-plan'),
+    shapes: array(environment.shapes, 'formes').map(readShape),
+    drawing: { tiles },
+  };
+}
+
+function readShape(value: unknown): Shape {
+  const shape = record(value, 'forme');
+  if (!SHAPE_KINDS.includes(shape.kind as ShapeKind)) throw new ProjectFileError(`Forme inconnue : ${String(shape.kind)}`);
+  return {
+    id: string(shape.id, 'id de forme'),
+    kind: shape.kind as ShapeKind,
+    x: number(shape.x, 'x de forme'),
+    y: number(shape.y, 'y de forme'),
+    width: number(shape.width, 'largeur de forme'),
+    height: number(shape.height, 'hauteur de forme'),
+    rotation: number(shape.rotation, 'rotation de forme'),
+    stroke: color(shape.stroke, 'contour de forme'),
+    fill: shape.fill === null ? null : color(shape.fill, 'remplissage de forme'),
+    strokeWidth: number(shape.strokeWidth, 'épaisseur de forme'),
+    opacity: number(shape.opacity, 'opacité de forme'),
+  };
 }
 
 function readSmoothing(value: unknown): SmoothingSettings {
@@ -134,4 +206,11 @@ function number(value: unknown, what: string): number {
 function boolean(value: unknown, what: string): boolean {
   if (typeof value !== 'boolean') throw new ProjectFileError(`${what} : vrai / faux attendu`);
   return value;
+}
+
+/** Couleur HEX, normalisée en « #rrggbb ». */
+function color(value: unknown, what: string): string {
+  const hex = normalizeHex(string(value, what));
+  if (!hex) throw new ProjectFileError(`${what} : couleur HEX attendue`);
+  return hex;
 }

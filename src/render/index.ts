@@ -1,3 +1,3 @@
 // Rendu WebGL 2 de la scène.
-export { connectStickmanView } from './stickman-view';
+export { connectStageView } from './stage-view';
 export { WebGLUnavailableError } from './renderer';

@@ -1,35 +1,55 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Project } from '../core/types';
-import { createDefaultSkeleton, sortSkeleton } from '../model/skeleton';
+import { testCharacter, testFrame, testProject, testShape } from '../test/fixtures';
 import { fromProjectFile, PROJECT_FILE_FORMAT, PROJECT_FILE_VERSION, ProjectFileError, toProjectFile } from './project-file';
 
-const project: Project = {
+const project: Project = testProject({
   name: 'Saut',
   fps: 24,
-  skeleton: sortSkeleton(createDefaultSkeleton()),
-  keyframes: [
-    { id: 'k1', pose: {}, rootPosition: { x: 0, y: 0 } },
-    { id: 'k2', pose: { torso: 1.2 }, rootPosition: { x: 10, y: -5 } },
+  characters: [
+    testCharacter('c1', { name: 'Léa', appearance: { scale: 1.5, defaultColor: '#ff0000', segmentColors: { head: '#00ff00' } } }),
+    testCharacter('c2', { visible: false, locked: true }),
   ],
+  keyframes: [
+    testFrame('k1', {}, { x: 0, y: 0 }, { c2: { pose: {}, rootPosition: { x: 80, y: 0 } } }),
+    testFrame('k2', { torso: 1.2 }, { x: 10, y: -5 }, { c2: { pose: { head: 0.1 }, rootPosition: { x: 90, y: 0 } } }),
+  ],
+  environment: {
+    background: '#ffeedd',
+    shapes: [testShape('s1', { kind: 'triangle', fill: '#0000ff', rotation: 0.5 })],
+    drawing: { tiles: { '0,1': 'data:image/png;base64,AAAA' } },
+  },
+  recentColors: ['#ff0000', '#00ff00'],
   ai: {
     smoothing: { enabled: true, intensity: 4, curve: 'ease-in-out' },
     loop: { enabled: true, repeatCount: 2, infinite: false, transitionFrames: 3 },
   },
-};
+});
 
 /** Fichier tel qu'il serait relu depuis le disque ou IndexedDB. */
 const reread = (value: unknown): unknown => JSON.parse(JSON.stringify(value));
+type Editable = { project: Record<string, unknown> & { keyframes: unknown[]; characters: Array<Record<string, unknown>> } };
+const editable = (): Editable => reread(toProjectFile(project)) as Editable;
 
 describe('toProjectFile', () => {
-  it('tags the file with its format and version', () => {
+  it('tags the file with its format and version 2', () => {
     const file = toProjectFile(project);
     expect(file.format).toBe(PROJECT_FILE_FORMAT);
-    expect(file.version).toBe(PROJECT_FILE_VERSION);
+    expect(file.version).toBe(2);
+    expect(PROJECT_FILE_VERSION).toBe(2);
   });
 
   it('only stores keyframes, never generated frames', () => {
-    expect(Object.keys(toProjectFile(project).project).sort()).toEqual(['ai', 'fps', 'keyframes', 'name', 'skeleton']);
+    expect(Object.keys(toProjectFile(project).project).sort()).toEqual([
+      'ai',
+      'characters',
+      'environment',
+      'fps',
+      'keyframes',
+      'name',
+      'recentColors',
+    ]);
   });
 });
 
@@ -49,25 +69,54 @@ describe('fromProjectFile', () => {
   });
 
   it('rejects a damaged keyframe', () => {
-    const file = reread(toProjectFile(project)) as { project: { keyframes: unknown[] } };
-    file.project.keyframes[1] = { id: 'k2', pose: { torso: 'beaucoup' }, rootPosition: { x: 0, y: 0 } };
+    const file = editable();
+    file.project.keyframes[1] = { id: 'k2', poses: { c1: { pose: { torso: 'beaucoup' }, rootPosition: { x: 0, y: 0 } } } };
     expect(() => fromProjectFile(file)).toThrow(ProjectFileError);
   });
 
   it('rejects an invalid skeleton', () => {
-    const file = reread(toProjectFile(project)) as { project: { skeleton: Array<{ parentId: string | null }> } };
-    file.project.skeleton.forEach((node) => (node.parentId = null));
+    const file = editable();
+    (file.project.characters[0]?.skeleton as Array<{ parentId: string | null }>).forEach((node) => (node.parentId = null));
     expect(() => fromProjectFile(file)).toThrow(ProjectFileError);
   });
 
-  it('rejects an unknown curve', () => {
-    const file = reread(toProjectFile(project)) as { project: { ai: { smoothing: { curve: string } } } };
-    file.project.ai.smoothing.curve = 'zigzag';
-    expect(() => fromProjectFile(file)).toThrow(ProjectFileError);
+  it('rejects an unknown curve, shape kind or invalid colour', () => {
+    const curve = editable() as unknown as { project: { ai: { smoothing: { curve: string } } } };
+    curve.project.ai.smoothing.curve = 'zigzag';
+    expect(() => fromProjectFile(curve)).toThrow(ProjectFileError);
+
+    const shape = editable() as unknown as { project: { environment: { shapes: Array<{ kind: string }> } } };
+    (shape.project.environment.shapes[0] as { kind: string }).kind = 'star';
+    expect(() => fromProjectFile(shape)).toThrow(ProjectFileError);
+
+    const color = editable();
+    (color.project.characters[0] as { appearance: { defaultColor: string } }).appearance.defaultColor = 'rouge';
+    expect(() => fromProjectFile(color)).toThrow(ProjectFileError);
   });
 
   it('keeps out-of-range numbers for the Projet module to clamp', () => {
     const file = reread(toProjectFile({ ...project, fps: 500 }));
     expect(fromProjectFile(file).fps).toBe(500);
+  });
+
+  it('opens a version 1 project (single skeleton) as a project with one character', () => {
+    const v1 = {
+      format: PROJECT_FILE_FORMAT,
+      version: 1,
+      project: {
+        name: 'Ancien',
+        fps: 12,
+        skeleton: project.characters[0]?.skeleton,
+        keyframes: [{ id: 'k1', pose: { torso: 1 }, rootPosition: { x: 3, y: 4 } }],
+        ai: project.ai,
+      },
+    };
+    const opened = fromProjectFile(reread(v1));
+    expect(opened.name).toBe('Ancien');
+    expect(opened.characters).toHaveLength(1);
+    const [character] = opened.characters;
+    expect(opened.keyframes[0]?.poses[character?.id ?? '']).toEqual({ pose: { torso: 1 }, rootPosition: { x: 3, y: 4 } });
+    expect(opened.environment).toEqual({ background: null, shapes: [], drawing: { tiles: {} } });
+    expect(opened.recentColors).toEqual([]);
   });
 });

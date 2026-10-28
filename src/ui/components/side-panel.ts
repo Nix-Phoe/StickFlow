@@ -2,11 +2,9 @@ import '../styles/components/side-panel.css';
 
 import { saveStatus } from '../../core/selectors';
 import {
-  EDITOR_MODES,
   EXPORT_FORMATS,
   LIMITS,
   SMOOTHING_CURVES,
-  type EditorMode,
   type ExportFormat,
   type Notice,
   type SmoothingCurve,
@@ -81,13 +79,8 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
     onClick: () => bus.emit('project:save'),
   });
 
-  const modeControl = createSegmented<EditorMode>({
-    label: t.modeLabel,
-    action: 'editor:mode:change',
-    options: EDITOR_MODES.map((mode) => ({ value: mode, label: t.modes[mode] })),
-    value: store.state.session.editorMode,
-    onChange: (mode) => bus.emit('editor:mode:change', { mode }),
-  });
+  // Le mode se choisit dans le panneau « Personnages & Environnement » ; ici, un simple rappel.
+  const modeIndicator = h('p', { class: 'side-panel__mode', 'aria-live': 'polite' });
 
   const header = h('header', { class: 'side-panel__header' }, [
     h('div', { class: 'side-panel__title-row' }, [
@@ -96,12 +89,12 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
         h('p', { class: 'side-panel__app-name' }, [strings.appName]),
         projectName,
         saveStatusText,
+        modeIndicator,
       ]),
       saveButton,
       closeButton,
     ]),
     h('div', { class: 'side-panel__file-actions' }, [openButton, saveAsButton]),
-    modeControl.element,
   ]);
 
   // ---------- Fluidité ----------
@@ -291,7 +284,10 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
       },
     ),
     store.watch((s) => s.session.notice, (value) => (notice.textContent = value ? noticeText(value) : '')),
-    store.watch((s) => s.session.editorMode, (mode) => modeControl.setValue(mode)),
+    store.watch((s) => s.session.editorMode, (mode) => {
+      modeIndicator.textContent = t.modeIndicator(mode);
+      modeIndicator.dataset.mode = mode;
+    }),
     store.watch(
       (s) => s.project.present.ai.smoothing,
       (value) => {

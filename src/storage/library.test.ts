@@ -1,20 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Project } from '../core/types';
-import { createDefaultSkeleton, sortSkeleton } from '../model/skeleton';
+import { testProject } from '../test/fixtures';
 import { createProjectLibrary, LibraryError } from './library';
 import { createMemoryStore } from './memory-store';
 
-const project = (name: string): Project => ({
-  name,
-  fps: 12,
-  skeleton: sortSkeleton(createDefaultSkeleton()),
-  keyframes: [{ id: 'k1', pose: {}, rootPosition: { x: 0, y: 0 } }],
-  ai: {
-    smoothing: { enabled: true, intensity: 3, curve: 'smooth' },
-    loop: { enabled: false, repeatCount: 3, infinite: true, transitionFrames: 4 },
-  },
-});
+const project = (name: string): Project => testProject({ name });
 
 function setup() {
   let now = 1000;

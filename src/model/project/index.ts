@@ -8,6 +8,7 @@ export {
   COALESCE_WINDOW_MS,
   createHistory,
   HISTORY_LIMIT,
+  recordRecentColor,
   redo,
   undo,
   type ProjectHistory,

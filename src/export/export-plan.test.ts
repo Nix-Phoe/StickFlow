@@ -2,17 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import type { LoopSettings, Project } from '../core/types';
 import type { SequenceFrame } from '../model/sequence';
-import { createDefaultSkeleton, sortSkeleton } from '../model/skeleton';
+import { testProject } from '../test/fixtures';
 import { exportFileName, pickVideoFormat, planExport } from './export-plan';
 
-const frame = (id: string): SequenceFrame => ({ kind: 'keyframe', id, pose: {}, rootPosition: { x: 0, y: 0 } });
+const frame = (id: string): SequenceFrame => ({ kind: 'keyframe', id, poses: {} });
 const sequence = [frame('a'), frame('b'), frame('c')];
 
-const project = (loop: Partial<LoopSettings> = {}, fps = 10): Project => ({
+const project = (loop: Partial<LoopSettings> = {}, fps = 10): Project => testProject({
   name: 'Saut',
   fps,
-  skeleton: sortSkeleton(createDefaultSkeleton()),
-  keyframes: [],
   ai: {
     smoothing: { enabled: true, intensity: 3, curve: 'smooth' },
     loop: { enabled: false, repeatCount: 3, infinite: false, transitionFrames: 4, ...loop },

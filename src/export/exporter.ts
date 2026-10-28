@@ -1,14 +1,17 @@
-// Export GIF, PNG (archive ZIP) et vidéo : dessine chaque frame du plan d'export dans un
-// canvas hors écran, l'encode, puis remet le fichier à `download`. Navigateur uniquement.
+// Export GIF, PNG (archive ZIP) et vidéo : dessine chaque frame du plan d'export (décor et
+// personnages visibles, sans aide d'édition) dans un canvas hors écran, l'encode, puis remet le
+// fichier à `download`. Navigateur uniquement.
 
 import type { AppEventBus } from '../core/events';
 import { sequenceOf } from '../core/selectors';
 import type { Session } from '../core/session';
 import type { Store } from '../core/store';
 import type { ExportFormat, Project } from '../core/types';
+import type { DrawingSurface } from '../drawing/surface';
 import type { SequenceFrame } from '../model/sequence';
-import { paintPose } from '../render/canvas2d';
-import { DEFAULT_STICKMAN_STYLE } from '../render/scene';
+import { paintScene } from '../render/canvas2d';
+import { parseHexColor } from '../render/color';
+import { buildSceneLayers } from '../render/scene-layers';
 import { EXPORT_SIZE, exportFileName, pickVideoFormat, planExport, type ExportPlan } from './export-plan';
 import { encodeGif } from './gif';
 import { zipFiles } from './zip';
@@ -27,6 +30,8 @@ export interface ExporterOptions {
   store: Store;
   /** Remet le fichier à l'utilisateur (téléchargement). */
   download: (blob: Blob, filename: string) => void;
+  /** Calque de dessin du décor. */
+  drawing: DrawingSurface;
 }
 
 interface Exported {
@@ -34,7 +39,7 @@ interface Exported {
   extension: string;
 }
 
-export function connectExporter({ bus, store, download }: ExporterOptions): () => void {
+export function connectExporter({ bus, store, download, drawing }: ExporterOptions): () => void {
   const setSession = (patch: Partial<Session>): void =>
     store.update((s) => ({ session: { ...s.session, ...patch } }));
 
@@ -44,9 +49,10 @@ export function connectExporter({ bus, store, download }: ExporterOptions): () =
     const plan = planExport(project, sequenceOf(store.state), format);
     setSession({ exportProgress: 0, notice: null });
     try {
-      const { blob, extension } = await encoders[format](project, plan, (progress) =>
-        setSession({ exportProgress: progress }),
-      );
+      // Le calque de dessin doit être entièrement décodé avant la première image.
+      await drawing.sync(project.environment.drawing.tiles);
+      const paint: Painter = (context, frame, background) => drawFrame(context, project, frame, background, drawing);
+      const { blob, extension } = await encoders[format](paint, plan, (progress) => setSession({ exportProgress: progress }));
       const filename = exportFileName(project.name, extension);
       download(blob, filename);
       setSession({ notice: { kind: 'success', code: 'exported', detail: filename } });
@@ -63,14 +69,16 @@ export function connectExporter({ bus, store, download }: ExporterOptions): () =
 
 // ---------- Encodeurs par format ----------
 
-type Encoder = (project: Project, plan: ExportPlan, onProgress: (progress: number) => void) => Promise<Exported>;
+/** Dessine une frame ; `background` à `null` : fond transparent (sauf arrière-plan du décor). */
+type Painter = (context: CanvasRenderingContext2D, frame: SequenceFrame, background: string | null) => void;
+type Encoder = (paint: Painter, plan: ExportPlan, onProgress: (progress: number) => void) => Promise<Exported>;
 
 const encoders: Record<ExportFormat, Encoder> = {
-  async gif(project, plan, onProgress) {
+  async gif(paint, plan, onProgress) {
     const { canvas, context } = createCanvas({ willReadFrequently: true });
     const frames: Uint8ClampedArray[] = [];
     for (const [i, frame] of plan.frames.entries()) {
-      drawFrame(context, project, frame, EXPORT_COLORS.background);
+      paint(context, frame, EXPORT_COLORS.background);
       frames.push(context.getImageData(0, 0, canvas.width, canvas.height).data);
       onProgress((0.8 * (i + 1)) / plan.frames.length);
       await nextTick();
@@ -79,12 +87,12 @@ const encoders: Record<ExportFormat, Encoder> = {
     return { blob: new Blob([bytes], { type: 'image/gif' }), extension: 'gif' };
   },
 
-  async png(project, plan, onProgress) {
+  async png(paint, plan, onProgress) {
     const { canvas, context } = createCanvas();
     const digits = String(plan.frames.length).length;
     const files = [];
     for (const [i, frame] of plan.frames.entries()) {
-      drawFrame(context, project, frame, null);
+      paint(context, frame, null);
       const png = await canvasToBlob(canvas, 'image/png');
       files.push({ name: `frame-${String(i + 1).padStart(digits, '0')}.png`, data: new Uint8Array(await png.arrayBuffer()) });
       onProgress((i + 1) / plan.frames.length);
@@ -92,7 +100,7 @@ const encoders: Record<ExportFormat, Encoder> = {
     return { blob: new Blob([zipFiles(files)], { type: 'application/zip' }), extension: 'zip' };
   },
 
-  async mp4(project, plan, onProgress) {
+  async mp4(paint, plan, onProgress) {
     const format = typeof MediaRecorder === 'undefined' ? null : pickVideoFormat((type) => MediaRecorder.isTypeSupported(type));
     if (!format) throw new Error("Ce navigateur ne sait pas enregistrer de vidéo");
 
@@ -112,11 +120,11 @@ const encoders: Record<ExportFormat, Encoder> = {
     // L'enregistreur démarre de façon asynchrone : on attend qu'il tourne avant d'envoyer des images,
     // et on lui demande des morceaux réguliers plutôt qu'un seul à la fin.
     const [first] = plan.frames;
-    if (first) drawFrame(context, project, first, EXPORT_COLORS.background);
+    if (first) paint(context, first, EXPORT_COLORS.background);
     recorder.start(VIDEO_CHUNK_MS);
     await started;
     for (const [i, frame] of plan.frames.entries()) {
-      drawFrame(context, project, frame, EXPORT_COLORS.background);
+      paint(context, frame, EXPORT_COLORS.background);
       track.requestFrame();
       onProgress((i + 1) / plan.frames.length);
       await sleep(plan.delayMs);
@@ -149,15 +157,30 @@ function createCanvas(attributes?: CanvasRenderingContext2DSettings): {
   return { canvas, context };
 }
 
-/** `background` à `null` : fond transparent. */
-function drawFrame(context: CanvasRenderingContext2D, project: Project, frame: SequenceFrame, background: string | null): void {
+/** L'arrière-plan du décor, s'il en a un, remplace le fond par défaut. */
+function drawFrame(
+  context: CanvasRenderingContext2D,
+  project: Project,
+  frame: SequenceFrame,
+  defaultBackground: string | null,
+  drawing: DrawingSurface,
+): void {
   const { width, height } = context.canvas;
   context.clearRect(0, 0, width, height);
+  const background = project.environment.background ?? defaultBackground;
   if (background) {
     context.fillStyle = background;
     context.fillRect(0, 0, width, height);
   }
-  paintPose(context, { width, height }, project.skeleton, frame, DEFAULT_STICKMAN_STYLE, EXPORT_COLORS.stickman);
+  const layers = buildSceneLayers({
+    project,
+    frame,
+    onion: null,
+    mode: null,
+    selection: { selectedCharacterId: null, selectedNodeId: null, selectedParts: [], selectedShapeId: null },
+    palette: { stickman: parseHexColor(EXPORT_COLORS.stickman), accent: parseHexColor(EXPORT_COLORS.stickman) },
+  });
+  paintScene(context, { width, height }, layers, { image: drawing.canvas, bounds: drawing.bounds });
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement, type: string): Promise<Blob> {

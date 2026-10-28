@@ -1,7 +1,7 @@
 // Historique annuler / rétablir par instantanés du Projet (voir docs/adr/0001).
 
 import type { Project } from '../../core/types';
-import { applyToProject, coalesceKey, normalizeProject, type ProjectChange } from './changes';
+import { applyToProject, coalesceKey, normalizeProject, withRecentColor, type ProjectChange } from './changes';
 
 /** Nombre maximal d'étapes d'annulation conservées. */
 export const HISTORY_LIMIT = 100;
@@ -57,6 +57,17 @@ export function redo(history: ProjectHistory): ProjectHistory {
   const [next, ...rest] = history.future;
   if (!next) return history;
   return { present: next, past: [...history.past, history.present], future: rest, lastChange: null };
+}
+
+/**
+ * Retient une couleur utilisée (palette « récentes »). Ce n'est pas une étape d'annulation :
+ * la couleur est ajoutée à tous les instantanés, pour survivre à annuler / rétablir.
+ */
+export function recordRecentColor(history: ProjectHistory, color: string): ProjectHistory {
+  const present = withRecentColor(history.present, color);
+  if (present === history.present) return history;
+  const recolor = (project: Project): Project => ({ ...project, recentColors: present.recentColors });
+  return { ...history, present, past: history.past.map(recolor), future: history.future.map(recolor) };
 }
 
 export const canUndo = (history: ProjectHistory): boolean => history.past.length > 0;

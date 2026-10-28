@@ -11,7 +11,7 @@ import { strings } from '../strings';
  * en pixels physiques (`devicePixelRatio`). L'UI n'y dessine jamais : elle émet le pointeur
  * (`stage:pointer:*`) et les touches (`node:*`) ; le rendu et la manipulation s'en chargent.
  */
-export function createCanvasArea({ bus }: ComponentContext): Component {
+export function createCanvasArea({ bus, store }: ComponentContext): Component {
   const canvas = h('canvas', {
     id: ids.stage,
     class: 'canvas-area__canvas',
@@ -21,6 +21,13 @@ export function createCanvasArea({ bus }: ComponentContext): Component {
   });
   const root = h('div', { class: 'canvas-area' }, [canvas]);
 
+  // Le curseur suit le contexte et l'outil (voir canvas-area.css).
+  const stopWatching = [
+    store.watch((s) => s.session.editorMode, (mode) => (canvas.dataset.mode = mode)),
+    store.watch((s) => s.session.tool, (tool) => (canvas.dataset.tool = tool)),
+    store.watch((s) => s.session.eyedropper, (picking) => canvas.classList.toggle('is-picking', picking)),
+  ];
+
   let observer: ResizeObserver | null = null;
   let stopWatchingPixelRatio: (() => void) | null = null;
 
@@ -29,6 +36,9 @@ export function createCanvasArea({ bus }: ComponentContext): Component {
     const rect = canvas.getBoundingClientRect();
     return {
       pointerId: event.pointerId,
+      pointerType: event.pointerType === 'touch' || event.pointerType === 'pen' ? event.pointerType : 'mouse',
+      shiftKey: event.shiftKey,
+      pressure: event.pressure,
       x: event.clientX - rect.left,
       y: event.clientY - rect.top,
       width: rect.width,
@@ -45,7 +55,10 @@ export function createCanvasArea({ bus }: ComponentContext): Component {
   });
 
   canvas.addEventListener('pointermove', (event) => {
-    if (canvas.hasPointerCapture(event.pointerId)) bus.emit('stage:pointer:move', toStagePointer(event));
+    if (!canvas.hasPointerCapture(event.pointerId)) return;
+    // Les échantillons regroupés par le navigateur donnent des traits plus fidèles au stylet.
+    const samples = typeof event.getCoalescedEvents === 'function' ? event.getCoalescedEvents() : [];
+    for (const sample of samples.length > 0 ? samples : [event]) bus.emit('stage:pointer:move', toStagePointer(sample));
   });
 
   const release = (event: PointerEvent): void => {
@@ -76,6 +89,7 @@ export function createCanvasArea({ bus }: ComponentContext): Component {
         break;
       case 'Escape':
         bus.emit('node:select', { nodeId: null });
+        if (store.state.session.eyedropper) bus.emit('eyedropper:cancel');
         break;
       default:
         return;
@@ -140,6 +154,7 @@ export function createCanvasArea({ bus }: ComponentContext): Component {
       stopWatchingPixelRatio = watchPixelRatio();
     },
     destroy() {
+      stopWatching.forEach((stop) => stop());
       observer?.disconnect();
       stopWatchingPixelRatio?.();
       root.remove();

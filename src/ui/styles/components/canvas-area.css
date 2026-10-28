@@ -35,6 +35,15 @@
   touch-action: none;
 }
 
+.canvas-area__canvas[data-mode="environment"][data-tool="select"] {
+  cursor: default;
+}
+
+.canvas-area__canvas[data-mode="environment"][data-tool="fill"],
+.canvas-area__canvas.is-picking {
+  cursor: cell;
+}
+
 .canvas-area__canvas.is-dragging {
   cursor: grabbing;
 }

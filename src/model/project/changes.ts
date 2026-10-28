@@ -44,8 +44,9 @@ export type ProjectChange =
   | { type: 'setCharacterColor'; characterId: string; parts: readonly string[]; color: string | null }
   | { type: 'setCharacterScale'; characterId: string; scale: number }
   // ---------- Décor ----------
-  | { type: 'addShape'; shape: Shape }
-  | { type: 'updateShape'; shapeId: string; changes: Partial<Omit<Shape, 'id'>> }
+  /** `gesture` : jeton d'un geste sur la scène, pour qu'un geste forme une étape d'annulation, et pas plus. */
+  | { type: 'addShape'; shape: Shape; gesture?: string }
+  | { type: 'updateShape'; shapeId: string; changes: Partial<Omit<Shape, 'id'>>; gesture?: string }
   | { type: 'removeShape'; shapeId: string }
   /** Remplace les tuiles peintes par un trait ; `null` = tuile redevenue transparente. */
   | { type: 'paintDrawing'; tiles: Record<string, string | null> };
@@ -79,9 +80,9 @@ export function coalesceKey(change: ProjectChange): string | null {
       return `setCharacterColor:${change.characterId}:${[...change.parts].sort().join(',')}`;
     // Une forme tracée par glisser (créée, puis agrandie) ou déplacée forme une seule étape.
     case 'addShape':
-      return `shape:${change.shape.id}`;
+      return `shape:${change.shape.id}:${change.gesture ?? ''}`;
     case 'updateShape':
-      return `shape:${change.shapeId}`;
+      return `shape:${change.shapeId}:${change.gesture ?? ''}`;
     case 'deleteKeyframe':
     case 'addCharacter':
     case 'duplicateCharacter':

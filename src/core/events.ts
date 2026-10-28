@@ -106,13 +106,16 @@ export interface AppEvents {
   'tool:select': { tool: ToolId };
   'tool:settings': Partial<ToolSettings>;
   /** Ajoute une forme au décor ; elle devient la forme sélectionnée. */
-  'shape:create': { shape: Shape };
-  'shape:update': { shapeId: string; changes: Partial<Omit<Shape, 'id'>> };
+  'shape:create': { shape: Shape; gesture?: string };
+  /** `gesture` : jeton du geste sur la scène (un geste = une étape d'annulation). */
+  'shape:update': { shapeId: string; changes: Partial<Omit<Shape, 'id'>>; gesture?: string };
   'shape:remove': { shapeId: string };
   'shape:select': { shapeId: string | null };
   'shape:duplicate': { shapeId: string };
   /** Trait terminé sur le calque de dessin : tuiles repeintes (PNG en data URL, `null` = transparente). */
   'drawing:stroke': { tiles: Record<string, string | null> };
+  /** Outil Remplir hors d'une forme : remplissage par diffusion du calque de dessin en ce point du monde. */
+  'drawing:fill': { point: Vec2 };
 
   'ai:smoothing:change': Partial<SmoothingSettings>;
   'ai:loop:change': Partial<LoopSettings>;

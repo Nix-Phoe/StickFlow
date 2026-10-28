@@ -11,8 +11,9 @@ import { connectPlayer } from './animation';
 import type { AppEventName } from './core/events';
 import { connectExporter } from './export';
 import { createInitialState, Store } from './core/store';
-import { connectCharacterManipulation } from './interaction';
+import { connectCharacterManipulation, connectShapeManipulation } from './interaction';
 import { createDefaultSkeleton, sortSkeleton } from './model';
+import { connectDrawingTool } from './drawing/drawing-tool';
 import { createDrawingSurface } from './drawing/surface';
 import { connectStageView } from './render';
 import { connectProjectStorage, createIdbStore, createMemoryStore, createProjectLibrary } from './storage';
@@ -39,6 +40,8 @@ const store = new Store(
 const drawing = createDrawingSurface();
 connectIntents(bus, store);
 connectCharacterManipulation({ bus, store });
+connectShapeManipulation({ bus, store });
+connectDrawingTool({ bus, store, surface: drawing });
 connectPlayer({ bus, store });
 // IndexedDB si le navigateur l'autorise (absent en navigation privée sur certains navigateurs) ;
 // sinon les projets ne vivent que le temps de la session.

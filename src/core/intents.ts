@@ -121,8 +121,10 @@ export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now 
     bus.on('color:commit', ({ color }) => setProject(recordRecentColor(store.state.project, color))),
 
     // ---------- Décor ----------
-    bus.on('shape:create', ({ shape }) => change({ type: 'addShape', shape }, { ...clearSelection(store.state.session), selectedShapeId: shape.id })),
-    bus.on('shape:update', ({ shapeId, changes }) => change({ type: 'updateShape', shapeId, changes })),
+    bus.on('shape:create', ({ shape, gesture }) =>
+      change({ type: 'addShape', shape, gesture }, { ...clearSelection(store.state.session), selectedShapeId: shape.id }),
+    ),
+    bus.on('shape:update', ({ shapeId, changes, gesture }) => change({ type: 'updateShape', shapeId, changes, gesture })),
     bus.on('shape:remove', ({ shapeId }) => change({ type: 'removeShape', shapeId })),
     bus.on('shape:duplicate', ({ shapeId }) => {
       const source = store.state.project.present.environment.shapes.find((s) => s.id === shapeId);

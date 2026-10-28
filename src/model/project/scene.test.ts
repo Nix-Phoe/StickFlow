@@ -238,6 +238,19 @@ describe('environment: shapes', () => {
     expect(undo(history).present.environment.shapes).toEqual([]);
   });
 
+  it('keeps two quick gestures on the same shape apart when they carry different gesture tokens', () => {
+    const history = apply(
+      start(),
+      [
+        { type: 'addShape', shape: testShape('s1'), gesture: 'g1' },
+        { type: 'updateShape', shapeId: 's1', changes: { width: 50 }, gesture: 'g1' },
+        { type: 'updateShape', shapeId: 's1', changes: { x: 30 }, gesture: 'g2' },
+      ],
+      near,
+    );
+    expect(undo(history).present.environment.shapes[0]).toMatchObject({ x: 0, width: 50 });
+  });
+
   it('clamps the stroke width and opacity of a shape, and keeps sizes positive', () => {
     const history = apply(start(), [
       { type: 'addShape', shape: testShape('s1', { strokeWidth: 999, opacity: 3, width: -5 }) },

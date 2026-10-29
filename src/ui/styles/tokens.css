@@ -118,6 +118,8 @@
   --swatch-size: 28px;
   --character-thumb-width: 36px;
   --character-thumb-height: 44px;
+  --paint-preview-height: 220px;
+  --paint-strip-height: 28px;
   --tool-button-height: 64px;
   --hex-field-width: 96px;
   --number-field-width: 64px;

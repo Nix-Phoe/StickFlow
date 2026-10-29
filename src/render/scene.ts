@@ -16,9 +16,22 @@ export interface PartCapsule extends Capsule {
   nodeId: string;
 }
 
+/**
+ * Découpe d'une capsule le long d'un axe (zone de couleur) : seule la tranche de `from` à `to`
+ * (0 → 1 de `start` à `end`) est dessinée, coupée net ; un bout à 0 ou à 1 garde son arrondi.
+ */
+export interface CapsuleClip {
+  start: Vec2;
+  end: Vec2;
+  from: number;
+  to: number;
+}
+
 export interface ColoredCapsule extends Capsule {
   /** RGBA non prémultiplié. */
   color: Rgba;
+  /** Absente : la capsule entière. */
+  clip?: CapsuleClip;
 }
 
 /** Forme prête à dessiner : géométrie, couleurs déjà multipliées par l'opacité (`fill` `null` : contour seul). */
@@ -41,8 +54,11 @@ export interface StickmanStyle {
 
 export const DEFAULT_STICKMAN_STYLE: StickmanStyle = { strokeWidth: 9 };
 
-/** Une capsule = départ (x, y), arrivée (x, y), rayon, couleur RGBA. Doit correspondre aux attributs du shader. */
-export const FLOATS_PER_CAPSULE = 9;
+/**
+ * Une capsule = départ (x, y), arrivée (x, y), rayon, couleur RGBA, puis sa découpe : axe
+ * (départ, arrivée) et tranche (de, à). Doit correspondre aux attributs du shader.
+ */
+export const FLOATS_PER_CAPSULE = 15;
 
 /**
  * Une capsule par nœud de longueur non nulle, dans l'ordre du squelette
@@ -76,7 +92,11 @@ export function buildCapsules(
 export function packCapsules(capsules: readonly ColoredCapsule[]): Float32Array {
   const data = new Float32Array(capsules.length * FLOATS_PER_CAPSULE);
   capsules.forEach((c, i) => {
-    data.set([c.a.x, c.a.y, c.b.x, c.b.y, c.radius, ...c.color], i * FLOATS_PER_CAPSULE);
+    const clip = c.clip ?? { start: c.a, end: c.b, from: 0, to: 1 };
+    data.set(
+      [c.a.x, c.a.y, c.b.x, c.b.y, c.radius, ...c.color, clip.start.x, clip.start.y, clip.end.x, clip.end.y, clip.from, clip.to],
+      i * FLOATS_PER_CAPSULE,
+    );
   });
   return data;
 }

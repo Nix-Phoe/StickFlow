@@ -6,6 +6,7 @@ import {
   SHAPE_KINDS,
   SMOOTHING_CURVES,
   type Character,
+  type ColorBand,
   type Environment,
   type FramePose,
   type Keyframe,
@@ -82,6 +83,14 @@ function readCharacter(value: unknown): Character {
   for (const [id, value] of Object.entries(record(appearance.segmentColors, 'couleurs des parties'))) {
     segmentColors[id] = color(value, `couleur de ${id}`);
   }
+  // Absentes des fichiers v2 enregistrés avant la coloration partielle.
+  const segmentBands: Record<string, ColorBand[]> = {};
+  for (const [id, value] of Object.entries(appearance.segmentBands === undefined ? {} : record(appearance.segmentBands, 'zones de couleur'))) {
+    segmentBands[id] = array(value, `zones de ${id}`).map((band) => {
+      const zone = record(band, `zone de ${id}`);
+      return { from: number(zone.from, 'début de zone'), to: number(zone.to, 'fin de zone'), color: color(zone.color, `couleur de zone de ${id}`) };
+    });
+  }
   return {
     id: string(character.id, 'id de personnage'),
     name: string(character.name, 'nom de personnage'),
@@ -92,6 +101,7 @@ function readCharacter(value: unknown): Character {
       scale: number(appearance.scale, 'taille'),
       defaultColor: appearance.defaultColor === null ? null : color(appearance.defaultColor, 'couleur du personnage'),
       segmentColors,
+      segmentBands,
     },
   };
 }

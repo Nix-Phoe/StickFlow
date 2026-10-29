@@ -54,7 +54,7 @@ describe('invariants (createHistory)', () => {
 
   it('clamps the scale and keeps at most 8 recent colours', () => {
     const { present } = start({
-      characters: [testCharacter('c1', { appearance: { scale: 9, defaultColor: null, segmentColors: {} } })],
+      characters: [testCharacter('c1', { appearance: { scale: 9, defaultColor: null, segmentColors: {}, segmentBands: {} } })],
       recentColors: Array.from({ length: 12 }, (_, i) => `#00000${i % 10}`),
     });
     expect(present.characters[0]?.appearance.scale).toBe(LIMITS.characterScale.max);
@@ -141,6 +141,7 @@ describe('appearance', () => {
       scale: 1,
       defaultColor: null,
       segmentColors: { forearmL: '#ff0000', head: '#ff0000' },
+      segmentBands: {},
     });
   });
 
@@ -149,7 +150,7 @@ describe('appearance', () => {
       { type: 'setCharacterColor', characterId: 'c1', parts: ['head'], color: '#ff0000' },
       { type: 'setCharacterColor', characterId: 'c1', parts: [], color: '#00ff00' },
     ]);
-    expect(history.present.characters[0]?.appearance).toMatchObject({ defaultColor: '#00ff00', segmentColors: {} });
+    expect(history.present.characters[0]?.appearance).toMatchObject({ defaultColor: '#00ff00', segmentColors: {}, segmentBands: {} });
   });
 
   it('normalises colours to lower-case #rrggbb and ignores invalid ones', () => {
@@ -179,6 +180,76 @@ describe('appearance', () => {
     expect(history.present.characters[0]?.appearance.scale).toBe(LIMITS.characterScale.min);
     const big = apply(history, [{ type: 'setCharacterScale', characterId: 'c1', scale: 1.25 }]);
     expect(big.present.characters[0]?.appearance.scale).toBe(1.25);
+  });
+});
+
+describe('partial colouring (colour bands)', () => {
+  const sleeve = { from: 0, to: 0.5, color: '#990000' };
+  const bandsOf = (h: ProjectHistory, part: string) => h.present.characters[0]?.appearance.segmentBands[part];
+
+  it('starts without bands', () => {
+    expect(start().present.characters[0]?.appearance.segmentBands).toEqual({});
+  });
+
+  it('sets the bands of several parts at once (both sleeves), as one undo step', () => {
+    const history = apply(start(), [
+      { type: 'setPartBands', characterId: 'c1', bands: { upperArmL: [sleeve], upperArmR: [sleeve] } },
+    ]);
+    expect(bandsOf(history, 'upperArmL')).toEqual([sleeve]);
+    expect(bandsOf(history, 'upperArmR')).toEqual([sleeve]);
+    expect(undo(history).present.characters[0]?.appearance.segmentBands).toEqual({});
+  });
+
+  it('normalises the bands and removes a part whose bands are emptied', () => {
+    const history = apply(start(), [
+      { type: 'setPartBands', characterId: 'c1', bands: { shinL: [{ from: 0.9, to: 0.4, color: '#ABC' }] } },
+    ]);
+    expect(bandsOf(history, 'shinL')).toEqual([{ from: 0.4, to: 0.9, color: '#aabbcc' }]);
+    const cleared = apply(history, [{ type: 'setPartBands', characterId: 'c1', bands: { shinL: [] } }]);
+    expect(cleared.present.characters[0]?.appearance.segmentBands).toEqual({});
+  });
+
+  it('ignores unknown parts and changes without effect', () => {
+    const history = start();
+    expect(apply(history, [{ type: 'setPartBands', characterId: 'c1', bands: { wing: [sleeve] } }])).toBe(history);
+    const dressed = apply(history, [{ type: 'setPartBands', characterId: 'c1', bands: { head: [sleeve] } }]);
+    expect(apply(dressed, [{ type: 'setPartBands', characterId: 'c1', bands: { head: [{ ...sleeve }] } }])).toBe(dressed);
+  });
+
+  it('groups a slider drag on the same parts into one step', () => {
+    const changes: ProjectChange[] = [0.3, 0.4, 0.5].map((to) => ({
+      type: 'setPartBands',
+      characterId: 'c1',
+      bands: { upperArmL: [{ from: 0, to, color: '#990000' }] },
+    }));
+    const history = apply(start(), changes, near);
+    expect(bandsOf(history, 'upperArmL')).toEqual([sleeve]);
+    expect(undo(history).present.characters[0]?.appearance.segmentBands).toEqual({});
+  });
+
+  it('keeps the bands when the whole character is recoloured (the clothes stay)', () => {
+    const history = apply(start(), [
+      { type: 'setPartBands', characterId: 'c1', bands: { torso: [{ from: 0, to: 1, color: '#990000' }] } },
+      { type: 'setCharacterColor', characterId: 'c1', parts: [], color: '#ffcc99' },
+    ]);
+    expect(bandsOf(history, 'torso')).toHaveLength(1);
+  });
+
+  it('copies the bands with the character', () => {
+    const history = apply(start(), [
+      { type: 'setPartBands', characterId: 'c1', bands: { head: [sleeve] } },
+      { type: 'duplicateCharacter', sourceId: 'c1', characterId: 'c2', name: 'Copie' },
+    ]);
+    expect(history.present.characters[1]?.appearance.segmentBands).toEqual({ head: [sleeve] });
+  });
+
+  it('repairs stored bands when the project is loaded', () => {
+    const character = testCharacter('c1', {
+      appearance: { scale: 1, defaultColor: null, segmentColors: {}, segmentBands: { head: [{ from: 2, to: 0.5, color: '#ABC' }], wing: [sleeve] } },
+    });
+    expect(start({ characters: [character] }).present.characters[0]?.appearance.segmentBands).toEqual({
+      head: [{ from: 0.5, to: 1, color: '#aabbcc' }],
+    });
   });
 });
 

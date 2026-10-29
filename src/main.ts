@@ -21,6 +21,7 @@ import type { Component, ComponentContext } from './ui/component';
 import { createCanvasArea } from './ui/components/canvas-area';
 import { createCharactersTab } from './ui/components/characters-tab';
 import { createEditorPanel } from './ui/components/editor-panel';
+import { createPartialPaintWindow } from './ui/components/partial-paint-window';
 import { createEnvironmentTab } from './ui/components/environment-tab';
 import { createProjectsDialog } from './ui/components/projects-dialog';
 import { createSidePanel } from './ui/components/side-panel';
@@ -83,6 +84,8 @@ for (const [component, slotId] of tabs) {
   const slot = document.getElementById(slotId);
   if (slot) component.mount(slot);
 }
+// Après le panneau et ses onglets : elle peut prendre la place du panneau (petits écrans).
+createPartialPaintWindow(context).mount(root);
 
 // Le rendu dessine dans le canvas monté par CanvasArea ; l'UI, elle, ne dessine jamais.
 const stage = document.getElementById(ids.stage);

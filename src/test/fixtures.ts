@@ -12,7 +12,7 @@ export const testCharacter = (id: string, overrides: Partial<Character> = {}): C
   visible: true,
   locked: false,
   skeleton: testSkeleton,
-  appearance: { scale: 1, defaultColor: null, segmentColors: {} },
+  appearance: { scale: 1, defaultColor: null, segmentColors: {}, segmentBands: {} },
   ...overrides,
 });
 

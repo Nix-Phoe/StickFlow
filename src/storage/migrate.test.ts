@@ -23,7 +23,7 @@ describe('migrateProject', () => {
         visible: true,
         locked: false,
         skeleton: v1Project.skeleton,
-        appearance: { scale: 1, defaultColor: null, segmentColors: {} },
+        appearance: { scale: 1, defaultColor: null, segmentColors: {}, segmentBands: {} },
       },
     ]);
     expect(migrated).not.toHaveProperty('skeleton');

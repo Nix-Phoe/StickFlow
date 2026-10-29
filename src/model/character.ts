@@ -4,7 +4,7 @@ import type { Character, CharacterAppearance, FramePose, Vec2 } from '../core/ty
 import { solvePose, type PosedNode } from './kinematics';
 import { createDefaultSkeleton, sortSkeleton } from './skeleton';
 
-export const DEFAULT_APPEARANCE: CharacterAppearance = { scale: 1, defaultColor: null, segmentColors: {} };
+export const DEFAULT_APPEARANCE: CharacterAppearance = { scale: 1, defaultColor: null, segmentColors: {}, segmentBands: {} };
 
 /** Écart horizontal entre deux personnages ajoutés, en unités du monde. */
 export const PLACEMENT_STEP = 90;
@@ -19,7 +19,7 @@ export function createCharacter(id: string, name: string): Character {
     visible: true,
     locked: false,
     skeleton: sortSkeleton(createDefaultSkeleton()),
-    appearance: { ...DEFAULT_APPEARANCE, segmentColors: {} },
+    appearance: { ...DEFAULT_APPEARANCE, segmentColors: {}, segmentBands: {} },
   };
 }
 

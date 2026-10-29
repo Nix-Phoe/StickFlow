@@ -6,7 +6,7 @@ import { posedCharacter } from '../model/character';
 import { triangleVertices } from '../model/shape';
 import { STAGE_WORLD_HEIGHT, worldToScreen, type Viewport } from './camera';
 import type { Rgba } from './color';
-import { buildCapsules, type ColoredCapsule, type ShapeInstance, type StickmanStyle } from './scene';
+import { buildCapsules, type CapsuleClip, type ColoredCapsule, type ShapeInstance, type StickmanStyle } from './scene';
 import type { SceneLayer } from './scene-layers';
 
 /** Image du calque de dessin et son rectangle dans le monde (coin bas-gauche, taille). */
@@ -66,6 +66,8 @@ export function paintCapsules(context: CanvasRenderingContext2D, viewport: Viewp
     const b = worldToScreen(capsule.b, viewport, STAGE_WORLD_HEIGHT);
     const radius = capsule.radius * scale;
     const color = cssColor(capsule.color);
+    context.save();
+    if (capsule.clip) clipBand(context, viewport, capsule.clip, capsule.radius + 1 / scale);
     context.beginPath();
     if (a.x === b.x && a.y === b.y) {
       context.fillStyle = color;
@@ -78,7 +80,33 @@ export function paintCapsules(context: CanvasRenderingContext2D, viewport: Viewp
       context.lineTo(b.x, b.y);
       context.stroke();
     }
+    context.restore();
   }
+}
+
+/**
+ * Découpe d'une zone de couleur : la bande perpendiculaire à l'axe entre `from` et `to`, assez large
+ * pour la capsule (`reach`, unités du monde) ; un bout à 0 ou 1 s'étend au-delà, pour garder l'arrondi.
+ */
+function clipBand(context: CanvasRenderingContext2D, viewport: Viewport, clip: CapsuleClip, reach: number): void {
+  const dx = clip.end.x - clip.start.x;
+  const dy = clip.end.y - clip.start.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const along = { x: dx / length, y: dy / length };
+  const across = { x: -along.y, y: along.x };
+  const at = (t: number, side: number): { x: number; y: number } => {
+    const distance = t <= 0 ? -reach : t >= 1 ? length + reach : t * length;
+    return worldToScreen(
+      { x: clip.start.x + along.x * distance + across.x * side * reach, y: clip.start.y + along.y * distance + across.y * side * reach },
+      viewport,
+      STAGE_WORLD_HEIGHT,
+    );
+  };
+  const corners = [at(clip.from, -1), at(clip.to, -1), at(clip.to, 1), at(clip.from, 1)];
+  context.beginPath();
+  corners.forEach((p, i) => (i === 0 ? context.moveTo(p.x, p.y) : context.lineTo(p.x, p.y)));
+  context.closePath();
+  context.clip();
 }
 
 function paintShape(context: CanvasRenderingContext2D, viewport: Viewport, shape: ShapeInstance): void {

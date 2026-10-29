@@ -281,6 +281,37 @@ describe('connectIntents: characters', () => {
     expect(project().recentColors).toEqual(['#ff0000']);
   });
 
+  it('colours parts partially (colour bands), undoably', () => {
+    const { bus, project, hero } = setup();
+    const sleeve = { from: 0, to: 0.5, color: '#990000' };
+    bus.emit('appearance:bands', { characterId: hero(), bands: { upperArmL: [sleeve], upperArmR: [sleeve] } });
+    expect(project().characters[0]?.appearance.segmentBands).toEqual({ upperArmL: [sleeve], upperArmR: [sleeve] });
+    bus.emit('history:undo');
+    expect(project().characters[0]?.appearance.segmentBands).toEqual({});
+  });
+
+  it('opens the partial colouring window and keeps its settings in the Session', () => {
+    const { bus, store, session } = setup();
+    expect(session().partialPaint).toEqual({ open: false, symmetric: true, color: '#9b1b30' });
+    bus.emit('partialPaint:change', { open: true, color: '#123456' });
+    bus.emit('partialPaint:change', { symmetric: false });
+    expect(session().partialPaint).toEqual({ open: true, symmetric: false, color: '#123456' });
+    expect(canUndo(store.state.project)).toBe(false);
+  });
+
+  it('ignores an invalid colour for the partial colouring window', () => {
+    const { bus, session } = setup();
+    bus.emit('partialPaint:change', { color: 'rouge' });
+    expect(session().partialPaint.color).toBe('#9b1b30');
+  });
+
+  it('closes the partial colouring window when leaving the Personnages mode', () => {
+    const { bus, session } = setup();
+    bus.emit('partialPaint:change', { open: true });
+    bus.emit('editMode:change', { mode: 'environment' });
+    expect(session().partialPaint.open).toBe(false);
+  });
+
   it('poses the given character only', () => {
     const { bus, project, hero, active } = setup();
     bus.emit('character:add', { name: 'B' });

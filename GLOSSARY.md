@@ -34,6 +34,14 @@ _Avoid_ : membre, os, segment (dans les textes affichés)
 La couleur du personnage entier, la couleur propre de chaque partie et la taille (50 à 200 %). Elle est la même dans toutes les frames.
 _Avoid_ : style, skin
 
+**Zone de couleur** :
+Une tranche d'une partie peinte d'une autre couleur, du début à la fin choisis le long de la partie (0 % à l'articulation du parent, 100 % au bout ; pour la tête, du cou au sommet) : une manche, un short, une chaussure, des cheveux. Une partie en a au plus 4, la dernière par-dessus. C'est la **coloration partielle**.
+_Avoid_ : bande, dégradé, calque
+
+**Tenue** :
+Un ensemble de zones de couleur posées d'un coup sur les parties concernées (T-shirt, pull, short, pantalon, chaussures, cheveux).
+_Avoid_ : costume, skin, preset
+
 ## Squelette
 
 **Nœud** :

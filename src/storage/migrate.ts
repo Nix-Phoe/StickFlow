@@ -20,7 +20,7 @@ function fromVersion1({ skeleton, keyframes, ...rest }: Record<string, unknown>)
         visible: true,
         locked: false,
         skeleton,
-        appearance: { scale: 1, defaultColor: null, segmentColors: {} },
+        appearance: { scale: 1, defaultColor: null, segmentColors: {}, segmentBands: {} },
       },
     ],
     keyframes: Array.isArray(keyframes)

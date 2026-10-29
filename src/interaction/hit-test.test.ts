@@ -4,7 +4,7 @@ import type { Project } from '../core/types';
 import { posedCharacter } from '../model/character';
 import type { SequenceFrame } from '../model/sequence';
 import { ORIGIN, testCharacter, testFrame, testProject } from '../test/fixtures';
-import { pickCharacterTarget, type HitTolerance } from './hit-test';
+import { pickCharacterTarget, pickPart, type HitTolerance } from './hit-test';
 
 const tolerance: HitTolerance = { handle: 10, segment: 4 };
 const project: Project = testProject({
@@ -67,5 +67,31 @@ describe('pickCharacterTarget', () => {
 
   it('returns null in empty space', () => {
     expect(pickCharacterTarget(project, frame, { x: 0, y: 190 }, tolerance, null)).toBeNull();
+  });
+});
+
+describe('pickPart', () => {
+  const character = testCharacter('c1');
+  const rest = { pose: {}, rootPosition: ORIGIN };
+  const nodes = posedCharacter(character, rest);
+  const middleOf = (id: string) => {
+    const node = nodes.find((n) => n.id === id);
+    if (!node) throw new Error('missing');
+    return { x: (node.start.x + node.end.x) / 2, y: (node.start.y + node.end.y) / 2 };
+  };
+
+  it('gives the part under the point (preview of the partial colouring window)', () => {
+    expect(pickPart(character, rest, middleOf('shinL'), 2)).toBe('shinL');
+    expect(pickPart(character, rest, middleOf('head'), 2)).toBe('head');
+  });
+
+  it('prefers the part drawn on top where parts overlap', () => {
+    // Le bout de la cuisse est aussi le départ du tibia, dessiné après.
+    const knee = nodes.find((n) => n.id === 'thighR')?.end ?? ORIGIN;
+    expect(pickPart(character, rest, knee, 2)).toBe('shinR');
+  });
+
+  it('gives nothing away from the character', () => {
+    expect(pickPart(character, rest, { x: 300, y: 300 }, 2)).toBeNull();
   });
 });

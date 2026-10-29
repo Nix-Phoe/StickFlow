@@ -52,6 +52,7 @@ Règles communes aux fonctionnalités IA :
 ### 2.4 Version 1.0 (réalisée)
 - **Plusieurs personnages** : chacun a son squelette, son apparence et sa pose dans chaque image clé ; ajouter, renommer, dupliquer, masquer, verrouiller, réordonner, supprimer. La Fluidité et la Répétition interpolent chaque personnage indépendamment.
 - **Apparence** : couleur du personnage entier ou de chaque partie (segment désigné par l'id de son nœud enfant, la tête comprise), taille de 50 à 200 %.
+- **Coloration partielle** (après la v1.0) : **zones de couleur** le long d'une partie (manche courte, short, chaussures, cheveux…), éditées dans la fenêtre « Coloration partielle » : aperçu cliquable du personnage, tenues toutes faites (T-shirt, Pull, Short, Pantalon, Chaussures, Cheveux), symétrie gauche / droite, début / fin / couleur de chaque zone (4 par partie au plus).
 - **Grande palette** : roue chromatique, luminosité, harmonies (Aucune / Analogue / Complémentaire / Triadique), blanc / noir, pipette, champ HEX, 8 couleurs récentes sauvegardées avec le projet.
 - **Environnement** : arrière-plan, formes vectorielles (Carré, Cercle, Rectangle, Triangle, Ligne, Remplir) et calque de dessin matriciel (Stylo fin, Feutre, Pinceau, Gomme, Plume, Aérographe).
 - **Panneau flottant « Personnages & Environnement »** ouvert par un bouton de la barre supérieure ; son onglet choisit le mode d'édition.
@@ -243,6 +244,14 @@ src/ui/components/characters-tab.ts     # Liste des personnages + inspecteur App
 src/ui/components/environment-tab.ts    # Grille d'outils + réglages de l'outil actif
 src/ui/styles/color-picker.css, components/{editor-panel,characters-tab,environment-tab}.css
 src/test/fixtures.ts                    # Fabriques de personnages, formes, frames et projets pour les tests
+```
+Coloration partielle (après la v1.0) :
+```
+src/model/color-bands.ts                # normalizeBands, bandStops (tronçons visibles), mirrorPart (gauche ⇄ droite), OUTFITS / outfitBands
+src/render/character-preview.ts         # previewFraming (personnage seul, centré, agrandi), paintCharacterPreview (vignettes, aperçu)
+src/ui/controls/part-chips.ts           # Pastilles de parties (inspecteur Apparence et fenêtre), de la tête aux pieds
+src/ui/components/partial-paint-window.ts  # Fenêtre « Coloration partielle »
+src/ui/styles/components/partial-paint-window.css
 docs/adr/0003-calque-de-dessin-en-tuiles.md
 ```
 `render/canvas2d.ts` gagne `paintScene` (même scène que WebGL, pour l'export et les vignettes) ; `render/renderer.ts` a trois programmes instanciés (capsules colorées, formes, calque) et `readPixel` (pipette de secours).
@@ -274,6 +283,7 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 - **Calque de dessin (v1.0, ADR 0003)** : 2048 × 768 pixels de taille fixe dans le monde, en tuiles de 256 ; le trait est peint en direct sur `drawing/surface.ts`, et seules les tuiles touchées sont encodées en PNG au relâchement (`drawing:stroke` → `paintDrawing`, une étape d'annulation). L'opacité s'applique au trait entier ; l'Aérographe s'accumule ; la Gomme efface (tuile vide retirée). Tracé lissé par moyenne mobile, tampons ronds espacés.
 - **Ordre de rendu (v1.0)** : arrière-plan → calque de dessin → formes → pelure d'oignon → surlignage des parties → personnages → cadre de sélection → poignées. La pelure d'oignon est sous les personnages (pour ne pas les cacher). Lecture et export n'ont aucune aide d'édition (mode `null` de `buildSceneLayers`).
 - **Couleurs (v1.0)** : `ColorPicker` est dans `ui/controls/` (primitive réutilisée par les deux onglets, qui ne s'importent pas entre eux). Il n'émet pas de `color:change` générique : il rappelle `onChange` / `onCommit`, et chaque onglet émet son intention (`appearance:color`, `tool:settings`) ; `color:commit` ajoute la couleur aux couleurs récentes, qui sont dans le Projet mais **hors historique** (appliquées à tous les instantanés). Pipette : API `EyeDropper` si elle existe, sinon `eyedropper:start` et lecture d'un pixel du canvas WebGL au prochain appui.
+- **Coloration partielle** : une zone de couleur est une capsule de plus, dessinée juste après sa partie et **découpée** le long de l'axe de la partie (pour la tête : du cou au sommet) ; la découpe est nette et perpendiculaire à l'axe, et une zone qui touche un bout garde son arrondi. Le shader des capsules reçoit pour cela l'axe et la tranche (15 flottants par capsule) ; le Canvas 2D (export, vignettes) découpe par un rectangle. La pelure d'oignon ignore les zones. La fenêtre agit sur les parties choisies (`session.selectedParts`, partagées avec la scène et les pastilles de l'inspecteur) et, avec la symétrie, sur leurs jumelles (`mirrorPart`). Elle est à droite de la scène au-delà de 1100 px de large ; en dessous, elle prend la place du panneau flottant (`STACKED_MEDIA_QUERY`), et devient une feuille du bas sur téléphone. Échap la ferme avant le panneau. Recolorer tout le personnage garde ses zones (les vêtements restent). Les vignettes de la liste des personnages montrent leurs vraies couleurs et leurs zones.
 - **Lecture / Pause (v1.0)** : un seul bouton (`playback:toggle`, `aria-label` « Lire » / « Mettre en pause », `aria-pressed`) ; `playback:play` et `playback:pause` restent pour le clavier et les autres modules. Stop garde son comportement (retour à la frame active au lancement).
 - Le panneau gauche devient un tiroir sous **900 px** de large (`DRAWER_MEDIA_QUERY` dans `ui/dom.ts`, dupliqué dans les CSS car les variables CSS sont interdites dans les media queries). Le panneau flottant devient une feuille du bas sous **600 px** (`SHEET_MEDIA_QUERY`).
 
@@ -319,6 +329,8 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 | `segment:select` | `{ characterId, nodeId \| null, additive }` |
 | `appearance:color` | `{ characterId, parts, color \| null }` (aucune partie = tout le personnage ; `null` = automatique) |
 | `appearance:scale` | `{ characterId, scale }` |
+| `appearance:bands` | `{ characterId, bands: Record<nodeId, ColorBand[]> }` (remplace les zones des parties données ; liste vide = aucune) |
+| `partialPaint:change` | `Partial<{ open, symmetric, color }>` (fenêtre « Coloration partielle », Session) |
 | `color:commit` | `{ color }` (couleurs récentes) |
 | `eyedropper:start`, `eyedropper:cancel` | — |
 | `eyedropper:pick` | `{ color }` |
@@ -359,7 +371,14 @@ interface Character {
     scale: number;                        // 0.5 à 2 (longueurs et épaisseurs)
     defaultColor: string | null;          // null = couleur du thème
     segmentColors: Record<string, string>; // id du nœud enfant → couleur HEX
+    segmentBands: Record<string, ColorBand[]>; // zones de couleur par partie (absent des anciens fichiers v2 = {})
   };
+}
+
+interface ColorBand {               // zone de couleur : tranche de la partie, 0 = articulation du parent, 1 = bout
+  from: number;
+  to: number;
+  color: string;
 }
 
 interface Keyframe {               // image clé : la seule frame enregistrée (ADR 0002)
@@ -411,7 +430,7 @@ Module Projet (revue d'architecture, candidat 1, **réalisé**) — `src/model/p
 - `intents.ts` n'est plus qu'un aiguillage sans règle : changement nommé vers le Projet ou mise à jour de la Session, avec l'heure du changement (le module Projet reste pur).
 - Les boutons Annuler / Rétablir sont désactivés quand il n'y a rien à annuler / rétablir.
 - Seul le module Projet applique les bornes ; le stepper ne corrige plus les valeurs (il rejette seulement les saisies non numériques).
-- Changements nommés : `setFps`, `updateSmoothing`, `updateLoop`, `insertKeyframe` (après une image clé, avec des poses données ou une copie de la précédente), `deleteKeyframe`, `poseKeyframe`. Depuis la v1.0 : `addCharacter` (pose de base dans toutes les images clés, placé décalé), `duplicateCharacter`, `removeCharacter` (jamais le dernier), `renameCharacter`, `moveCharacter`, `setCharacterVisibility`, `setCharacterLock`, `setCharacterColor`, `setCharacterScale`, `addShape`, `updateShape`, `removeShape`, `paintDrawing` ; et, hors historique, `recordRecentColor`. Regroupés en une étape s'ils sont du même réglage et à moins de 1 s d'intervalle ; une image clé insérée **avec** une pose se regroupe avec les poses qui la suivent (conversion d'une frame générée par glisser = une étape). Les bascules (activé, courbe, infini), les copies et les suppressions ne sont jamais regroupées.
+- Changements nommés : `setFps`, `updateSmoothing`, `updateLoop`, `insertKeyframe` (après une image clé, avec des poses données ou une copie de la précédente), `deleteKeyframe`, `poseKeyframe`. Depuis la v1.0 : `addCharacter` (pose de base dans toutes les images clés, placé décalé), `duplicateCharacter`, `removeCharacter` (jamais le dernier), `renameCharacter`, `moveCharacter`, `setCharacterVisibility`, `setCharacterLock`, `setCharacterColor`, `setCharacterScale`, `setPartBands` (zones de couleur de plusieurs parties à la fois ; regroupées par parties, pour qu'un glisser de slider soit une étape), `addShape`, `updateShape`, `removeShape`, `paintDrawing` ; et, hors historique, `recordRecentColor`. Regroupés en une étape s'ils sont du même réglage et à moins de 1 s d'intervalle ; une image clé insérée **avec** une pose se regroupe avec les poses qui la suivent (conversion d'une frame générée par glisser = une étape). Les bascules (activé, courbe, infini), les copies et les suppressions ne sont jamais regroupées.
 - L'interface ne lit que `state.project.present`, `canUndo(state.project)` / `canRedo(state.project)` et `state.session`.
 - Raccourcis : Ctrl/⌘+Z annuler, Ctrl/⌘+Maj+Z ou Ctrl+Y rétablir (sauf dans un champ de saisie).
 

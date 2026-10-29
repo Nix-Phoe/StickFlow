@@ -15,7 +15,7 @@ const character: Character = {
   visible: true,
   locked: false,
   skeleton,
-  appearance: { scale: 1, defaultColor: null, segmentColors: {} },
+  appearance: { scale: 1, defaultColor: null, segmentColors: {}, segmentBands: {} },
 };
 
 /** Image clé du seul personnage « c » ; `other` pose aussi un second personnage « d ». */

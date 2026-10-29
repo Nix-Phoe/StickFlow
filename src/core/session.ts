@@ -1,5 +1,6 @@
 // Session : l'état de travail du moment, ni sauvegardé ni annulable (voir GLOSSARY.md).
 
+import { normalizeHex } from '../model/color';
 import {
   clamp,
   type EditorMode,
@@ -12,6 +13,17 @@ import {
   type ToolId,
   type ToolSettings,
 } from './types';
+
+/** Réglages de la fenêtre « Coloration partielle ». */
+export interface PartialPaintSettings {
+  open: boolean;
+  /** Une zone posée sur un bras ou une jambe l'est aussi sur l'autre. */
+  symmetric: boolean;
+  /** Couleur des nouvelles zones et des tenues toutes faites. */
+  color: string;
+}
+
+export const DEFAULT_PARTIAL_PAINT: PartialPaintSettings = { open: false, symmetric: true, color: '#9b1b30' };
 
 export interface Session {
   /** Frame active de la séquence, désignée par son id (stable) ; `null` avant la première. */
@@ -29,6 +41,7 @@ export interface Session {
   editorMode: EditorMode;
   /** Panneau flottant « Personnages & Environnement » ouvert. */
   panelOpen: boolean;
+  partialPaint: PartialPaintSettings;
   /** Outil de l'environnement. */
   tool: ToolId;
   toolSettings: ToolSettings;
@@ -65,6 +78,7 @@ export function createSession(): Session {
     playbackSpeed: 1,
     editorMode: 'characters',
     panelOpen: false,
+    partialPaint: DEFAULT_PARTIAL_PAINT,
     tool: 'select',
     toolSettings: DEFAULT_TOOL_SETTINGS,
     eyedropper: false,
@@ -137,4 +151,10 @@ export function selectPart(session: Session, characterId: string, nodeId: string
 /** Plus rien de sélectionné (clic dans le vide). */
 export function clearSelection(session: Session): Session {
   return { ...session, selectedCharacterId: null, selectedNodeId: null, selectedParts: [], selectedShapeId: null };
+}
+
+/** Met à jour les réglages de la coloration partielle ; une couleur invalide est ignorée. */
+export function withPartialPaint(session: Session, changes: Partial<PartialPaintSettings>): Session {
+  const color = changes.color === undefined ? session.partialPaint.color : (normalizeHex(changes.color) ?? session.partialPaint.color);
+  return { ...session, partialPaint: { ...session.partialPaint, ...changes, color } };
 }

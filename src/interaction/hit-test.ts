@@ -1,7 +1,7 @@
 // Test de toucher des personnages : poignée de nœud > partie (segment ou tête) > personnage entier.
 // Seuls les personnages visibles et déverrouillés réagissent. Pur.
 
-import type { Project, Vec2 } from '../core/types';
+import type { Character, FramePose, Project, Vec2 } from '../core/types';
 import { characterBounds, posedCharacter } from '../model/character';
 import type { SequenceFrame } from '../model/sequence';
 import { buildCapsules, DEFAULT_STICKMAN_STYLE, type Capsule } from '../render/scene';
@@ -72,4 +72,13 @@ export function pickCharacterTarget(
     if (!best || distance < best.distance) best = { id: character.id, distance };
   }
   return best ? { characterId: best.id, nodeId: null, target: 'character' } : null;
+}
+
+/**
+ * Partie d'un personnage sous `point` (à `tolerance` unités du monde du trait près), la dernière
+ * dessinée d'abord ; `null` à côté. Sert à l'aperçu de la fenêtre « Coloration partielle ».
+ */
+export function pickPart(character: Character, pose: FramePose, point: Vec2, tolerance: number): string | null {
+  const capsules = buildCapsules(character.skeleton, posedCharacter(character, pose), DEFAULT_STICKMAN_STYLE, character.appearance.scale);
+  return capsules.toReversed().find((capsule) => distanceToCapsule(point, capsule) <= tolerance)?.nodeId ?? null;
 }

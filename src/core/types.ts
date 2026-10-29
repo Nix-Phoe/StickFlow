@@ -32,6 +32,18 @@ export interface CharacterAppearance {
   defaultColor: string | null;
   /** Couleur propre d'une partie, indexée par l'id du nœud qui termine le segment (la tête a le sien). */
   segmentColors: Record<string, string>;
+  /** Zones de couleur d'une partie (coloration partielle : manche, short, cheveux…), la dernière au-dessus. */
+  segmentBands: Record<string, ColorBand[]>;
+}
+
+/**
+ * Zone de couleur sur une partie, de `from` à `to` le long de la partie : 0 = l'articulation du
+ * parent, 1 = le bout (pour la tête : du cou au sommet). Une zone qui touche un bout couvre son arrondi.
+ */
+export interface ColorBand {
+  from: number;
+  to: number;
+  color: string;
 }
 
 /** Personnage : son squelette et son apparence sont les mêmes dans toutes les frames. */
@@ -194,6 +206,8 @@ export const LIMITS = {
   /** Taille d'un personnage : 50 % à 200 %. */
   characterScale: { min: 0.5, max: 2 },
   recentColors: 8,
+  /** Zones de couleur par partie. */
+  bandsPerPart: 4,
   /** Épaisseur d'un trait (formes et dessin), en unités du monde. */
   strokeWidth: { min: 1, max: 40 },
 } as const;

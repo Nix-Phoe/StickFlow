@@ -1,4 +1,6 @@
+import type { PartialPaintSettings } from './session';
 import type {
+  ColorBand,
   EditorMode,
   ExportFormat,
   LoopSettings,
@@ -96,6 +98,10 @@ export interface AppEvents {
   /** Colore des parties (aucune = tout le personnage) ; `null` = couleur automatique. */
   'appearance:color': { characterId: string; parts: readonly string[]; color: string | null };
   'appearance:scale': { characterId: string; scale: number };
+  /** Coloration partielle : remplace les zones de couleur des parties données (liste vide = aucune zone). */
+  'appearance:bands': { characterId: string; bands: Record<string, readonly ColorBand[]> };
+  /** Fenêtre « Coloration partielle » : ouverte, symétrie gauche / droite, couleur des nouvelles zones. */
+  'partialPaint:change': Partial<PartialPaintSettings>;
   /** Fin d'un geste de couleur : la couleur rejoint les couleurs récentes. */
   'color:commit': { color: string };
   /** Pipette de secours : le prochain appui sur la scène lit un pixel et émet `eyedropper:pick`. */

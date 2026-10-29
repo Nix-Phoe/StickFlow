@@ -8,7 +8,13 @@ const project: Project = testProject({
   name: 'Saut',
   fps: 24,
   characters: [
-    testCharacter('c1', { name: 'Léa', appearance: { scale: 1.5, defaultColor: '#ff0000', segmentColors: { head: '#00ff00' } } }),
+    testCharacter('c1', { name: 'Léa', appearance: {
+        scale: 1.5,
+        defaultColor: '#ff0000',
+        segmentColors: { head: '#00ff00' },
+        segmentBands: { upperArmL: [{ from: 0, to: 0.5, color: '#990000' }] },
+      },
+    }),
     testCharacter('c2', { visible: false, locked: true }),
   ],
   keyframes: [
@@ -92,6 +98,21 @@ describe('fromProjectFile', () => {
     const color = editable();
     (color.project.characters[0] as { appearance: { defaultColor: string } }).appearance.defaultColor = 'rouge';
     expect(() => fromProjectFile(color)).toThrow(ProjectFileError);
+  });
+
+  it('rejects a damaged colour band', () => {
+    const file = editable();
+    const appearance = (file.project.characters[0] as { appearance: { segmentBands: Record<string, unknown> } }).appearance;
+    appearance.segmentBands = { upperArmL: [{ from: 'début', to: 0.5, color: '#990000' }] };
+    expect(() => fromProjectFile(file)).toThrow(ProjectFileError);
+    appearance.segmentBands = { upperArmL: [{ from: 0, to: 0.5, color: 'rouge' }] };
+    expect(() => fromProjectFile(file)).toThrow(ProjectFileError);
+  });
+
+  it('opens a version 2 file saved before partial colouring (no bands)', () => {
+    const file = editable();
+    delete (file.project.characters[0] as { appearance: { segmentBands?: unknown } }).appearance.segmentBands;
+    expect(fromProjectFile(file).characters[0]?.appearance.segmentBands).toEqual({});
   });
 
   it('keeps out-of-range numbers for the Projet module to clamp', () => {

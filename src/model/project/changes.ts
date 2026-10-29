@@ -6,6 +6,7 @@ import {
   clamp,
   LIMITS,
   type Character,
+  type ColorBand,
   type FramePose,
   type LoopSettings,
   type Project,
@@ -13,6 +14,7 @@ import {
   type SmoothingSettings,
 } from '../../core/types';
 import { createCharacter, DUPLICATE_OFFSET, placeNewCharacter } from '../character';
+import { normalizeBands } from '../color-bands';
 import { normalizeHex } from '../color';
 
 /** Liste fermée des modifications possibles d'un Projet. */
@@ -43,6 +45,8 @@ export type ProjectChange =
   /** Colore les parties données, ou tout le personnage sans partie (`null` = couleur automatique). */
   | { type: 'setCharacterColor'; characterId: string; parts: readonly string[]; color: string | null }
   | { type: 'setCharacterScale'; characterId: string; scale: number }
+  /** Remplace les zones de couleur des parties données (liste vide : plus de zone sur cette partie). */
+  | { type: 'setPartBands'; characterId: string; bands: Record<string, readonly ColorBand[]> }
   // ---------- Décor ----------
   /** `gesture` : jeton d'un geste sur la scène, pour qu'un geste forme une étape d'annulation, et pas plus. */
   | { type: 'addShape'; shape: Shape; gesture?: string }
@@ -78,6 +82,8 @@ export function coalesceKey(change: ProjectChange): string | null {
       return `${change.type}:${change.characterId}`;
     case 'setCharacterColor':
       return `setCharacterColor:${change.characterId}:${[...change.parts].sort().join(',')}`;
+    case 'setPartBands':
+      return `setPartBands:${change.characterId}:${Object.keys(change.bands).sort().join(',')}`;
     // Une forme tracée par glisser (créée, puis agrandie) ou déplacée forme une seule étape.
     case 'addShape':
       return `shape:${change.shape.id}:${change.gesture ?? ''}`;
@@ -226,6 +232,17 @@ export function applyToProject(project: Project, change: ProjectChange): Project
           : { ...c, appearance: { ...c.appearance, segmentColors } };
       });
     }
+    case 'setPartBands':
+      return updateCharacter(project, change.characterId, (c) => {
+        const segmentBands = { ...c.appearance.segmentBands };
+        for (const [nodeId, bands] of Object.entries(change.bands)) {
+          if (!c.skeleton.some((n) => n.id === nodeId)) continue;
+          const normal = normalizeBands(bands);
+          if (normal.length === 0) delete segmentBands[nodeId];
+          else if (!sameBands(normal, segmentBands[nodeId] ?? [])) segmentBands[nodeId] = normal;
+        }
+        return sameBandMap(segmentBands, c.appearance.segmentBands) ? c : { ...c, appearance: { ...c.appearance, segmentBands } };
+      });
     case 'setCharacterScale': {
       const scale = toScale(change.scale, Number.NaN);
       if (Number.isNaN(scale)) return project;
@@ -270,7 +287,14 @@ export function applyToProject(project: Project, change: ProjectChange): Project
  */
 export function normalizeProject(project: Project): Project {
   const characters = (project.characters.length > 0 ? project.characters : [createCharacter(createId(), '')]).map(
-    (c) => ({ ...c, appearance: { ...c.appearance, scale: toScale(c.appearance.scale, 1) } }),
+    (c) => ({
+      ...c,
+      appearance: {
+        ...c.appearance,
+        scale: toScale(c.appearance.scale, 1),
+        segmentBands: normalizeBandMap(c, c.appearance.segmentBands ?? {}),
+      },
+    }),
   );
   const keyframes = project.keyframes.length > 0 ? project.keyframes : [{ id: createId(), poses: {} }];
   return {
@@ -292,6 +316,25 @@ export function normalizeProject(project: Project): Project {
       loop: normalizeLoop(project.ai.loop),
     },
   };
+}
+
+/** Zones de couleur valides des parties du squelette ; une partie sans zone n'apparaît pas. */
+function normalizeBandMap(character: Character, map: Record<string, readonly ColorBand[]>): Record<string, ColorBand[]> {
+  const result: Record<string, ColorBand[]> = {};
+  for (const [nodeId, bands] of Object.entries(map)) {
+    const normal = character.skeleton.some((n) => n.id === nodeId) ? normalizeBands(bands) : [];
+    if (normal.length > 0) result[nodeId] = normal;
+  }
+  return result;
+}
+
+function sameBands(a: readonly ColorBand[], b: readonly ColorBand[]): boolean {
+  return a.length === b.length && a.every((band, i) => b[i] !== undefined && sameFields(band, b[i]));
+}
+
+function sameBandMap(a: Record<string, readonly ColorBand[]>, b: Record<string, readonly ColorBand[]>): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
 }
 
 /** Ajoute `color` en tête des couleurs récentes, sans doublon ; même Projet si rien ne change. */

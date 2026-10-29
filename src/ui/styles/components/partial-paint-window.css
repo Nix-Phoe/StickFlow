@@ -1,0 +1,249 @@
+/* Fenêtre « Coloration partielle » : même matériau que le panneau flottant (classe editor-panel),
+   placée à droite de la scène, ou à la place du panneau quand la place manque. */
+
+.paint-window__header {
+  padding-left: var(--space-1);
+}
+
+.paint-window__badge {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--feature-icon-size);
+  height: var(--feature-icon-size);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-fill);
+  color: var(--color-on-accent);
+}
+
+.paint-window__badge .icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.paint-window__heading {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: var(--line-height-tight);
+}
+
+.paint-window__title {
+  margin: 0;
+  font-size: var(--font-size-headline);
+  font-weight: var(--font-weight-semibold);
+}
+
+.paint-window__subtitle {
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-label-secondary);
+  font-size: var(--font-size-footnote);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paint-window__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* La fenêtre défile : ses blocs gardent leur hauteur au lieu de rétrécir. */
+.paint-window__body > * {
+  flex: none;
+}
+
+.paint-window__body > .editor-panel__section-title {
+  margin-bottom: 0;
+}
+
+.paint-window [hidden] {
+  display: none;
+}
+
+/* Aperçu : le personnage seul, en grand, sur le fond des vignettes ; on y touche une partie. */
+.paint-window__preview {
+  display: flex;
+  flex-direction: column;
+}
+
+.paint-window__canvas {
+  width: 100%;
+  height: var(--paint-preview-height);
+  border-radius: var(--radius-md);
+  background: var(--color-thumb-bg);
+  cursor: crosshair;
+  touch-action: manipulation;
+}
+
+.paint-window__preview .appearance__caption {
+  text-align: center;
+}
+
+.paint-window__color-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-body);
+}
+
+.paint-window__color-chip {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-pill);
+  background: var(--swatch-color, transparent);
+}
+
+/* Tenues rapides : grille de boutons, chacun marqué de la couleur choisie. */
+.paint-outfits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.paint-outfit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-label);
+  font: inherit;
+  font-size: var(--font-size-subhead);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .paint-outfit:hover {
+    background: var(--color-fill-hover);
+  }
+}
+
+.paint-outfit:active {
+  background: var(--color-fill-pressed);
+}
+
+.paint-outfit:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.paint-outfit__dot {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-pill);
+  background: var(--swatch-color, transparent);
+}
+
+.paint-window__body > .part-chips {
+  margin: 0 calc(-1 * var(--space-1));
+}
+
+/* Zones de la partie choisie. */
+.paint-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.paint-window__body > .appearance__caption,
+.paint-editor .appearance__caption {
+  padding: 0 var(--space-1);
+}
+
+/* La partie déroulée, du départ au bout, avec ses couleurs. */
+.paint-strip__frame {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.paint-strip {
+  height: var(--paint-strip-height);
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-pill);
+  background: var(--paint-strip, var(--color-fill));
+}
+
+.paint-strip__ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-half);
+  color: var(--color-label-tertiary);
+  font-size: var(--font-size-caption);
+}
+
+.paint-zones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paint-zones:empty {
+  display: none;
+}
+
+.paint-zone {
+  padding: var(--space-half) var(--space-2) var(--space-1);
+  border: var(--border-hairline) solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.paint-zone.is-active {
+  border-color: var(--color-accent);
+}
+
+.paint-zone__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-half);
+  margin-left: calc(-1 * var(--space-1));
+}
+
+.paint-zone__name {
+  flex: 1 1 auto;
+  font-size: var(--font-size-subhead);
+  font-weight: var(--font-weight-semibold);
+}
+
+.paint-zone__range {
+  display: grid;
+  grid-template-columns: var(--feature-icon-size) minmax(0, 1fr) var(--stepper-value-width);
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.paint-zone__label,
+.paint-zone__value {
+  color: var(--color-label-secondary);
+  font-size: var(--font-size-footnote);
+}
+
+.paint-zone__value {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.paint-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.paint-editor__actions .button-secondary {
+  flex: 1 1 auto;
+}

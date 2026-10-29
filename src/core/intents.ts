@@ -7,7 +7,7 @@ import { deriveSequence, type SequenceFrame } from '../model/sequence';
 import type { AppEventBus } from './events';
 import { createId } from './id';
 import { activeFrame, sequenceOf } from './selectors';
-import { clearSelection, fitSessionToSequence, selectPart, type Session } from './session';
+import { clearSelection, fitSessionToSequence, selectPart, withPartialPaint, type Session } from './session';
 import type { Store } from './store';
 import { clamp, type FramePose } from './types';
 
@@ -117,6 +117,8 @@ export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now 
       change({ type: 'setCharacterColor', characterId, parts, color }),
     ),
     bus.on('appearance:scale', ({ characterId, scale }) => change({ type: 'setCharacterScale', characterId, scale })),
+    bus.on('appearance:bands', ({ characterId, bands }) => change({ type: 'setPartBands', characterId, bands })),
+    bus.on('partialPaint:change', (changes) => setSession((s) => withPartialPaint(s, changes))),
     // Les couleurs récentes ne sont pas une étape d'annulation (voir recordRecentColor).
     bus.on('color:commit', ({ color }) => setProject(recordRecentColor(store.state.project, color))),
 
@@ -160,7 +162,14 @@ export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now 
       setSession((s) =>
         mode === 'characters'
           ? { ...s, editorMode: mode, selectedShapeId: null }
-          : { ...s, editorMode: mode, selectedCharacterId: null, selectedNodeId: null, selectedParts: [] },
+          : {
+              ...s,
+              editorMode: mode,
+              selectedCharacterId: null,
+              selectedNodeId: null,
+              selectedParts: [],
+              partialPaint: { ...s.partialPaint, open: false },
+            },
       ),
     ),
     bus.on('panel:toggle', ({ open }) => setSession({ panelOpen: open })),

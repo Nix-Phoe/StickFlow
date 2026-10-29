@@ -30,10 +30,18 @@ export const ids = {
   /** Emplacements des onglets du panneau flottant, remplis par leurs composants. */
   charactersTab: 'editor-panel-characters',
   environmentTab: 'editor-panel-environment',
+  partialPaintWindow: 'partial-paint-window',
+  partialPaintButton: 'partial-paint-button',
 } as const;
 
 /** Media query sous laquelle le panneau flottant devient une feuille du bas (voir editor-panel.css). */
 export const SHEET_MEDIA_QUERY = '(max-width: 599px)';
+
+/**
+ * Media query sous laquelle la fenêtre « Coloration partielle » prend la place du panneau flottant
+ * (pas assez de largeur pour les deux côte à côte).
+ */
+export const STACKED_MEDIA_QUERY = '(max-width: 1099px)';
 
 export function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;

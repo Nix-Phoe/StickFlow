@@ -4,7 +4,7 @@ import { EDITOR_MODES, type EditorMode } from '../../core/types';
 import type { Component, ComponentContext } from '../component';
 import { createIconButton } from '../controls/icon-button';
 import { createSegmented } from '../controls/segmented';
-import { h, ids, SHEET_MEDIA_QUERY } from '../dom';
+import { h, ids, SHEET_MEDIA_QUERY, STACKED_MEDIA_QUERY } from '../dom';
 import { strings } from '../strings';
 
 const t = strings.editorPanel;
@@ -20,6 +20,7 @@ const t = strings.editorPanel;
 export function createEditorPanel({ bus, store }: ComponentContext): Component {
   const cleanups: Array<() => void> = [];
   const sheetQuery = window.matchMedia(SHEET_MEDIA_QUERY);
+  const stackedQuery = window.matchMedia(STACKED_MEDIA_QUERY);
 
   const tabs = createSegmented<EditorMode>({
     label: t.tabs,
@@ -67,7 +68,9 @@ export function createEditorPanel({ bus, store }: ComponentContext): Component {
     panel.hidden = !open;
     if (open) {
       position();
-      if (!wasOpen) panel.querySelector<HTMLElement>('.segmented__item[aria-checked="true"]')?.focus();
+      // En revenant de la fenêtre « Coloration partielle », c'est elle qui rend le focus.
+      const fromPaintWindow = document.getElementById(ids.partialPaintWindow)?.contains(document.activeElement) ?? false;
+      if (!wasOpen && !fromPaintWindow) panel.querySelector<HTMLElement>('.segmented__item[aria-checked="true"]')?.focus();
     } else if (wasOpen && panel.contains(document.activeElement)) {
       document.getElementById(ids.editorButton)?.focus();
     }
@@ -81,7 +84,12 @@ export function createEditorPanel({ bus, store }: ComponentContext): Component {
   // ---------- Raccourcis ----------
   const onKeydown = (event: KeyboardEvent): void => {
     const { session } = store.state;
-    // Échap ferme le panneau d'où que vienne la touche (y compris d'un champ du panneau).
+    // Échap ferme d'abord la fenêtre « Coloration partielle », puis le panneau, d'où que vienne la
+    // touche (y compris d'un champ).
+    if (event.key === 'Escape' && session.partialPaint.open) {
+      bus.emit('partialPaint:change', { open: false });
+      return;
+    }
     if (event.key === 'Escape' && session.panelOpen) {
       bus.emit('panel:toggle', { open: false });
       return;
@@ -137,19 +145,24 @@ export function createEditorPanel({ bus, store }: ComponentContext): Component {
     }
   }
 
+  const shown = (): boolean => store.state.session.panelOpen && !(store.state.session.partialPaint.open && stackedQuery.matches);
+  const onStackedChange = (): void => applyOpen(shown());
+  stackedQuery.addEventListener('change', onStackedChange);
   document.addEventListener('keydown', onKeydown);
   window.addEventListener('resize', position);
   cleanups.push(
+    () => stackedQuery.removeEventListener('change', onStackedChange),
     () => document.removeEventListener('keydown', onKeydown),
     () => window.removeEventListener('resize', position),
-    store.watch((s) => s.session.panelOpen, applyOpen),
+    // Sans place pour les deux, la fenêtre « Coloration partielle » prend la place du panneau.
+    store.watch((s) => s.session.panelOpen && !(s.session.partialPaint.open && stackedQuery.matches), applyOpen),
     store.watch((s) => s.session.editorMode, applyMode),
   );
 
   return {
     mount(parent) {
       parent.append(panel);
-      applyOpen(store.state.session.panelOpen);
+      applyOpen(shown());
     },
     destroy() {
       cleanups.forEach((cleanup) => cleanup());

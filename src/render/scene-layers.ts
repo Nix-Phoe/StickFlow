@@ -66,7 +66,7 @@ export function buildSceneLayers({ project, frame, onion, mode, selection, palet
       kind: 'capsules',
       role: 'onion',
       capsules: posesIn(onion).flatMap(({ character, pose }) =>
-        characterCapsules(character, pose, () => withOpacity(palette.stickman, ONION_SKIN_OPACITY * characterOpacity)),
+        characterCapsules(character, pose, () => withOpacity(palette.stickman, ONION_SKIN_OPACITY * characterOpacity), 0),
       ),
     },
   ];
@@ -74,7 +74,7 @@ export function buildSceneLayers({ project, frame, onion, mode, selection, palet
     kind: 'capsules',
     role: 'characters',
     capsules: posesIn(frame).flatMap(({ character, pose }) =>
-      characterCapsules(character, pose, (nodeId) => withOpacity(partRgba(character, nodeId, palette.stickman), characterOpacity)),
+      characterCapsules(character, pose, (nodeId) => withOpacity(partRgba(character, nodeId, palette.stickman), characterOpacity), characterOpacity),
     ),
   };
   if (mode === null) return [...layers, characters];
@@ -126,9 +126,31 @@ export function buildSceneLayers({ project, frame, onion, mode, selection, palet
 
 // ---------- Aides ----------
 
-function characterCapsules(character: Character, pose: FramePose, colorOf: (nodeId: string) => Rgba): ColoredCapsule[] {
-  const capsules = buildCapsules(character.skeleton, posedCharacter(character, pose), DEFAULT_STICKMAN_STYLE, character.appearance.scale);
-  return capsules.map(({ nodeId, ...capsule }) => ({ ...capsule, color: colorOf(nodeId) }));
+/**
+ * Capsules d'un personnage : chaque partie de sa couleur, suivie de ses zones de couleur, découpées
+ * le long de la partie (pour la tête : du cou au sommet) ; `bandOpacity` 0 = sans zones (pelure d'oignon).
+ */
+function characterCapsules(
+  character: Character,
+  pose: FramePose,
+  colorOf: (nodeId: string) => Rgba,
+  bandOpacity: number,
+): ColoredCapsule[] {
+  const posed = posedCharacter(character, pose);
+  const axes = new Map(posed.map((p) => [p.id, p]));
+  const capsules = buildCapsules(character.skeleton, posed, DEFAULT_STICKMAN_STYLE, character.appearance.scale);
+  return capsules.flatMap(({ nodeId, ...capsule }) => {
+    const axis = axes.get(nodeId);
+    const bands = bandOpacity > 0 && axis ? (character.appearance.segmentBands[nodeId] ?? []) : [];
+    return [
+      { ...capsule, color: colorOf(nodeId) },
+      ...bands.map(({ from, to, color }) => ({
+        ...capsule,
+        color: withOpacity(parseHexColor(color), bandOpacity),
+        clip: { start: axis?.start ?? capsule.a, end: axis?.end ?? capsule.b, from, to },
+      })),
+    ];
+  });
 }
 
 function partRgba(character: Character, nodeId: string, fallback: Rgba): Rgba {

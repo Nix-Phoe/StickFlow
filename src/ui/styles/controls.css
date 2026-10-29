@@ -139,6 +139,24 @@
   opacity: var(--opacity-disabled);
 }
 
+/* ---------- Rangée de pastilles de parties (défile à l'horizontale) ---------- */
+.part-chips {
+  display: flex;
+  gap: var(--space-half);
+  margin: 0 0 var(--space-1);
+  padding: 0 var(--space-1) var(--space-half);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--space-1);
+  scrollbar-width: thin;
+}
+
+.part-chip {
+  flex: none;
+  padding: 0 var(--space-2);
+  white-space: nowrap;
+}
+
 /* ---------- Interrupteur ---------- */
 .switch {
   position: relative;

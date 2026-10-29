@@ -55,12 +55,26 @@ describe('packCapsules', () => {
     { a: { x: 6, y: 7 }, b: { x: 8, y: 9 }, radius: 10, color: [0, 0, 0, 0.5] },
   ];
 
-  it('packs start, end, radius and colour contiguously for each capsule', () => {
-    expect(Array.from(packCapsules(capsules))).toEqual([1, 2, 3, 4, 5, 0.5, 0.25, 1, 1, 6, 7, 8, 9, 10, 0, 0, 0, 0.5]);
+  it('packs start, end, radius, colour and an open clip (whole capsule) for each capsule', () => {
+    expect(Array.from(packCapsules(capsules))).toEqual([
+      1, 2, 3, 4, 5, 0.5, 0.25, 1, 1, 1, 2, 3, 4, 0, 1,
+      6, 7, 8, 9, 10, 0, 0, 0, 0.5, 6, 7, 8, 9, 0, 1,
+    ]);
+  });
+
+  it('packs the clip of a colour band: its axis and its stretch along it', () => {
+    const band: ColoredCapsule = {
+      a: { x: 0, y: 0 },
+      b: { x: 0, y: 0 },
+      radius: 20,
+      color: [1, 0, 0, 1],
+      clip: { start: { x: 0, y: -20 }, end: { x: 0, y: 20 }, from: 0.55, to: 1 },
+    };
+    expect(Array.from(packCapsules([band])).slice(9)).toEqual([0, -20, 0, 20, 0.550000011920929, 1]);
   });
 
   it('uses FLOATS_PER_CAPSULE floats per capsule', () => {
-    expect(FLOATS_PER_CAPSULE).toBe(9);
+    expect(FLOATS_PER_CAPSULE).toBe(15);
     expect(packCapsules(capsules)).toHaveLength(2 * FLOATS_PER_CAPSULE);
   });
 

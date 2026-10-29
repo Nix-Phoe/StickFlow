@@ -53,6 +53,8 @@ const CAPSULE_ATTRIBUTES: ReadonlyArray<[location: number, size: number, offset:
   [2, 2, 2], // arrivée
   [3, 1, 4], // rayon
   [4, 4, 5], // couleur
+  [5, 4, 9], // axe de découpe (départ, arrivée)
+  [6, 2, 13], // tranche gardée (de, à)
 ];
 const SHAPE_ATTRIBUTES: ReadonlyArray<[location: number, size: number, offset: number]> = [
   [1, 2, 0], // centre

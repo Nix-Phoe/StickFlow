@@ -5,13 +5,14 @@ import { EXPORT_SIZE } from '../../export/export-plan';
 import { partColor, restSize } from '../../model/character';
 import { normalizeHex, PRESET_COLORS } from '../../model/color';
 import { STAGE_WORLD_HEIGHT } from '../../render/camera';
-import { paintCharacters } from '../../render/canvas2d';
+import { paintCharacterPreview, previewFraming } from '../../render/character-preview';
 import { parseHexColor } from '../../render/color';
 import type { Component, ComponentContext } from '../component';
 import { createColorPicker, swatch } from '../controls/color-picker';
 import { createIconButton } from '../controls/icon-button';
+import { createPartChips } from '../controls/part-chips';
 import { createSlider } from '../controls/slider';
-import { h } from '../dom';
+import { h, ids } from '../dom';
 import { icon } from '../icons';
 import { strings } from '../strings';
 
@@ -19,7 +20,6 @@ const t = strings.characters;
 const a = strings.appearance;
 /** Pixels de l'image exportée par unité du monde, pour annoncer la taille d'origine. */
 const EXPORT_PIXELS_PER_UNIT = EXPORT_SIZE.height / STAGE_WORLD_HEIGHT;
-const THUMBNAIL_STYLE = { strokeWidth: 14 };
 /** Token de la couleur automatique (celle du thème). */
 const AUTO_COLOR_TOKEN = '--color-stickman';
 
@@ -36,7 +36,7 @@ interface Row {
 /**
  * Onglet « Personnages » du panneau flottant : liste des personnages (vignette, nom modifiable,
  * visibilité, verrou), ajout, actions sur le personnage sélectionné, puis inspecteur Apparence
- * (couleur des parties ou du personnage entier, taille de 50 à 200 %).
+ * (parties à colorer, couleur, accès à la coloration partielle, taille de 50 à 200 %).
  */
 export function createCharactersTab({ bus, store }: ComponentContext): Component {
   const cleanups: Array<() => void> = [];
@@ -115,10 +115,10 @@ export function createCharactersTab({ bus, store }: ComponentContext): Component
     row.canvas.width = width;
     row.canvas.height = height;
     context.clearRect(0, 0, width, height);
-    // Vignette dans la pose de repos, à 100 %, de la couleur du personnage.
-    const color = character.appearance.defaultColor ?? autoColor();
-    const normal = { ...character, visible: true, appearance: { ...character.appearance, scale: 1 } };
-    paintCharacters(context, { width, height }, [normal], { [character.id]: { pose: {}, rootPosition: { x: 0, y: 0 } } }, THUMBNAIL_STYLE, parseHexColor(color));
+    // Vignette dans la pose de repos, agrandie, avec ses vraies couleurs et ses zones de couleur.
+    const viewport = { width, height };
+    const auto = parseHexColor(autoColor());
+    paintCharacterPreview(context, viewport, previewFraming(character, viewport), { stickman: auto, accent: auto });
   }
 
   function syncList(): void {
@@ -163,6 +163,18 @@ export function createCharactersTab({ bus, store }: ComponentContext): Component
 
   // ---------- Apparence ----------
   const selectionLabel = h('p', { class: 'appearance__selection', 'aria-live': 'polite' });
+  // Choix des parties sans passer par la scène (synchronisé avec elle).
+  const partChips = createPartChips({
+    label: t.parts,
+    action: 'segment:select',
+    name: a.part,
+    wholeLabel: t.whole,
+    order: Object.keys(strings.parts),
+    onSelect: (nodeId, additive) => {
+      const character = selected();
+      if (character) bus.emit('segment:select', { characterId: character.id, nodeId, additive: additive && nodeId !== null });
+    },
+  });
   const autoSwatch = h('button', { type: 'button', class: 'swatch swatch--auto', 'aria-label': a.automatic, title: a.automatic, 'data-color': '' });
   const swatches = h('div', { class: 'appearance__swatches', role: 'group', 'aria-label': a.swatches }, [
     autoSwatch,
@@ -201,6 +213,27 @@ export function createCharactersTab({ bus, store }: ComponentContext): Component
     if (character) applyColor(currentColor(character), true, []);
   });
 
+  // Accès à la fenêtre « Coloration partielle ».
+  const paintSummary = h('span', { class: 'paint-entry__hint' });
+  const paintButton = h(
+    'button',
+    {
+      type: 'button',
+      id: ids.partialPaintButton,
+      class: 'paint-entry',
+      'aria-haspopup': 'dialog',
+      'aria-controls': ids.partialPaintWindow,
+      'aria-expanded': 'false',
+      'data-action': 'partialPaint:change',
+    },
+    [
+      h('span', { class: 'paint-entry__icon', 'aria-hidden': 'true' }, [icon('outfit')]),
+      h('span', { class: 'paint-entry__text' }, [h('span', { class: 'paint-entry__title' }, [strings.partialPaint.open]), paintSummary]),
+      icon('down', 'icon paint-entry__chevron'),
+    ],
+  );
+  paintButton.addEventListener('click', () => bus.emit('partialPaint:change', { open: !store.state.session.partialPaint.open }));
+
   const scaleSlider = createSlider({
     id: 'appearance-scale',
     action: 'appearance:scale',
@@ -227,6 +260,7 @@ export function createCharactersTab({ bus, store }: ComponentContext): Component
   const appearance = h('section', { class: 'appearance', 'aria-labelledby': 'appearance-title' }, [
     h('h3', { class: 'editor-panel__section-title', id: 'appearance-title' }, [a.title]),
     selectionLabel,
+    partChips.element,
     h('div', { class: 'group' }, [
       h('div', { class: 'group__row group__row--stacked' }, [
         h('span', { class: 'group__label' }, [a.color]),
@@ -235,6 +269,7 @@ export function createCharactersTab({ bus, store }: ComponentContext): Component
         picker.element,
         applyAllButton,
       ]),
+      h('div', { class: 'group__row' }, [paintButton]),
       h('div', { class: 'group__row group__row--stacked' }, [
         h('div', { class: 'group__row-header' }, [h('label', { class: 'group__label', for: 'appearance-scale' }, [a.size]), scaleInput]),
         scaleSlider.element,
@@ -278,6 +313,10 @@ export function createCharactersTab({ bus, store }: ComponentContext): Component
     removeButton.disabled = characters.length <= 1;
 
     const parts = store.state.session.selectedParts;
+    partChips.setParts(character.skeleton.filter((n) => n.length > 0).map((n) => n.id));
+    partChips.setSelected(parts);
+    const zones = Object.values(character.appearance.segmentBands).reduce((sum, bands) => sum + bands.length, 0);
+    paintSummary.textContent = zones === 0 ? strings.partialPaint.openHint : strings.partialPaint.summary(zones);
     selectionLabel.textContent = parts.length === 0 ? a.whole : parts.length === 1 ? a.part(parts[0] ?? '') : a.parts(parts.length);
     applyAllButton.hidden = parts.length === 0;
     const color = currentColor(character);
@@ -313,6 +352,7 @@ export function createCharactersTab({ bus, store }: ComponentContext): Component
     store.watch((s) => s.session.selectedCharacterId, renderAppearance),
     store.watch((s) => s.session.selectedParts, renderAppearance),
     store.watch((s) => s.project.present.recentColors, (colors) => picker.setRecent(colors)),
+    store.watch((s) => s.session.partialPaint.open, (open) => paintButton.setAttribute('aria-expanded', String(open))),
   );
 
   return {

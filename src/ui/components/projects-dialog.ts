@@ -1,6 +1,6 @@
 import '../styles/components/projects-dialog.css';
 
-import type { LibraryEntry } from '../../core/types';
+import type { ProjectSummary } from '../../core/types';
 import type { Component, ComponentContext } from '../component';
 import { createIconButton } from '../controls/icon-button';
 import { h } from '../dom';
@@ -42,7 +42,7 @@ export function createProjectsDialog({ bus, store }: ComponentContext): Componen
     if (event.target === dialog) bus.emit('project:library:close');
   });
 
-  function render(entries: readonly LibraryEntry[] | null): void {
+  function render(entries: readonly ProjectSummary[] | null): void {
     if (entries === null) {
       if (dialog.open) dialog.close();
       return;
@@ -52,13 +52,13 @@ export function createProjectsDialog({ bus, store }: ComponentContext): Componen
     if (!dialog.open) dialog.showModal();
   }
 
-  function createItem(entry: LibraryEntry): HTMLLIElement {
+  function createItem(entry: ProjectSummary): HTMLLIElement {
     const button = h(
       'button',
       { type: 'button', class: 'projects-dialog__item', 'data-action': 'project:open', 'data-project-id': entry.id },
       [
         h('span', { class: 'projects-dialog__name' }, [entry.name]),
-        h('span', { class: 'projects-dialog__date' }, [t.savedAt(new Date(entry.savedAt))]),
+        h('span', { class: 'projects-dialog__date' }, [t.savedAt(new Date(entry.updatedAt))]),
       ],
     );
     button.addEventListener('click', () => bus.emit('project:open', { projectId: entry.id }));

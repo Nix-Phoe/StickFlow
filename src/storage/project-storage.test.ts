@@ -10,13 +10,13 @@ import { createProjectLibrary, type KeyValueStore } from './library';
 import { createMemoryStore } from './memory-store';
 import { connectProjectStorage } from './project-storage';
 
-function setup(store: KeyValueStore = createMemoryStore()) {
+function setup(store: KeyValueStore = createMemoryStore(), thumbnail?: () => string | null) {
   const bus = createEventBus();
   const app = new Store(createInitialState('Saut', sortSkeleton(createDefaultSkeleton())));
   let id = 0;
   const library = createProjectLibrary(store, { now: () => 1000, newId: () => `p${++id}` });
   connectIntents(bus, app, { now: () => 0 });
-  const storage = connectProjectStorage({ bus, store: app, library });
+  const storage = connectProjectStorage({ bus, store: app, library, thumbnail });
   return { bus, app, library, storage, status: () => saveStatus(app.state), session: () => app.state.session };
 }
 
@@ -61,6 +61,14 @@ describe('connectProjectStorage: sauvegarder', () => {
     expect((await library.list()).map((e) => e.name).sort()).toEqual(['Saut', 'Saut (copie)']);
   });
 
+  it('saves a fresh thumbnail of the project each time', async () => {
+    let n = 0;
+    const { storage, library } = setup(createMemoryStore(), () => `data:thumbnail-${++n}`);
+    await storage.save();
+    await storage.save();
+    expect(await library.list()).toEqual([expect.objectContaining({ thumbnail: 'data:thumbnail-2' })]);
+  });
+
   it('reports a failed save and keeps the status', async () => {
     const { storage, status, session } = setup(failingStore());
     await storage.save();
@@ -96,7 +104,7 @@ describe('connectProjectStorage: ouvrir', () => {
     const { bus, storage, session } = setup();
     await storage.save();
     await storage.refreshLibrary();
-    expect(session().library).toEqual([{ id: 'p1', name: 'Saut', savedAt: 1000 }]);
+    expect(session().library).toEqual([expect.objectContaining({ id: 'p1', name: 'Saut', updatedAt: 1000 })]);
     bus.emit('project:library:close');
     expect(session().library).toBeNull();
   });

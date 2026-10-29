@@ -3,11 +3,11 @@
 // pour rester lisibles en petit.
 
 import type { Project } from '../core/types';
-import type { SequenceFrame } from '../model/sequence';
-import { aspectRatio } from '../core/formats';
+import { deriveSequence, type SequenceFrame } from '../model/sequence';
+import { aspectRatio, type VideoFormat } from '../core/formats';
 import { fitWorldHeight } from './camera';
 import { paintScene, type DrawingImage } from './canvas2d';
-import { parseHexColor, type Rgba } from './color';
+import { EXPORT_COLORS, parseHexColor, type Rgba } from './color';
 import type { StickmanStyle } from './scene';
 import { buildSceneLayers, type SceneLayer } from './scene-layers';
 
@@ -53,4 +53,32 @@ export function paintThumbnail(
   // Tout le cadre du format tient dans la vignette.
   const worldHeight = fitWorldHeight({ width, height }, aspectRatio(project.format));
   paintScene(context, { width, height, worldHeight }, thumbnailLayers(project, frame, parseHexColor(stickman)), drawing);
+}
+
+/** Côté le plus long d'une vignette de projet enregistrée, en pixels. */
+export const PROJECT_THUMBNAIL_SIZE = 320;
+
+/** Taille d'une vignette de projet : le cadre du format, son plus long côté à `max` pixels. */
+export function thumbnailSize(format: VideoFormat, max = PROJECT_THUMBNAIL_SIZE): { width: number; height: number } {
+  const ratio = aspectRatio(format);
+  return ratio >= 1 ? { width: max, height: Math.round(max / ratio) } : { width: Math.round(max * ratio), height: max };
+}
+
+/**
+ * Vignette d'un projet (accueil, index des projets) : sa première frame, aux couleurs de l'export,
+ * en PNG (data URL). `null` si le navigateur ne sait pas dessiner.
+ */
+export function projectThumbnail(project: Project, drawing: DrawingImage | null): string | null {
+  const frame = deriveSequence(project)[0];
+  const canvas = document.createElement('canvas');
+  const { width, height } = thumbnailSize(project.format);
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context || !frame) return null;
+  context.fillStyle = project.environment.background ?? EXPORT_COLORS.background;
+  context.fillRect(0, 0, width, height);
+  const layers = thumbnailLayers(project, frame, parseHexColor(EXPORT_COLORS.stickman));
+  paintScene(context, { width, height, worldHeight: fitWorldHeight({ width, height }, aspectRatio(project.format)) }, layers, drawing);
+  return canvas.toDataURL('image/png');
 }

@@ -6,7 +6,7 @@ import {
   type EditorMode,
   type ExportFormat,
   type FramePose,
-  type LibraryEntry,
+  type ProjectSummary,
   type Notice,
   type PlaybackSpeed,
   type Project,
@@ -59,7 +59,7 @@ export interface Session {
   /** Projet tel qu'il a été enregistré ou ouvert, pour savoir s'il a changé depuis. */
   savedProject: Project | null;
   /** Liste des projets enregistrés quand le dialogue « Ouvrir » est affiché. */
-  library: LibraryEntry[] | null;
+  library: ProjectSummary[] | null;
   notice: Notice | null;
   /** Avancement de l'export en cours (0 à 1), `null` sans export. */
   exportProgress: number | null;

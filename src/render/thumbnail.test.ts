@@ -6,7 +6,8 @@ import { ORIGIN, testCharacter, testFrame, testProject, testShape } from '../tes
 import type { Rgba } from './color';
 import { DEFAULT_STICKMAN_STYLE } from './scene';
 import { buildSceneLayers } from './scene-layers';
-import { THUMBNAIL_STYLE, thumbnailLayers } from './thumbnail';
+import { THUMBNAIL_STYLE, thumbnailLayers, thumbnailSize } from './thumbnail';
+import { presetFormat } from '../core/formats';
 
 const AUTO: Rgba = [0.9, 0.9, 0.9, 1];
 
@@ -56,5 +57,13 @@ describe('thumbnailLayers', () => {
     expect(THUMBNAIL_STYLE.strokeWidth).toBeGreaterThan(DEFAULT_STICKMAN_STYLE.strokeWidth);
     const torso = characterCapsules(thumbnailLayers(project, frame, AUTO))[0];
     expect(torso?.radius).toBe(THUMBNAIL_STYLE.strokeWidth / 2);
+  });
+});
+
+describe('thumbnailSize', () => {
+  it('fits the frame of the format in a small box, at its ratio', () => {
+    expect(thumbnailSize(presetFormat('youtube'))).toEqual({ width: 320, height: 180 });
+    expect(thumbnailSize(presetFormat('vertical'))).toEqual({ width: 180, height: 320 });
+    expect(thumbnailSize(presetFormat('square'), 100)).toEqual({ width: 100, height: 100 });
   });
 });

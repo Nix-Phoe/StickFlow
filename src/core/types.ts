@@ -148,12 +148,21 @@ export interface Project {
   ai: AiSettings;
 }
 
-/** Projet enregistré, tel que la liste « Ouvrir » l'affiche. */
-export interface LibraryEntry {
+/**
+ * Résumé d'un projet enregistré (index des projets) : de quoi afficher sa carte sur l'accueil
+ * ou sa ligne dans « Ouvrir », sans charger le projet complet. Dates en millisecondes (époque Unix).
+ */
+export interface ProjectSummary {
   id: string;
   name: string;
-  /** Date d'enregistrement, en millisecondes depuis l'époque Unix. */
-  savedAt: number;
+  format: VideoFormat;
+  fps: number;
+  /** Nombre d'images de l'animation (images clés et frames générées). */
+  frameCount: number;
+  createdAt: number;
+  updatedAt: number;
+  /** Première frame, en PNG (data URL, petite taille) ; `null` si pas encore générée. */
+  thumbnail: string | null;
 }
 
 /** Message bref affiché après une action longue (sauvegarde, ouverture, export). */

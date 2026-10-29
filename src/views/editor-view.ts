@@ -12,6 +12,8 @@ import { createDrawingSurface } from '../drawing/surface';
 import { connectExporter } from '../export';
 import { connectCharacterManipulation, connectShapeManipulation } from '../interaction';
 import { connectStageView } from '../render';
+import type { DrawingImage } from '../render/canvas2d';
+import { projectThumbnail } from '../render/thumbnail';
 import { connectProjectStorage, type ProjectLibrary, type ProjectStorage } from '../storage';
 import type { Component, ComponentContext } from '../ui/component';
 import { createCanvasArea } from '../ui/components/canvas-area';
@@ -64,7 +66,9 @@ export function createEditorView({ projectId, library, navigate }: EditorViewOpt
     const drawing = createDrawingSurface();
     const context: ComponentContext = { bus, store: editorStore };
 
-    storage = connectProjectStorage({ bus, store: editorStore, library });
+    const drawingImage = (): DrawingImage => ({ image: drawing.canvas, bounds: drawing.bounds });
+    // La vignette de l'accueil est régénérée à chaque sauvegarde, à partir de la première frame.
+    storage = connectProjectStorage({ bus, store: editorStore, library, thumbnail: (project) => projectThumbnail(project, drawingImage()) });
     cleanups.push(
       connectIntents(bus, editorStore),
       connectCharacterManipulation(context),
@@ -99,7 +103,7 @@ export function createEditorView({ projectId, library, navigate }: EditorViewOpt
       [createSidePanel(context), regions.panel],
       [createToolbar(context), regions.toolbar],
       [createCanvasArea(context), regions.stage],
-      [createTimeline(context, { image: () => ({ image: drawing.canvas, bounds: drawing.bounds }), onChange: drawing.onChange }), regions.timeline],
+      [createTimeline(context, { image: drawingImage, onChange: drawing.onChange }), regions.timeline],
       [createProjectsDialog(context), root],
       [createEditorPanel(context), root],
     ];

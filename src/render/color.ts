@@ -13,3 +13,10 @@ export function parseHexColor(value: string): Rgba {
   const channel = (i: number): number => parseInt(full.slice(i * 2, i * 2 + 2), 16) / 255;
   return [channel(0), channel(1), channel(2), full.length === 8 ? channel(3) : 1];
 }
+
+/**
+ * Couleurs des fichiers exportés et des vignettes enregistrées : indépendantes du thème de
+ * l'interface, pour que le résultat soit le même en mode clair ou sombre. Les PNG exportés
+ * gardent un fond transparent (incrustation).
+ */
+export const EXPORT_COLORS = { background: '#ffffff', stickman: '#1c1c1e' } as const;

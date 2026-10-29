@@ -12,17 +12,12 @@ import type { SequenceFrame } from '../model/sequence';
 import { aspectRatio } from '../core/formats';
 import { fitWorldHeight } from '../render/camera';
 import { paintScene } from '../render/canvas2d';
-import { parseHexColor } from '../render/color';
+import { EXPORT_COLORS, parseHexColor } from '../render/color';
 import { buildSceneLayers } from '../render/scene-layers';
 import { exportFileName, pickVideoFormat, planExport, type ExportPlan } from './export-plan';
 import { encodeGif } from './gif';
 import { zipFiles } from './zip';
 
-/**
- * Couleurs des fichiers exportés : indépendantes du thème de l'interface, pour que le résultat
- * soit le même en mode clair ou sombre. Les PNG gardent un fond transparent (incrustation).
- */
-const EXPORT_COLORS = { background: '#ffffff', stickman: '#1c1c1e' } as const;
 
 /** Intervalle auquel l'enregistreur vidéo livre ses données, en millisecondes. */
 const VIDEO_CHUNK_MS = 100;

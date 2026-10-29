@@ -15,7 +15,10 @@ if (!root) throw new Error('Élément #app introuvable');
 
 // IndexedDB si le navigateur l'autorise (absent en navigation privée sur certains navigateurs) ;
 // sinon les projets ne vivent que le temps de la session.
-const library = createProjectLibrary(typeof indexedDB === 'undefined' ? createMemoryStore() : createIdbStore());
+const persistent = typeof indexedDB !== 'undefined';
+const library = createProjectLibrary(persistent ? createIdbStore() : createMemoryStore(), {
+  index: persistent ? createIdbStore('stickflow-index', 'projects') : createMemoryStore(),
+});
 
 const router = createRouter(browserHashPort(), (route) => void host.show(route));
 const navigate = router.navigate;

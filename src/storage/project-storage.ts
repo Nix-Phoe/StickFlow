@@ -5,7 +5,7 @@ import type { AppEventBus } from '../core/events';
 import { saveStatus } from '../core/selectors';
 import { clearSelection, fitSessionToSequence, type Session } from '../core/session';
 import type { Store } from '../core/store';
-import type { Notice } from '../core/types';
+import type { Notice, Project } from '../core/types';
 import { createHistory } from '../model/project';
 import { deriveSequence } from '../model/sequence';
 import type { ProjectLibrary } from './library';
@@ -14,6 +14,8 @@ export interface ProjectStorageOptions {
   bus: AppEventBus;
   store: Store;
   library: ProjectLibrary;
+  /** Vignette du projet (PNG en data URL), régénérée à chaque sauvegarde ; navigateur uniquement. */
+  thumbnail?: (project: Project) => string | null;
 }
 
 /** Opérations exposées pour les tests ; l'interface passe par les événements `project:*`. */
@@ -27,7 +29,7 @@ export interface ProjectStorage {
   disconnect(): void;
 }
 
-export function connectProjectStorage({ bus, store, library }: ProjectStorageOptions): ProjectStorage {
+export function connectProjectStorage({ bus, store, library, thumbnail }: ProjectStorageOptions): ProjectStorage {
   const setSession = (patch: Partial<Session>): void =>
     store.update((s) => ({ session: { ...s.session, ...patch } }));
   const fail = (code: Notice['code'], error: unknown): void =>
@@ -37,7 +39,7 @@ export function connectProjectStorage({ bus, store, library }: ProjectStorageOpt
   async function write(id: string | undefined): Promise<void> {
     const project = store.state.project.present;
     try {
-      const entry = await library.save(project, id);
+      const entry = await library.save(project, id, { thumbnail: thumbnail?.(project) ?? null });
       // Le Projet a pu changer pendant l'enregistrement : on retient celui qui a été écrit.
       setSession({ documentId: entry.id, savedProject: project, notice: { kind: 'success', code: 'saved' } });
     } catch (error) {

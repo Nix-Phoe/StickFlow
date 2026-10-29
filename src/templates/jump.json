@@ -1,0 +1,240 @@
+{
+  "format": "stickflow-project",
+  "version": 3,
+  "project": {
+    "name": "Saut",
+    "fps": 12,
+    "format": {
+      "preset": "youtube",
+      "width": 1920,
+      "height": 1080
+    },
+    "characters": [
+      {
+        "id": "character-1",
+        "name": "Personnage 1",
+        "visible": true,
+        "locked": false,
+        "skeleton": [
+          {
+            "id": "hip",
+            "parentId": null,
+            "length": 0,
+            "angle": 0,
+            "shape": "segment"
+          },
+          {
+            "id": "torso",
+            "parentId": "hip",
+            "length": 70,
+            "angle": 1.5707963267948966,
+            "shape": "segment"
+          },
+          {
+            "id": "thighL",
+            "parentId": "hip",
+            "length": 50,
+            "angle": -1.8207963267948966,
+            "shape": "segment"
+          },
+          {
+            "id": "thighR",
+            "parentId": "hip",
+            "length": 50,
+            "angle": -1.3207963267948966,
+            "shape": "segment"
+          },
+          {
+            "id": "head",
+            "parentId": "torso",
+            "length": 40,
+            "angle": 0,
+            "shape": "circle"
+          },
+          {
+            "id": "upperArmL",
+            "parentId": "torso",
+            "length": 45,
+            "angle": -3.5915926535897933,
+            "shape": "segment"
+          },
+          {
+            "id": "upperArmR",
+            "parentId": "torso",
+            "length": 45,
+            "angle": -2.691592653589793,
+            "shape": "segment"
+          },
+          {
+            "id": "shinL",
+            "parentId": "thighL",
+            "length": 50,
+            "angle": 0.1,
+            "shape": "segment"
+          },
+          {
+            "id": "shinR",
+            "parentId": "thighR",
+            "length": 50,
+            "angle": -0.1,
+            "shape": "segment"
+          },
+          {
+            "id": "forearmL",
+            "parentId": "upperArmL",
+            "length": 45,
+            "angle": 0.3,
+            "shape": "segment"
+          },
+          {
+            "id": "forearmR",
+            "parentId": "upperArmR",
+            "length": 45,
+            "angle": -0.3,
+            "shape": "segment"
+          }
+        ],
+        "appearance": {
+          "scale": 1,
+          "defaultColor": null,
+          "segmentColors": {},
+          "segmentBands": {}
+        }
+      }
+    ],
+    "keyframes": [
+      {
+        "id": "saut-1",
+        "poses": {
+          "character-1": {
+            "pose": {},
+            "rootPosition": {
+              "x": 0,
+              "y": 0
+            }
+          }
+        }
+      },
+      {
+        "id": "saut-2",
+        "poses": {
+          "character-1": {
+            "pose": {
+              "torso": 1.221,
+              "thighL": -0.621,
+              "shinL": -1.75,
+              "thighR": -0.771,
+              "shinR": -1.6,
+              "upperArmL": -3.842,
+              "forearmL": 0.3,
+              "upperArmR": -3.742,
+              "forearmR": 0.3
+            },
+            "rootPosition": {
+              "x": 0,
+              "y": -38
+            }
+          }
+        }
+      },
+      {
+        "id": "saut-3",
+        "poses": {
+          "character-1": {
+            "pose": {
+              "torso": 1.521,
+              "thighL": -1.771,
+              "shinL": -0.05,
+              "thighR": -1.671,
+              "shinR": -0.05,
+              "upperArmL": -0.35,
+              "forearmL": 0.1,
+              "upperArmR": 0.35,
+              "forearmR": -0.1
+            },
+            "rootPosition": {
+              "x": 0,
+              "y": 60
+            }
+          }
+        }
+      },
+      {
+        "id": "saut-4",
+        "poses": {
+          "character-1": {
+            "pose": {
+              "thighL": -0.471,
+              "shinL": -1.6,
+              "thighR": -0.671,
+              "shinR": -1.4,
+              "upperArmL": -0.9,
+              "forearmL": 0.4,
+              "upperArmR": 0.6,
+              "forearmR": -0.3
+            },
+            "rootPosition": {
+              "x": 0,
+              "y": 85
+            }
+          }
+        }
+      },
+      {
+        "id": "saut-5",
+        "poses": {
+          "character-1": {
+            "pose": {
+              "torso": 1.221,
+              "thighL": -0.621,
+              "shinL": -1.75,
+              "thighR": -0.771,
+              "shinR": -1.6,
+              "upperArmL": -3.842,
+              "forearmL": 0.3,
+              "upperArmR": -3.742,
+              "forearmR": 0.3
+            },
+            "rootPosition": {
+              "x": 0,
+              "y": -32
+            }
+          }
+        }
+      },
+      {
+        "id": "saut-6",
+        "poses": {
+          "character-1": {
+            "pose": {},
+            "rootPosition": {
+              "x": 0,
+              "y": 0
+            }
+          }
+        }
+      }
+    ],
+    "environment": {
+      "background": null,
+      "shapes": [],
+      "drawing": {
+        "tiles": {}
+      }
+    },
+    "recentColors": [],
+    "ai": {
+      "smoothing": {
+        "enabled": true,
+        "intensity": 3,
+        "curve": "smooth"
+      },
+      "loop": {
+        "enabled": false,
+        "repeatCount": 3,
+        "infinite": true,
+        "transitionFrames": 3
+      }
+    }
+  }
+}

@@ -1,0 +1,213 @@
+{
+  "format": "stickflow-project",
+  "version": 3,
+  "project": {
+    "name": "Marche",
+    "fps": 12,
+    "format": {
+      "preset": "youtube",
+      "width": 1920,
+      "height": 1080
+    },
+    "characters": [
+      {
+        "id": "character-1",
+        "name": "Personnage 1",
+        "visible": true,
+        "locked": false,
+        "skeleton": [
+          {
+            "id": "hip",
+            "parentId": null,
+            "length": 0,
+            "angle": 0,
+            "shape": "segment"
+          },
+          {
+            "id": "torso",
+            "parentId": "hip",
+            "length": 70,
+            "angle": 1.5707963267948966,
+            "shape": "segment"
+          },
+          {
+            "id": "thighL",
+            "parentId": "hip",
+            "length": 50,
+            "angle": -1.8207963267948966,
+            "shape": "segment"
+          },
+          {
+            "id": "thighR",
+            "parentId": "hip",
+            "length": 50,
+            "angle": -1.3207963267948966,
+            "shape": "segment"
+          },
+          {
+            "id": "head",
+            "parentId": "torso",
+            "length": 40,
+            "angle": 0,
+            "shape": "circle"
+          },
+          {
+            "id": "upperArmL",
+            "parentId": "torso",
+            "length": 45,
+            "angle": -3.5915926535897933,
+            "shape": "segment"
+          },
+          {
+            "id": "upperArmR",
+            "parentId": "torso",
+            "length": 45,
+            "angle": -2.691592653589793,
+            "shape": "segment"
+          },
+          {
+            "id": "shinL",
+            "parentId": "thighL",
+            "length": 50,
+            "angle": 0.1,
+            "shape": "segment"
+          },
+          {
+            "id": "shinR",
+            "parentId": "thighR",
+            "length": 50,
+            "angle": -0.1,
+            "shape": "segment"
+          },
+          {
+            "id": "forearmL",
+            "parentId": "upperArmL",
+            "length": 45,
+            "angle": 0.3,
+            "shape": "segment"
+          },
+          {
+            "id": "forearmR",
+            "parentId": "upperArmR",
+            "length": 45,
+            "angle": -0.3,
+            "shape": "segment"
+          }
+        ],
+        "appearance": {
+          "scale": 1,
+          "defaultColor": null,
+          "segmentColors": {},
+          "segmentBands": {}
+        }
+      }
+    ],
+    "keyframes": [
+      {
+        "id": "marche-1",
+        "poses": {
+          "character-1": {
+            "pose": {
+              "thighL": -1.151,
+              "shinL": -0.1,
+              "thighR": -1.991,
+              "shinR": -0.45,
+              "upperArmL": -3.542,
+              "forearmL": 0.3,
+              "upperArmR": -2.742,
+              "forearmR": 0.3
+            },
+            "rootPosition": {
+              "x": 0,
+              "y": 0
+            }
+          }
+        }
+      },
+      {
+        "id": "marche-2",
+        "poses": {
+          "character-1": {
+            "pose": {
+              "thighL": -1.371,
+              "shinL": -0.75,
+              "thighR": -1.621,
+              "shinR": -0.1,
+              "upperArmL": -3.192,
+              "forearmL": 0.25,
+              "upperArmR": -3.092,
+              "forearmR": 0.25
+            },
+            "rootPosition": {
+              "x": 0,
+              "y": 4
+            }
+          }
+        }
+      },
+      {
+        "id": "marche-3",
+        "poses": {
+          "character-1": {
+            "pose": {
+              "thighL": -1.991,
+              "shinL": -0.45,
+              "thighR": -1.151,
+              "shinR": -0.1,
+              "upperArmL": -2.742,
+              "forearmL": 0.3,
+              "upperArmR": -3.542,
+              "forearmR": 0.3
+            },
+            "rootPosition": {
+              "x": 0,
+              "y": 0
+            }
+          }
+        }
+      },
+      {
+        "id": "marche-4",
+        "poses": {
+          "character-1": {
+            "pose": {
+              "thighL": -1.621,
+              "shinL": -0.1,
+              "thighR": -1.371,
+              "shinR": -0.75,
+              "upperArmL": -3.192,
+              "forearmL": 0.25,
+              "upperArmR": -3.092,
+              "forearmR": 0.25
+            },
+            "rootPosition": {
+              "x": 0,
+              "y": 4
+            }
+          }
+        }
+      }
+    ],
+    "environment": {
+      "background": null,
+      "shapes": [],
+      "drawing": {
+        "tiles": {}
+      }
+    },
+    "recentColors": [],
+    "ai": {
+      "smoothing": {
+        "enabled": true,
+        "intensity": 3,
+        "curve": "smooth"
+      },
+      "loop": {
+        "enabled": true,
+        "repeatCount": 3,
+        "infinite": true,
+        "transitionFrames": 3
+      }
+    }
+  }
+}

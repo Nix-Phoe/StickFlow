@@ -17,6 +17,7 @@ import {
   type Capsule,
   type ColoredCapsule,
   type ShapeInstance,
+  type StickmanStyle,
 } from './scene';
 
 /** Opacité du contexte inactif (décor en mode Personnages, personnages en mode Environnement). */
@@ -47,9 +48,19 @@ export interface SceneLayersInput {
   mode: EditorMode | null;
   selection: Pick<Session, 'selectedCharacterId' | 'selectedNodeId' | 'selectedParts' | 'selectedShapeId'>;
   palette: { stickman: Rgba; accent: Rgba };
+  /** Épaisseur des membres (les vignettes les épaississent pour rester lisibles). */
+  style?: StickmanStyle;
 }
 
-export function buildSceneLayers({ project, frame, onion, mode, selection, palette }: SceneLayersInput): SceneLayer[] {
+export function buildSceneLayers({
+  project,
+  frame,
+  onion,
+  mode,
+  selection,
+  palette,
+  style = DEFAULT_STICKMAN_STYLE,
+}: SceneLayersInput): SceneLayer[] {
   const decorOpacity = mode === 'characters' ? DIMMED_OPACITY : 1;
   const characterOpacity = mode === 'environment' ? DIMMED_OPACITY : 1;
   const visible = project.characters.filter((c) => c.visible);
@@ -66,7 +77,7 @@ export function buildSceneLayers({ project, frame, onion, mode, selection, palet
       kind: 'capsules',
       role: 'onion',
       capsules: posesIn(onion).flatMap(({ character, pose }) =>
-        characterCapsules(character, pose, () => withOpacity(palette.stickman, ONION_SKIN_OPACITY * characterOpacity), 0),
+        characterCapsules(character, pose, style, () => withOpacity(palette.stickman, ONION_SKIN_OPACITY * characterOpacity), 0),
       ),
     },
   ];
@@ -74,7 +85,7 @@ export function buildSceneLayers({ project, frame, onion, mode, selection, palet
     kind: 'capsules',
     role: 'characters',
     capsules: posesIn(frame).flatMap(({ character, pose }) =>
-      characterCapsules(character, pose, (nodeId) => withOpacity(partRgba(character, nodeId, palette.stickman), characterOpacity), characterOpacity),
+      characterCapsules(character, pose, style, (nodeId) => withOpacity(partRgba(character, nodeId, palette.stickman), characterOpacity), characterOpacity),
     ),
   };
   if (mode === null) return [...layers, characters];
@@ -89,7 +100,7 @@ export function buildSceneLayers({ project, frame, onion, mode, selection, palet
     const { character, pose } = selected;
     const posed = posedCharacter(character, pose);
     const scale = character.appearance.scale;
-    for (const capsule of buildCapsules(character.skeleton, posed, DEFAULT_STICKMAN_STYLE, scale)) {
+    for (const capsule of buildCapsules(character.skeleton, posed, style, scale)) {
       if (selection.selectedParts.includes(capsule.nodeId)) {
         highlight.push({ ...capsule, radius: capsule.radius + HIGHLIGHT_WIDTH, color: accent });
       }
@@ -101,7 +112,7 @@ export function buildSceneLayers({ project, frame, onion, mode, selection, palet
       ...colored(markers.root, accent),
       ...colored(markers.selected, accent),
     );
-    frames.push(...boxLines(padded(characterBounds(character, pose, DEFAULT_STICKMAN_STYLE.strokeWidth)), withOpacity(accent, FRAME_OPACITY)));
+    frames.push(...boxLines(padded(characterBounds(character, pose, style.strokeWidth)), withOpacity(accent, FRAME_OPACITY)));
   }
 
   const shape = project.environment.shapes.find((s) => s.id === selection.selectedShapeId);
@@ -133,12 +144,13 @@ export function buildSceneLayers({ project, frame, onion, mode, selection, palet
 function characterCapsules(
   character: Character,
   pose: FramePose,
+  style: StickmanStyle,
   colorOf: (nodeId: string) => Rgba,
   bandOpacity: number,
 ): ColoredCapsule[] {
   const posed = posedCharacter(character, pose);
   const axes = new Map(posed.map((p) => [p.id, p]));
-  const capsules = buildCapsules(character.skeleton, posed, DEFAULT_STICKMAN_STYLE, character.appearance.scale);
+  const capsules = buildCapsules(character.skeleton, posed, style, character.appearance.scale);
   return capsules.flatMap(({ nodeId, ...capsule }) => {
     const axis = axes.get(nodeId);
     const bands = bandOpacity > 0 && axis ? (character.appearance.segmentBands[nodeId] ?? []) : [];

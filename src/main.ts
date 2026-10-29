@@ -69,7 +69,7 @@ const components: Array<[Component, HTMLElement]> = [
   [createSidePanel(context), regions.panel],
   [createToolbar(context), regions.toolbar],
   [createCanvasArea(context), regions.stage],
-  [createTimeline(context), regions.timeline],
+  [createTimeline(context, { image: () => ({ image: drawing.canvas, bounds: drawing.bounds }), onChange: drawing.onChange }), regions.timeline],
   [createProjectsDialog(context), root],
   [createEditorPanel(context), root],
 ];

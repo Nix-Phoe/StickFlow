@@ -1,12 +1,10 @@
 // Dessin de la scène en Canvas 2D (vignettes de la timeline, export). Mêmes couches et même
 // géométrie que le rendu WebGL (scene-layers.ts), même cadrage vertical (STAGE_WORLD_HEIGHT).
 
-import type { Character, FramePose } from '../core/types';
-import { posedCharacter } from '../model/character';
 import { triangleVertices } from '../model/shape';
 import { STAGE_WORLD_HEIGHT, worldToScreen, type Viewport } from './camera';
 import type { Rgba } from './color';
-import { buildCapsules, type CapsuleClip, type ColoredCapsule, type ShapeInstance, type StickmanStyle } from './scene';
+import type { CapsuleClip, ColoredCapsule, ShapeInstance } from './scene';
 import type { SceneLayer } from './scene-layers';
 
 /** Image du calque de dessin et son rectangle dans le monde (coin bas-gauche, taille). */
@@ -37,25 +35,6 @@ export function paintScene(
       paintCapsules(context, viewport, layer.capsules);
     }
   }
-}
-
-/** Dessine des personnages d'une seule couleur CSS (vignettes). */
-export function paintCharacters(
-  context: CanvasRenderingContext2D,
-  viewport: Viewport,
-  characters: readonly Character[],
-  poses: Readonly<Record<string, FramePose>>,
-  style: StickmanStyle,
-  color: Rgba,
-): void {
-  const capsules = characters.flatMap((character) => {
-    const pose = poses[character.id];
-    if (!character.visible || !pose) return [];
-    return buildCapsules(character.skeleton, posedCharacter(character, pose), style, character.appearance.scale).map(
-      (capsule) => ({ ...capsule, color }),
-    );
-  });
-  paintCapsules(context, viewport, capsules);
 }
 
 export function paintCapsules(context: CanvasRenderingContext2D, viewport: Viewport, capsules: readonly ColoredCapsule[]): void {

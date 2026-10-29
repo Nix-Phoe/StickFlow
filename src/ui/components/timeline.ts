@@ -2,6 +2,7 @@ import '../styles/components/timeline.css';
 
 import { activeFrame, sequenceOf } from '../../core/selectors';
 import type { SequenceFrame } from '../../model/sequence';
+import type { DrawingImage } from '../../render/canvas2d';
 import { paintThumbnail } from '../../render/thumbnail';
 import type { Component, ComponentContext } from '../component';
 import { createIconButton } from '../controls/icon-button';
@@ -11,8 +12,17 @@ import { strings } from '../strings';
 
 const t = strings.timeline;
 
-/** Tokens CSS des vignettes : image clé, ou frame générée (couleur d'accent). */
-const THUMB_COLOR_TOKENS = { keyframe: '--color-stickman', generated: '--color-accent' } as const;
+/** Token CSS de la couleur automatique des personnages (ceux qui n'ont pas de couleur). */
+const AUTO_COLOR_TOKEN = '--color-stickman';
+/** Attente après le dernier changement du calque de dessin avant de repeindre les vignettes. */
+const DRAWING_REPAINT_DELAY_MS = 150;
+
+/** Calque de dessin du décor, montré dans les vignettes comme sur la scène. */
+export interface TimelineDrawing {
+  image(): DrawingImage;
+  /** Appelé après chaque changement visible du calque ; renvoie la fonction de désabonnement. */
+  onChange(listener: () => void): () => void;
+}
 
 interface Thumb {
   item: HTMLLIElement;
@@ -24,10 +34,11 @@ interface Thumb {
 
 /**
  * Barre inférieure : actions sur la frame active, vignettes de la séquence (images clés et
- * frames générées, distinguées), bouton « + ».
+ * frames générées, distinguées par leur cadre), bouton « + ». Chaque vignette montre la frame
+ * comme la scène : couleurs et zones des personnages, décor.
  * Clavier : flèches gauche / droite, Début, Fin pour changer de frame ; Suppr pour supprimer une image clé.
  */
-export function createTimeline({ bus, store }: ComponentContext): Component {
+export function createTimeline({ bus, store }: ComponentContext, drawing: TimelineDrawing | null = null): Component {
   const cleanups: Array<() => void> = [];
   /** Vignettes conservées d'un rendu à l'autre, par id de frame : seules celles qui changent sont repeintes. */
   const thumbsById = new Map<string, Thumb>();
@@ -150,12 +161,11 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
   }
 
   function paint(thumb: Thumb): void {
-    const token = thumb.frame.kind === 'generated' ? THUMB_COLOR_TOKENS.generated : THUMB_COLOR_TOKENS.keyframe;
-    const color = getComputedStyle(root).getPropertyValue(token).trim();
-    paintThumbnail(thumb.canvas, store.state.project.present.characters, thumb.frame.poses, color);
+    const color = getComputedStyle(root).getPropertyValue(AUTO_COLOR_TOKEN).trim();
+    paintThumbnail(thumb.canvas, store.state.project.present, thumb.frame, color, drawing?.image() ?? null);
   }
 
-  /** Repeint toutes les vignettes (squelette, thème ou taille modifiés), une fois par image d'affichage. */
+  /** Repeint toutes les vignettes (apparence, décor, thème ou taille modifiés), une fois par image d'affichage. */
   function repaintAll(): void {
     if (repaintRequest !== 0) return;
     repaintRequest = requestAnimationFrame(() => {
@@ -182,15 +192,25 @@ export function createTimeline({ bus, store }: ComponentContext): Component {
 
   const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
   colorScheme.addEventListener('change', repaintAll);
+  // Le calque change à chaque tampon pendant un trait : on attend la fin pour repeindre.
+  let drawingTimer = 0;
+  const stopDrawing = drawing?.onChange(() => {
+    window.clearTimeout(drawingTimer);
+    drawingTimer = window.setTimeout(repaintAll, DRAWING_REPAINT_DELAY_MS);
+  });
   window.addEventListener('resize', repaintAll);
 
   cleanups.push(
     () => colorScheme.removeEventListener('change', repaintAll),
     () => window.removeEventListener('resize', repaintAll),
     () => cancelAnimationFrame(repaintRequest),
+    () => window.clearTimeout(drawingTimer),
+    () => stopDrawing?.(),
     store.watch(sequenceOf, syncFrames),
-    // Personnages ajoutés, masqués, redimensionnés… : toutes les vignettes changent.
+    // Personnages ajoutés, masqués, recolorés, redimensionnés, décor modifié : toutes les vignettes changent.
     store.watch((s) => s.project.present.characters, repaintAll),
+    store.watch((s) => s.project.present.environment.shapes, repaintAll),
+    store.watch((s) => s.project.present.environment.background, repaintAll),
     store.watch((s) => s.session.activeFrameId, renderActive),
     store.watch((s) => s.session.clipboard, (clipboard) => (pasteButton.disabled = clipboard === null)),
   );

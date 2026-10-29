@@ -58,6 +58,15 @@ Règles communes aux fonctionnalités IA :
 - **Panneau flottant « Personnages & Environnement »** ouvert par un bouton de la barre supérieure ; son onglet choisit le mode d'édition.
 - **Un seul bouton Lecture / Pause.**
 
+### 2.5 Version 2.0 (réalisée) : page d'accueil
+- L'app s'ouvre sur l'**Accueil** ; l'éditeur est une page (`#/editor/:id`) avec un bouton retour qui enregistre le projet.
+- **Formats de vidéo** : YouTube 16:9 (1920 × 1080), Shorts / TikTok / Reels 9:16 (1080 × 1920), Instagram carré 1:1 (1080 × 1080) et portrait 4:5 (1080 × 1350), ou taille libre (256 à 3840 px). Enregistré dans le Projet, modifiable dans l'éditeur (section « Format de la vidéo », avertissement si des éléments sortent du cadre) ; la scène montre le cadre, l'extérieur assombri ; l'export est à la résolution du format.
+- **Accueil** : barre latérale (navigation, « Nouveau projet » avec format et IPS, Réglages), bannière (recherche en direct, raccourcis ronds par format : création en un clic), carrousel « Commencer avec un modèle », « Mes projets » (8 plus récents, « Voir tout »), « Mes vidéos », bouton flottant « + » et feuille de création.
+- **Cartes de projet** : vignette (aperçu animé au survol), badge du format, IPS, nombre d'images, date relative, menu « ⋮ » (Ouvrir, Renommer, Dupliquer, Exporter, Supprimer) ; tri (Modifié, Créé, A-Z, Z-A) et vue (grille ou liste) mémorisés ; état vide illustré.
+- **Modèles de départ** : Marche, Course, Saut, Coup de poing, Salut de la main, Vide (fichiers JSON).
+- **Mes vidéos** : les exports GIF et vidéo sont aussi conservés dans l'app ; lecteur (lecture, plein écran, télécharger, partager, supprimer), espace de stockage utilisé.
+- **Réglages** : thème Automatique / Clair / Sombre, format et IPS par défaut, effacer les vidéos stockées.
+
 ---
 
 ## 3. Interface (UI)
@@ -83,11 +92,29 @@ Règles communes aux fonctionnalités IA :
 └──────────────┴──────────────────────────────────────────────┘
 ```
 
-- **Panneau gauche** : en-tête (nom du projet, indicateur « Mode : Personnages / Environnement », sauvegarder), section « Améliorations IA » (Fluidité, Répétition), section « Animation » (IPS), puis bouton **Exporter** avec choix du format en bas. Il n'a plus de sélecteur de mode (v1.0).
+- **Panneau gauche** : en-tête (bouton retour vers l'accueil — chevron + logo —, nom du projet, indicateur « Mode : Personnages / Environnement », sauvegarder), section « Améliorations IA » (Fluidité, Répétition), section « Animation » (IPS), section « Format de la vidéo » (v2.0), puis bouton **Exporter** avec choix du format en bas. Il n'a plus de sélecteur de mode (v1.0).
 - **Barre supérieure** : bouton à libellé « Personnages & Environnement · Ajouter ou modifier » placé juste à gauche du module de lecture (ouvre le panneau flottant ; titre sur deux lignes puis icônes seules quand la barre rétrécit, requêtes de conteneur), puis le module : annuler, rétablir, Lecture / Pause (un seul bouton), Stop, vitesses x1 / x2 / x5 / x10.
 - **Panneau flottant** (v1.0) : popover ancré sous son bouton, onglets `Personnages | Environnement` ; feuille du bas sous 600 px de large.
 - **Zone centrale** : canvas de dessin.
 - **Barre inférieure** : timeline des frames + bouton « + ».
+
+Accueil (v2.0) :
+```
+┌──────────────┬──────────────────────────────────────────────────────┐
+│ [logo]       │  BANNIÈRE : « Que voulez-vous animer aujourd'hui ? » │
+│ StickFlow    │  [ 🔍 Rechercher un projet ou un modèle ]            │
+│ ⌂ Accueil    │  (YouTube) (Vertical) (Carré) (Portrait) (Libre)     │
+│ ▢ Projets    ├──────────────────────────────────────────────────────┤
+│ ✦ Modèles    │  Commencer avec un modèle      [‹] [›]  Voir tout    │
+│ ▶ Vidéos     ├──────────────────────────────────────────────────────┤
+│ NOUVEAU      │  Mes projets      [Trier ▾] [▦|☰]       Voir tout    │
+│ PROJET       │  [carte] [carte] [carte] [carte]                     │
+│ format, IPS  ├──────────────────────────────────────────────────────┤
+│ [Créer]      │  Mes vidéos                             Voir tout    │
+│ ⚙ Réglages   │                                              ( + )   │
+└──────────────┴──────────────────────────────────────────────────────┘
+```
+Sous 900 px : la navigation devient une **barre d'onglets** en bas (Accueil, Projets, Modèles, Vidéos), une barre du haut porte le logo et les Réglages, et « Nouveau projet » passe dans la feuille de création (bouton « + », au-dessus de la barre d'onglets).
 
 ### 3.2 Style : inspiré des Human Interface Guidelines d'Apple
 Référence : https://developer.apple.com/design/human-interface-guidelines
@@ -256,6 +283,34 @@ docs/adr/0003-calque-de-dessin-en-tuiles.md
 ```
 `render/canvas2d.ts` gagne `paintScene` (même scène que WebGL, pour l'export et les vignettes) ; `render/renderer.ts` a trois programmes instanciés (capsules colorées, formes, calque) et `readPixel` (pipette de secours).
 
+Fichiers ajoutés en version 2.0 (accueil, formats, vidéos) :
+```
+src/core/router.ts                      # parseRoute / routeToHash / createRouter (port HashPort) : #/, #/projects, #/templates, #/videos, #/editor/:id
+src/core/formats.ts                     # Préréglages de format, normalizeFormat (taille libre paire, 256 à 3840), aspectRatio, ratioLabel
+src/core/home-state.ts                  # État de l'accueil, tri / recherche (shownProjects), préférences (normalizePreferences), vidéos (videosToPrune)
+src/core/home-intents.ts                # Aiguillage de l'accueil : créer, ouvrir, renommer, dupliquer, supprimer, exporter, vidéos, préférences
+src/model/format-fit.ts                 # Cadre du format dans le monde (frameWorldSize), éléments qui en sortent (outOfFrame)
+src/model/new-project.ts                # createProject (stickman au repos ou copie d'un modèle), uniqueName
+src/storage/video-store.ts              # Vidéos conservées (Blob), magasin séparé
+src/storage/preferences.ts              # Préférences de l'appareil (localStorage, ou mémoire)
+src/templates/*.json, index.ts          # Modèles de départ (fichiers de projet v3), loadTemplate (copie)
+src/views/view-host.ts                  # Contrat View { mount, destroy, update?, leave? } ; enchaîne les changements de route
+src/views/editor-view.ts                # L'éditeur encapsulé : son bus, son store, ses modules ; sauvegarde automatique en partant
+src/views/home-view.ts                  # L'accueil : son bus, son store (Store<HomeState>), ses sections
+src/views/project-previewer.ts          # Aperçu animé d'une carte (un seul à la fois), vignettes manquantes
+src/ui/assets/logo.svg, ui/logo.ts      # Logo (stickman en course sur sa courbe de mouvement), en currentColor
+src/ui/theme.ts                         # applyTheme : data-theme sur <html> (Automatique / Clair / Sombre)
+src/ui/format.ts, ui/relative-time.ts   # Durées, tailles de fichiers, dates relatives (« il y a 2 h »)
+src/ui/controls/format-picker.ts        # Choix du format (liste ou vignettes, aperçu aux proportions, taille libre)
+src/ui/controls/menu.ts, sheet.ts       # Menu « ⋮ » au clavier ; feuille modale iOS (<dialog>)
+src/ui/components/home/                 # sidebar, top-bar, hero-banner, format-shortcuts, template-carousel, project-grid, project-card,
+                                        # video-grid, video-player-sheet, create-project-sheet, export-sheet, settings-sheet,
+                                        # floating-add-button, home-notice, context (HomeContext)
+src/ui/styles/components/home/          # Un fichier CSS par composant de l'accueil
+docs/adr/0004-vues-et-index-des-projets.md
+```
+`storage/library.ts` gagne l'index des projets (second magasin, `stickflow-index`), `rename`, `duplicate`, `setThumbnail` ; `render/camera.ts` gagne `fitWorldHeight`, `stageWorldHeight`, `frameScreenRect` ; `render/thumbnail.ts` gagne `projectThumbnail` / `paintProjectFrame` ; `export/exporter.ts` expose `exportProject` (utilisé par l'éditeur et l'accueil). Noms de fichiers en kebab-case, comme le reste du projet (le prompt v2.0 proposait `HomeView.ts`…).
+
 Il n’y a pas de `core/history.ts` : l’historique est interne au module Projet (`src/model/project/`), par instantanés (voir `docs/adr/0001-historique-par-instantanes.md`).
 
 ### 5.2 Règles d'architecture
@@ -269,14 +324,20 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 - La valeur d'un attribut `data-action` est **le nom de l'événement émis** (ex. `data-action="frame:add"`).
 - Les composants reçoivent `{ bus, store }` par injection et ne s'importent jamais entre eux ; ils peuvent utiliser les primitives de `ui/controls/`.
 - **Repère du monde** : origine au centre de la scène, y vers le haut, angles en radians (0 = vers +x). La caméra montre une hauteur fixe de monde ; la largeur suit le rapport d'aspect.
-- **Rendu** : `main.ts` passe le canvas `#stage` et le calque de dessin à `connectStageView`. Le rendu lit la taille au moment de dessiner (`canvas.width`/`height`), redessine tout de suite sur `canvas:resize` (évite un clignotement) et à la demande sinon. Les couleurs lues par WebGL viennent des tokens CSS et doivent rester en **hexadécimal** (ex. `--color-stickman`).
+- **Routeur et vues (v2.0, ADR 0004)** : `main.ts` ouvre la bibliothèque, l'index, les vidéos et les préférences, applique le thème, puis le routeur (hash) affiche la vue de la route via `view-host.ts`. Chaque vue crée **son propre bus et son propre store** au montage et libère tout à la destruction (écouteurs, boucle de rendu, contexte WebGL rendu par `WEBGL_lose_context`). L'accueil garde sa vue d'une section à l'autre (`update`, qui relit les listes) ; l'éditeur ne garde que son projet (« Enregistrer sous » / « Ouvrir » remplacent l'adresse sans recharger). Quitter l'éditeur (bouton retour ou retour du navigateur) attend `leave()` : sauvegarde si le Projet a changé (`saveIfModified`), avec une vignette neuve. Une route dépassée par une plus récente pendant une sortie est ignorée. Un projet introuvable ramène à l'accueil.
+- **Format et cadre (v2.0)** : le cadre de la vidéo mesure toujours `FRAME_WORLD_HEIGHT` (400 unités) de haut dans le monde ; sa largeur suit le rapport du format. L'éditeur montre le cadre centré avec 5 % de marge (`stageWorldHeight`), partagé par le rendu, la manipulation, le dessin et le cadre assombri de `CanvasArea` (`frameScreenRect`, ombre portée `--color-letterbox`). L'export et les vignettes montrent exactement le cadre (`fitWorldHeight` sans marge). Une taille libre est ramenée à un nombre pair de pixels (encodeurs vidéo). Changer de format est annulable ; la section « Format de la vidéo » avertit si des personnages visibles ou des formes sortent du cadre (`outOfFrame`).
+- **Accueil (v2.0)** : `core/home-intents.ts` est l'aiguillage de l'accueil (sans DOM ; bibliothèque, préférences, modèles, vignettes, export et vidéos injectés). Créer un projet = format, IPS (celui du modèle s'il n'est pas choisi) et nom libre (« Projet sans titre 2 »), enregistrement avec sa vignette, puis ouverture dans l'éditeur. Les cartes sont gardées par id ; un résumé changé reconstruit sa carte ; une vignette manquante est générée quand la carte devient visible (`IntersectionObserver`). L'aperçu au survol (souris seulement, après 250 ms, pas en mouvement réduit) charge le projet et le joue à son IPS dans un canvas ; un seul à la fois. La recherche filtre projets et modèles (sans casse ni accents) et n'est pas mémorisée ; tri, vue, thème, format et IPS par défaut le sont (`localStorage`, `normalizePreferences`). Supprimer demande confirmation.
+- **Index et vignettes (v2.0)** : la bibliothèque écrit le projet (`project:<id>`, avec `createdAt` / `updatedAt`) **et** son résumé dans l'index ; l'accueil ne lit que l'index (50 projets : ~10 ms). Les projets de la v1.0 sont indexés à la première lecture, sans vignette. Vignette : première frame, 320 px de côté long, PNG, aux couleurs de l'export (`EXPORT_COLORS`), régénérée à chaque sauvegarde.
+- **Vidéos conservées (v2.0)** : un export GIF, MP4 ou WebM (pas la séquence PNG), depuis l'éditeur ou une carte, est téléchargé **et** gardé en Blob (`stickflow-videos`). « Mes vidéos » montre l'espace utilisé (`navigator.storage.estimate()`) ; au-delà de 80 %, il propose de supprimer les plus anciennes jusqu'à revenir à 70 %. Lecteur : `<video>` (ou `<img>` pour un GIF) par URL d'objet, libérée à la fermeture ; Partager n'apparaît que si `navigator.canShare` accepte un fichier.
+- **Thème (v2.0)** : Automatique (système), Clair ou Sombre imposé par `data-theme` sur `<html>`. Les couleurs sombres sont déclarées deux fois dans `tokens.css` (automatique et imposé), gardées identiques par `tokens.test.ts`.
+- **Rendu** : `EditorView` passe le canvas `#stage` et le calque de dessin à `connectStageView`. Le rendu lit la taille au moment de dessiner (`canvas.width`/`height`), redessine tout de suite sur `canvas:resize` (évite un clignotement) et à la demande sinon. Les couleurs lues par WebGL viennent des tokens CSS et doivent rester en **hexadécimal** (ex. `--color-stickman`).
 - **Manipulation** : `CanvasArea` émet le pointeur brut (`stage:pointer:*`, en pixels CSS avec la taille du canvas, plus `pointerType`, `shiftKey`, `pressure`) et les touches (`node:cycle`, `node:nudge`, `node:select`) ; `interaction/character-manipulation.ts` fait la sélection et le glisser, et émet `frame:pose:change` (frame désignée par son **id**). Zone de saisie d'une poignée : 22 px CSS de rayon (cible de 44 px). Pas de manipulation pendant la lecture ; les poignées ne s'affichent qu'en mode Personnage.
 - **Règles de manipulation** : glisser un nœud le fait tourner autour du bout de son parent (ses descendants suivent) ; glisser la racine déplace toute la figure ; modifier une frame générée (glisser, coller, « + ») la convertit en nouvelle image clé entre ses voisines, qui devient la frame active. Clavier sur le canvas : ↑ / ↓ choisir un nœud, ← / → tourner de 5° (Maj : 1°), Échap désélectionner.
 - **Lecture** : parcourt la séquence au rythme IPS × vitesse, autant de fois que la Répétition l'indique (coupée : une fois puis arrêt sur la dernière frame ; « Infini » : en boucle ; sinon N passages). Lancée depuis la dernière frame, elle repart du début ; un saut de plus de 250 ms (onglet masqué) est plafonné. Pause garde la frame courante ; **Stop** revient à la frame active au lancement. Espace bascule lecture / pause (y compris sur les boutons de lecture, pas sur les autres boutons ni dans un champ). La lecture ne touche jamais au Projet (`playback:frame` met à jour la Session).
 - **Frames** : « + » insère une copie de la frame active juste après elle (c'est aussi « dupliquer ») ; Supprimer (bouton ou Suppr sur une vignette) retire l'image clé active, jamais la dernière, et ne s'applique pas à une frame générée ; Copier / Coller la pose passe par la Session, et coller est annulable. Vignettes : conservées par id de frame, seule celle qui change est repeinte. Une vignette montre la frame **comme la scène** (rendu final de `buildSceneLayers` : couleurs des parties, zones de couleur, taille, formes, calque de dessin, arrière-plan), avec des membres plus épais (`THUMBNAIL_STYLE`) ; les frames générées se distinguent par leur cadre (plus petites, teintées, bord pointillé, badge), plus par la couleur du personnage. Toutes les vignettes sont repeintes quand les personnages ou le décor changent (calque : 150 ms après le dernier tampon).
 - **Pelure d'oignon** : frame précédente en transparence sous la frame active, réglable dans la section Animation, masquée pendant la lecture.
-- **Sauvegarde** : le fichier (`stickflow-project`, **version 2** depuis la v1.0) contient nom, IPS, personnages, images clés, environnement, couleurs récentes et réglages IA ; un fichier de version 1 passe d'abord par `migrateProject` (un seul personnage « Personnage 1 »). À la lecture, la structure est vérifiée (`ProjectFileError`, version plus récente refusée), puis `createHistory` applique les bornes. La bibliothèque passe par le port `KeyValueStore` (deux adaptateurs : IndexedDB, mémoire). La Session retient `documentId` et `savedProject` ; `saveStatus` vaut « jamais enregistré », « enregistré » ou « modifié » (comparaison par référence du Projet). Ouvrir remplace le Projet et repart d'un historique vierge. « Enregistrer sous » renomme en « <nom> (copie) » et enregistre sous un nouvel id. Le nom du projet se modifie dans l'en-tête (changement nommé `rename`, annulable, frappes regroupées). Raccourcis : Ctrl/⌘+S enregistrer, Ctrl/⌘+O ouvrir. Les erreurs et confirmations passent par `session.notice`, affichée sous le bouton Exporter.
-- **Export** : 1280 × 720, mêmes couleurs quel que soit le thème (fond de l'environnement, blanc par défaut, stickman foncé ; PNG sur fond transparent). Il dessine le décor (calque de dessin, formes) et tous les personnages visibles, sans aide d'édition. Répétition coupée : une lecture ; infinie : GIF en boucle, vidéo et PNG d'un passage ; N répétitions : compteur de boucle du GIF, N passages dans la vidéo, un passage en PNG. La vidéo est enregistrée en temps réel (une image par frame, au rythme de l'IPS) ; une vidéo vide est signalée comme un échec. `session.exportProgress` (0 à 1) désactive le bouton et affiche l'avancement.
+- **Sauvegarde** : le fichier (`stickflow-project`, **version 3** depuis la v2.0) contient nom, IPS, format de la vidéo, personnages, images clés, environnement, couleurs récentes et réglages IA ; un fichier ancien passe d'abord par `migrateProject` (version 1 → un seul personnage « Personnage 1 » ; version 2 → format YouTube 16:9). À la lecture, la structure est vérifiée (`ProjectFileError`, version plus récente refusée), puis `createHistory` applique les bornes. La bibliothèque passe par le port `KeyValueStore` (deux adaptateurs : IndexedDB, mémoire). La Session retient `documentId` et `savedProject` ; `saveStatus` vaut « jamais enregistré », « enregistré » ou « modifié » (comparaison par référence du Projet). Ouvrir remplace le Projet et repart d'un historique vierge. « Enregistrer sous » renomme en « <nom> (copie) » et enregistre sous un nouvel id. Le nom du projet se modifie dans l'en-tête (changement nommé `rename`, annulable, frappes regroupées). Raccourcis : Ctrl/⌘+S enregistrer, Ctrl/⌘+O ouvrir. Les erreurs et confirmations passent par `session.notice`, affichée sous le bouton Exporter.
+- **Export** : à la résolution du format de la vidéo (v2.0 ; 1280 × 720 avant), mêmes couleurs quel que soit le thème (fond de l'environnement, blanc par défaut, stickman foncé ; PNG sur fond transparent). Il dessine le décor (calque de dessin, formes) et tous les personnages visibles, sans aide d'édition. Répétition coupée : une lecture ; infinie : GIF en boucle, vidéo et PNG d'un passage ; N répétitions : compteur de boucle du GIF, N passages dans la vidéo, un passage en PNG. La vidéo est enregistrée en temps réel (une image par frame, au rythme de l'IPS) ; une vidéo vide est signalée comme un échec. `session.exportProgress` (0 à 1) désactive le bouton et affiche l'avancement.
 - **Modes d'édition (v1.0)** : `session.editorMode` vaut `'characters'` ou `'environment'` ; seul le contexte actif réagit au pointeur, l'autre est atténué (`DIMMED_OPACITY`). Changer de mode vide la sélection de l'autre contexte. Raccourcis : C Personnages, E Environnement, Tab bascule (seulement quand aucun élément n'a le focus, pour garder la navigation au clavier).
 - **Sélection (v1.0)** : test de toucher poignée du personnage sélectionné > partie (distance point-segment, du personnage le plus au-dessus) > cadre du personnage ; tolérance plus large au toucher (poignée 22 px, partie 14 px) qu'à la souris (12 / 6 px). Maj + clic ajoute ou retire une partie. Un personnage masqué ou verrouillé n'est jamais sélectionnable. Clic dans le vide : tout désélectionner. Suppr supprime (confirmation pour un personnage), Ctrl/⌘+D duplique, Échap ferme le panneau. La liste de l'onglet Personnages et la scène partagent `session.selectedCharacterId`.
 - **Formes (v1.0)** : outil `select` (ajouté à la grille) pour choisir, déplacer, redimensionner (4 coins, ou les 2 bouts d'une ligne) et pivoter (poignée au-dessus, pas de 15° avec Maj) ; un outil de forme trace par glisser (Maj : proportions contraintes) au-delà de 3 px. Un geste sur la scène = une étape d'annulation (jeton `gesture` sur `shape:create` / `shape:update`). Remplir sur une forme lui donne la couleur de remplissage, ailleurs émet `drawing:fill`.
@@ -296,6 +357,18 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 | `frame:select` | `{ index }` |
 | `frame:add` | — |
 | `project:save` | — |
+| `route:change` | `{ route }` (v2.0 : accueil, section, éditeur ; quitter l'éditeur l'enregistre d'abord) |
+| `project:create` | `{ name?, format?, fps?, templateId? }` (accueil ; valeurs par défaut des préférences) |
+| `project:format:change` | `{ format }` (format de la vidéo du projet, annulable) |
+| `library:rename`, `library:duplicate` | `{ projectId, name }` (projet enregistré, depuis sa carte) |
+| `library:delete` | `{ projectId }` |
+| `library:export` | `{ projectId, format }` |
+| `home:search` | `{ query }` |
+| `home:sort` / `home:view` | `{ sort: 'modified' \| 'created' \| 'az' \| 'za' }` / `{ view: 'grid' \| 'list' }` |
+| `home:sheet` | `{ sheet }` : `{ kind: 'create', templateId }`, `{ kind: 'export', projectId }`, `{ kind: 'settings' }`, `{ kind: 'video', videoId }` ou `null` |
+| `settings:change` | `Partial<Preferences>` (thème, format et IPS par défaut, tri, vue) |
+| `video:delete` | `{ videoId }` |
+| `videos:prune`, `videos:clear` | — (supprimer les plus anciennes / toutes) |
 | `editMode:change` | `{ mode: 'characters' \| 'environment' }` (remplace `editor:mode:change`, v1.0) |
 | `panel:toggle` | `{ open }` (panneau flottant) |
 | `ai:smoothing:change` | `Partial<SmoothingSettings>` |
@@ -399,9 +472,16 @@ interface Environment {            // statique en v1.0 (même décor dans toutes
   drawing: { tiles: Record<string, string> }; // « colonne,ligne » → PNG en data URL (ADR 0003)
 }
 
+interface VideoFormat {             // v2.0
+  preset: 'youtube' | 'vertical' | 'square' | 'portrait' | 'custom';
+  width: number;                    // résolution de l'export, en pixels
+  height: number;
+}
+
 interface Project {
   name: string;
   fps: number;                    // 1 à 60
+  format: VideoFormat;            // v2.0 (absent d'un fichier v2 = YouTube 16:9)
   characters: Character[];        // au moins un ; ordre = ordre d'affichage
   keyframes: Keyframe[];
   environment: Environment;
@@ -412,6 +492,23 @@ interface Project {
   };
 }
 ```
+
+Hors du Projet (v2.0, ADR 0004) : le **résumé** d'un projet enregistré, dans l'index des projets, et les vidéos conservées.
+```ts
+interface ProjectSummary {
+  id: string; name: string; format: VideoFormat; fps: number;
+  frameCount: number;             // images de la séquence (images clés et frames générées)
+  createdAt: number; updatedAt: number;   // ms depuis l'époque Unix
+  thumbnail: string | null;       // première frame, PNG en data URL
+}
+
+interface VideoSummary {          // + blob: Blob dans le magasin des vidéos
+  id: string; projectId: string | null; projectName: string;
+  type: 'mp4' | 'webm' | 'gif'; duration: number; size: number; createdAt: number; thumbnail: string | null;
+}
+```
+
+Écarts assumés par rapport au prompt v2.0 : `createdAt`, `updatedAt` et `thumbnail` sont dans le résumé du projet, pas dans le Projet (annuler ne doit pas toucher aux dates, et `saveStatus` compare le Projet par référence) ; le fichier de projet reste sans dates.
 
 Écarts assumés par rapport au prompt v1.0 : les **images clés restent la seule frame enregistrée** (pas de `Frame.generated` dans le Projet, ADR 0002) ; la version est portée par le fichier (`stickflow-project` v2), pas par le `Project` ; le calque de dessin est en tuiles plutôt qu'un PNG unique (ADR 0003). Un environnement animable plus tard pourra devenir `Record<keyframeId, …>` ou des pistes, sans toucher aux personnages.
 
@@ -447,6 +544,7 @@ Module Projet (revue d'architecture, candidat 1, **réalisé**) — `src/model/p
 5. **Phase 5 — Fluidité et Répétition (V1)** : splines + easing, boucle intelligente. ✅
 6. **Phase 6 — Sauvegarde et export** : IndexedDB, GIF / PNG / MP4. ✅
    - **Version 1.0** (amélioration intermédiaire, voir 2.4) : plusieurs personnages, apparence (couleurs par partie, taille), grande palette, environnement (formes, calque de dessin), panneau « Personnages & Environnement », sélection optimisée, bouton Lecture / Pause unique, modèle v2 + migration, export du décor. ✅
+   - **Version 2.0** (voir 2.5) : routeur et vues (accueil / éditeur), formats de vidéo et cadre, modèle v3 + migration, index des projets et vignettes, page d'accueil (barre latérale, bannière, modèles, projets, vidéos, création), vidéos conservées et lecteur, réglages et thème, barre d'onglets mobile. ✅
 7. **Phase 7 — PWA et Android** : `vite-plugin-pwa`, Capacitor, test fermé Google Play.
 8. **Phase 8 — IA avancée** : modèle de *motion in-betweening*, effets prédéfinis, prompt.
 

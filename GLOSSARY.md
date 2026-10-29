@@ -5,12 +5,36 @@
 ## Projet et session
 
 **Projet** :
-L'animation que l'utilisateur crée et sauvegarde : son nom, son IPS, ses personnages, ses images clés, son décor, ses couleurs récentes et ses réglages IA. Toute modification d'un Projet peut être annulée.
+L'animation que l'utilisateur crée et sauvegarde : son nom, son IPS, son format de vidéo, ses personnages, ses images clés, son décor, ses couleurs récentes et ses réglages IA. Toute modification d'un Projet peut être annulée.
 _Avoid_ : document, fichier, animation (pour désigner l'ensemble)
 
 **Bibliothèque** :
-L'ensemble des Projets enregistrés sur l'appareil, que l'on rouvre depuis « Ouvrir ».
+L'ensemble des Projets enregistrés sur l'appareil, que l'on retrouve sur l'Accueil ou depuis « Ouvrir ».
 _Avoid_ : galerie, historique, fichiers récents
+
+**Résumé de projet** :
+Ce que l'Accueil montre d'un Projet enregistré sans le charger : nom, format, IPS, nombre d'images, dates de création et de modification, vignette. Les résumés forment l'**index des projets**, mis à jour à chaque sauvegarde ; ils ne font pas partie du Projet.
+_Avoid_ : métadonnées, entrée, fiche
+
+**Format de la vidéo** :
+La forme et la résolution de l'animation exportée : un préréglage (YouTube 16:9, Shorts / TikTok / Reels 9:16, Instagram carré 1:1 ou portrait 4:5) ou une taille libre. Il fixe le **cadre** de la scène : la zone exportée, toujours aussi haute dans le monde, dont l'extérieur est assombri dans l'éditeur.
+_Avoid_ : ratio, résolution (seuls), format d'export (c'est GIF / PNG / vidéo)
+
+**Modèle de départ** :
+Un Projet tout prêt (Marche, Course, Saut, Coup de poing, Salut de la main, Vide) dont on crée une copie ; le modèle lui-même n'est jamais modifié.
+_Avoid_ : template, exemple, preset
+
+**Vidéo conservée** :
+Un GIF ou une vidéo exporté, gardé dans l'app en plus du téléchargement, et que l'on revoit dans « Mes vidéos ».
+_Avoid_ : export (pour désigner le fichier gardé), film
+
+**Accueil** :
+La page d'ouverture de l'app : rechercher, créer (raccourcis de format, modèles, bouton « + »), retrouver ses Projets et ses vidéos conservées. L'éditeur s'ouvre depuis elle, et y revient en enregistrant le Projet.
+_Avoid_ : tableau de bord, galerie, menu principal
+
+**Préférences** :
+Les choix mémorisés sur l'appareil, hors de tout Projet : thème, tri et vue de « Mes projets », format et IPS proposés pour un nouveau Projet.
+_Avoid_ : réglages du projet, Session
 
 **Session** :
 L'état de travail du moment : frame active, sélection, lecture en cours, vitesse de prévisualisation, mode d'édition, outil, format d'export. Elle n'est ni sauvegardée ni annulable.

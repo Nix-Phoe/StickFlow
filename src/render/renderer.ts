@@ -188,6 +188,8 @@ export function createStageRenderer(canvas: HTMLCanvasElement, options: StageRen
         gl.deleteTexture(resources.texture);
         resources = null;
       }
+      // Rend le contexte au navigateur tout de suite (il en limite le nombre), sans attendre le ramasse-miettes.
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
     },
   };
 }

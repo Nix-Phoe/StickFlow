@@ -35,6 +35,37 @@
   gap: var(--space-1);
 }
 
+/* Retour à l'accueil : chevron + logo, une seule cible tactile. */
+.side-panel__back {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: var(--space-half);
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-half) 0 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-accent);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .side-panel__back:hover {
+    background: var(--color-fill-hover);
+  }
+}
+
+.side-panel__back:active {
+  background: var(--color-fill-pressed);
+}
+
+.side-panel__logo {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
 .side-panel__brand {
   display: grid;
   place-items: center;

@@ -3,6 +3,7 @@
 import {
   Brush,
   ChevronDown,
+  ChevronLeft,
   ChevronUp,
   Circle,
   ClipboardPaste,
@@ -80,6 +81,7 @@ const registry = {
   locked: Lock,
   unlocked: LockOpen,
   up: ChevronUp,
+  back: ChevronLeft,
   down: ChevronDown,
   eyedropper: Pipette,
   palette: Palette,

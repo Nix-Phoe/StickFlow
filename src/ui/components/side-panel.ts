@@ -17,6 +17,7 @@ import { createStepper } from '../controls/stepper';
 import { createSwitch } from '../controls/switch';
 import { DRAWER_MEDIA_QUERY, h, ids, type Child } from '../dom';
 import { icon, type IconName } from '../icons';
+import { logo } from '../logo';
 import { strings } from '../strings';
 
 const t = strings.panel;
@@ -79,12 +80,20 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
     onClick: () => bus.emit('project:save'),
   });
 
+  // Retour à l'accueil : le projet est sauvegardé en quittant l'éditeur.
+  const backButton = h(
+    'button',
+    { type: 'button', class: 'side-panel__back', 'aria-label': t.back, title: t.back, 'data-action': 'route:change' },
+    [icon('back', 'icon side-panel__back-chevron'), h('span', { class: 'side-panel__brand' }, [logo('side-panel__logo')])],
+  );
+  backButton.addEventListener('click', () => bus.emit('route:change', { route: { name: 'home' } }));
+
   // Le mode se choisit dans le panneau « Personnages & Environnement » ; ici, un simple rappel.
   const modeIndicator = h('p', { class: 'side-panel__mode', 'aria-live': 'polite' });
 
   const header = h('header', { class: 'side-panel__header' }, [
     h('div', { class: 'side-panel__title-row' }, [
-      h('div', { class: 'side-panel__brand', 'aria-hidden': 'true' }, [icon('person')]),
+      backButton,
       h('div', { class: 'side-panel__titles' }, [
         h('p', { class: 'side-panel__app-name' }, [strings.appName]),
         projectName,

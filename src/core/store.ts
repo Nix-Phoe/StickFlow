@@ -3,7 +3,7 @@ import { createHistory, type ProjectHistory } from '../model/project';
 import { deriveSequence } from '../model/sequence';
 import { createId } from './id';
 import { createSession, fitSessionToSequence, selectPart, type Session } from './session';
-import type { SkeletonNode } from './types';
+import type { Project, SkeletonNode } from './types';
 
 /** État global de l'application : le Projet (avec son historique) et la Session. */
 export interface AppState {
@@ -54,6 +54,16 @@ export class Store {
       }
     });
   }
+}
+
+/**
+ * État de l'éditeur pour un projet enregistré sous `documentId` : historique vierge, Session
+ * neuve sur la première frame, projet considéré comme enregistré.
+ */
+export function createStateFromProject(project: Project, documentId: string): AppState {
+  const history = createHistory(project);
+  const session: Session = { ...createSession(), documentId, savedProject: history.present };
+  return { project: history, session: fitSessionToSequence(session, [], deriveSequence(history.present), history.present) };
 }
 
 /** Pose de démonstration de la 2e image clé : le bras droit salue (angles relatifs, en radians). */

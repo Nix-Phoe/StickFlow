@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Logo StickFlow : un stickman en pleine course, porté par la courbe de son mouvement. -->
+  <path d="M3.5 27.5C9 30 20 28 27 14" stroke-width="2" opacity="0.55"/>
+  <circle cx="19.5" cy="6" r="3.2" fill="currentColor" stroke="none"/>
+  <path d="M18.5 11 15.5 18.5" stroke-width="2.6"/>
+  <path d="M17.8 12.8 22.8 15.6M17.8 12.8 12.6 13.2" stroke-width="2.4"/>
+  <path d="M15.5 18.5 20 22.5 19 26.5M15.5 18.5 11.5 22.8 7.5 22" stroke-width="2.4"/>
+</svg>

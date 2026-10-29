@@ -1,3 +1,4 @@
+import type { Route } from './router';
 import type { PartialPaintSettings } from './session';
 import type {
   ColorBand,
@@ -69,6 +70,8 @@ export interface AppEvents {
   /** Tourne le nœud sélectionné. */
   'node:nudge': { radians: number };
 
+  /** Va vers une page (accueil, section, éditeur) ; quitter l'éditeur le sauvegarde d'abord. */
+  'route:change': { route: Route };
   'project:save': void;
   /** Enregistre une copie sous ce nom, qui devient le document courant. */
   'project:save-as': { name: string };

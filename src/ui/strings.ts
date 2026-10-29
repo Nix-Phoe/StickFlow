@@ -179,6 +179,15 @@ export const strings = {
     percent: (n: number): string => `${n} %`,
   },
 
+  home: {
+    create: 'Créer le projet',
+  },
+
+  documentTitle: {
+    home: 'StickFlow',
+    editor: 'StickFlow · Éditeur',
+  },
+
   regions: {
     panel: 'Réglages',
     toolbar: "Barre d'outils",
@@ -187,6 +196,7 @@ export const strings = {
   },
 
   panel: {
+    back: 'Retour à l’accueil',
     project: 'Projet',
     projectName: 'Nom du projet',
     save: 'Enregistrer le projet (Ctrl+S)',

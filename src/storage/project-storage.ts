@@ -2,6 +2,7 @@
 // Sans DOM ; la bibliothèque (et donc IndexedDB) est injectée.
 
 import type { AppEventBus } from '../core/events';
+import { saveStatus } from '../core/selectors';
 import { clearSelection, fitSessionToSequence, type Session } from '../core/session';
 import type { Store } from '../core/store';
 import type { Notice } from '../core/types';
@@ -18,6 +19,8 @@ export interface ProjectStorageOptions {
 /** Opérations exposées pour les tests ; l'interface passe par les événements `project:*`. */
 export interface ProjectStorage {
   save(): Promise<void>;
+  /** Sauvegarde automatique (retour à l'accueil) : n'écrit que si le Projet a changé depuis. */
+  saveIfModified(): Promise<void>;
   saveAs(name: string): Promise<void>;
   open(projectId: string): Promise<void>;
   refreshLibrary(): Promise<void>;
@@ -44,6 +47,7 @@ export function connectProjectStorage({ bus, store, library }: ProjectStorageOpt
 
   const storage: ProjectStorage = {
     save: () => write(store.state.session.documentId ?? undefined),
+    saveIfModified: () => (saveStatus(store.state) === 'saved' ? Promise.resolve() : storage.save()),
 
     async saveAs(name) {
       bus.emit('project:rename', { name });

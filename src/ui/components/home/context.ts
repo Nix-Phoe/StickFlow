@@ -24,4 +24,6 @@ export interface HomeContext {
   store: Store<HomeState>;
   preview: ProjectPreviewer;
   templates: TemplateCatalog;
+  /** Fichier d'une vidéo conservée (lecteur). */
+  videoFile(videoId: string): Promise<Blob>;
 }

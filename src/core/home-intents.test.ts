@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createMemoryStore } from '../storage/memory-store';
 import { createProjectLibrary } from '../storage/library';
 import { createMemoryPreferences } from '../storage/preferences';
+import { createVideoLibrary } from '../storage/video-store';
 import { testProject } from '../test/fixtures';
 import { createEventBus } from './events';
 import { DEFAULT_FORMAT, presetFormat } from './formats';
@@ -130,5 +131,75 @@ describe('connectHomeIntents: recherche, tri, vue et réglages', () => {
     expect(state().sheet).toEqual({ kind: 'create', templateId: 'walk' });
     bus.emit('home:sheet', { sheet: null });
     expect(state().sheet).toBeNull();
+  });
+});
+
+describe('connectHomeIntents: vidéos', () => {
+  const file = (extension: string, bytes = 100) => ({
+    blob: new Blob([new Uint8Array(bytes)]),
+    filename: `saut.${extension}`,
+    extension,
+    duration: 2,
+  });
+
+  async function withVideos(extension = 'mp4', storage = { usage: 100, quota: 1000 }) {
+    const videos = createVideoLibrary(createMemoryStore(), { now: () => 5 });
+    const downloads: string[] = [];
+    const context = await setup({
+      videos,
+      estimateStorage: async () => storage,
+      exportProject: async (_project, _format, onProgress) => {
+        onProgress(0.5);
+        return file(extension);
+      },
+      download: ({ filename }) => downloads.push(filename),
+    });
+    return { ...context, videos, downloads };
+  }
+
+  it('loads the kept videos and the storage used', async () => {
+    const { state } = await withVideos();
+    expect(state().videos).toEqual([]);
+    expect(state().storage).toEqual({ usage: 100, quota: 1000 });
+  });
+
+  it('exports a saved project, downloads it and keeps a video in « Mes vidéos »', async () => {
+    const { bus, home, state, downloads } = await withVideos('mp4');
+    bus.emit('project:create', { name: 'Saut' });
+    await home.settled();
+    bus.emit('library:export', { projectId: 'p1', format: 'mp4' });
+    await home.settled();
+    expect(downloads).toEqual(['saut.mp4']);
+    expect(state().videos).toEqual([expect.objectContaining({ projectId: 'p1', projectName: 'Saut', type: 'mp4', duration: 2, size: 100 })]);
+    expect(state().exporting).toBeNull();
+    expect(state().notice).toMatchObject({ code: 'exported', detail: 'saut.mp4' });
+  });
+
+  it('does not keep a PNG sequence', async () => {
+    const { bus, home, state } = await withVideos('zip');
+    bus.emit('project:create', { name: 'Saut' });
+    await home.settled();
+    bus.emit('library:export', { projectId: 'p1', format: 'png' });
+    await home.settled();
+    expect(state().videos).toEqual([]);
+  });
+
+  it('deletes one video, the oldest ones when space runs out, or all of them', async () => {
+    const { bus, home, state, videos } = await withVideos('mp4', { usage: 900, quota: 1000 });
+    for (const name of ['a', 'b', 'c', 'd']) await videos.add({ projectId: null, projectName: name, type: 'gif', blob: new Blob([new Uint8Array(100)]), duration: 1, thumbnail: null });
+    await home.refresh();
+    const [newest] = state().videos ?? [];
+    bus.emit('video:delete', { videoId: newest?.id ?? '' });
+    await home.settled();
+    expect(state().videos).toHaveLength(3);
+    expect(state().notice).toMatchObject({ code: 'video-deleted' });
+    // 900 / 1000 : il faut libérer 200 octets, soit les deux plus anciennes vidéos.
+    bus.emit('videos:prune');
+    await home.settled();
+    expect(state().videos).toHaveLength(1);
+    bus.emit('videos:clear');
+    await home.settled();
+    expect(state().videos).toEqual([]);
+    expect(state().notice).toMatchObject({ code: 'videos-cleared' });
   });
 });

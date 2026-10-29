@@ -8,6 +8,7 @@ import { browserHashPort, createRouter } from './core/router';
 import { createIdbStore, createMemoryStore, createProjectLibrary } from './storage';
 import { normalizePreferences } from './core/home-state';
 import { createLocalPreferences } from './storage/preferences';
+import { createVideoLibrary } from './storage/video-store';
 import { applyTheme } from './ui/theme';
 import { createEditorView } from './views/editor-view';
 import { createHomeView } from './views/home-view';
@@ -22,6 +23,8 @@ const persistent = typeof indexedDB !== 'undefined';
 const library = createProjectLibrary(persistent ? createIdbStore() : createMemoryStore(), {
   index: persistent ? createIdbStore('stickflow-index', 'projects') : createMemoryStore(),
 });
+// Vidéos exportées, gardées en Blob dans une base à part.
+const videos = createVideoLibrary(persistent ? createIdbStore('stickflow-videos', 'videos') : createMemoryStore());
 
 // Préférences de l'appareil (thème, tri, vue, format par défaut) : le thème s'applique dès le départ.
 const preferences = createLocalPreferences();
@@ -31,7 +34,7 @@ const router = createRouter(browserHashPort(), (route) => void host.show(route))
 const navigate = router.navigate;
 const host = createViewHost(root, (route) =>
   route.name === 'editor'
-    ? createEditorView({ projectId: route.projectId, library, navigate })
-    : createHomeView({ section: route.name, library, preferences, navigate }),
+    ? createEditorView({ projectId: route.projectId, library, videos, navigate })
+    : createHomeView({ section: route.name, library, preferences, videos, navigate }),
 );
 router.start();

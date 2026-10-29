@@ -4,6 +4,7 @@
 
 import { connectPlayer } from '../animation';
 import { createEventBus, type AppEventName } from '../core/events';
+import { isVideoType } from '../core/home-state';
 import { connectIntents } from '../core/intents';
 import type { Route } from '../core/router';
 import { createStateFromProject, Store } from '../core/store';
@@ -15,6 +16,7 @@ import { connectStageView } from '../render';
 import type { DrawingImage } from '../render/canvas2d';
 import { projectThumbnail } from '../render/thumbnail';
 import { connectProjectStorage, type ProjectLibrary, type ProjectStorage } from '../storage';
+import type { VideoLibrary } from '../storage/video-store';
 import type { Component, ComponentContext } from '../ui/component';
 import { createCanvasArea } from '../ui/components/canvas-area';
 import { createCharactersTab } from '../ui/components/characters-tab';
@@ -33,13 +35,15 @@ import type { View } from './view-host';
 export interface EditorViewOptions {
   projectId: string;
   library: ProjectLibrary;
+  /** Vidéos exportées conservées dans l'app (« Mes vidéos »). */
+  videos: VideoLibrary;
   navigate: (route: Route, options?: { replace?: boolean }) => void;
 }
 
 /** Débogage : chaque événement est journalisé, sauf ceux émis en continu (glisser, lecture). */
 const QUIET_EVENTS: ReadonlySet<AppEventName> = new Set(['stage:pointer:move', 'frame:pose:change', 'playback:frame']);
 
-export function createEditorView({ projectId, library, navigate }: EditorViewOptions): View {
+export function createEditorView({ projectId, library, videos, navigate }: EditorViewOptions): View {
   const root = h('div', { class: 'app', 'aria-busy': 'true' });
   const cleanups: Array<() => void> = [];
   let storage: ProjectStorage | null = null;
@@ -76,7 +80,26 @@ export function createEditorView({ projectId, library, navigate }: EditorViewOpt
       connectDrawingTool({ bus, store: editorStore, surface: drawing }),
       connectPlayer(context),
       storage.disconnect,
-      connectExporter({ bus, store: editorStore, download: downloadBlob, drawing }),
+      connectExporter({
+        bus,
+        store: editorStore,
+        download: downloadBlob,
+        drawing,
+        // Un GIF ou une vidéo rejoint aussi « Mes vidéos » sur l'accueil.
+        onExported: (result, project) => {
+          if (!isVideoType(result.extension)) return;
+          void videos
+            .add({
+              projectId: editorStore.state.session.documentId,
+              projectName: project.name,
+              type: result.extension,
+              blob: result.blob,
+              duration: result.duration,
+              thumbnail: projectThumbnail(project, drawingImage()),
+            })
+            .catch((error: unknown) => console.warn('[videos] Vidéo non conservée :', error));
+        },
+      }),
       bus.onAny((type, payload) => {
         if (!QUIET_EVENTS.has(type as AppEventName)) console.info(`[event] ${String(type)}`, payload ?? '');
       }),

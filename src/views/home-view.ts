@@ -13,6 +13,7 @@ import { exportProject } from '../export';
 import { projectThumbnail } from '../render/thumbnail';
 import type { ProjectLibrary } from '../storage';
 import type { PreferencesStore } from '../storage/preferences';
+import type { VideoLibrary } from '../storage/video-store';
 import { loadTemplate } from '../templates';
 import type { Component } from '../ui/component';
 import type { HomeContext, TemplateCatalog } from '../ui/components/home/context';
@@ -24,6 +25,8 @@ import { createHomeNotice } from '../ui/components/home/home-notice';
 import { createProjectGrid } from '../ui/components/home/project-grid';
 import { createSidebar } from '../ui/components/home/sidebar';
 import { createTemplateCarousel } from '../ui/components/home/template-carousel';
+import { createVideoGrid } from '../ui/components/home/video-grid';
+import { createVideoPlayerSheet } from '../ui/components/home/video-player-sheet';
 import { h } from '../ui/dom';
 import { downloadBlob } from '../ui/download';
 import { strings } from '../ui/strings';
@@ -35,6 +38,7 @@ export interface HomeViewOptions {
   section: HomeSection;
   library: ProjectLibrary;
   preferences: PreferencesStore;
+  videos: VideoLibrary;
   navigate: (route: Route) => void;
 }
 
@@ -44,18 +48,19 @@ const SECTIONS: Record<HomeSection, (context: HomeContext) => Component[]> = {
     createHeroBanner(context),
     createTemplateCarousel(context, { variant: 'carousel' }),
     createProjectGrid(context, { variant: 'recent' }),
+    createVideoGrid(context, { variant: 'recent' }),
   ],
   projects: (context) => [createProjectGrid(context, { variant: 'all' })],
   templates: (context) => [createTemplateCarousel(context, { variant: 'all' })],
-  videos: () => [],
+  videos: (context) => [createVideoGrid(context, { variant: 'all' })],
 };
 
-export function createHomeView({ section, library, preferences, navigate }: HomeViewOptions): View {
+export function createHomeView({ section, library, preferences, videos, navigate }: HomeViewOptions): View {
   const bus = createEventBus();
   const store = new Store<HomeState>(createHomeState(section, normalizePreferences(preferences.load())));
   const preview = createProjectPreviewer(library);
   const templates = createTemplateCatalog();
-  const context: HomeContext = { bus, store, preview, templates };
+  const context: HomeContext = { bus, store, preview, templates, videoFile: (videoId) => videos.file(videoId) };
   const cleanups: Array<() => void> = [];
 
   // Calque de dessin des exports lancés depuis l'accueil, créé au premier export.
@@ -71,6 +76,8 @@ export function createHomeView({ section, library, preferences, navigate }: Home
     thumbnail: (project) => projectThumbnail(project, null),
     exportProject: (project, format, onProgress) => exportProject(project, format, { drawing: (drawing ??= createDrawingSurface()), onProgress }),
     download: ({ blob, filename }) => downloadBlob(blob, filename),
+    videos,
+    estimateStorage: estimateStorage,
   });
   cleanups.push(
     intents.disconnect,
@@ -101,14 +108,19 @@ export function createHomeView({ section, library, preferences, navigate }: Home
       const sidebar = createSidebar(context);
       sidebar.mount(root);
       root.append(main);
-      const rest = [createFloatingAddButton, createCreateProjectSheet, createExportSheet, createHomeNotice].map((create) => create(context));
+      const rest = [createFloatingAddButton, createCreateProjectSheet, createExportSheet, createVideoPlayerSheet, createHomeNotice].map((create) =>
+        create(context),
+      );
       rest.forEach((component) => component.mount(root));
       cleanups.push(...[sidebar, ...rest].map((component) => () => component.destroy()));
       cleanups.push(store.watch((s) => s.section, showSection));
     },
     update(route) {
       if (route.name === 'editor') return false;
-      store.update({ section: route.name, query: route.name === store.state.section ? store.state.query : '' });
+      if (route.name === store.state.section) return true;
+      store.update({ section: route.name, query: '' });
+      // Les listes ont pu changer ailleurs (autre onglet) : on les relit en changeant de section.
+      void intents.refresh();
       return true;
     },
     destroy() {
@@ -120,6 +132,16 @@ export function createHomeView({ section, library, preferences, navigate }: Home
 }
 
 const QUIET_EVENTS: ReadonlySet<AppEventName> = new Set(['home:search']);
+
+/** Espace utilisé et disponible pour l'app, si le navigateur le dit. */
+async function estimateStorage(): Promise<{ usage: number; quota: number } | null> {
+  try {
+    const estimate = await navigator.storage?.estimate?.();
+    return estimate?.usage !== undefined && estimate.quota !== undefined ? { usage: estimate.usage, quota: estimate.quota } : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Modèles de départ et leurs vignettes (calculées une fois). */
 function createTemplateCatalog(): TemplateCatalog {

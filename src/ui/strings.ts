@@ -1,7 +1,7 @@
 // Textes de l'interface, centralisés pour une traduction future.
 
 import type { FormatPreset } from '../core/formats';
-import type { ProjectSort, ProjectView } from '../core/home-state';
+import type { ProjectSort, ProjectView, ThemePreference, VideoFileType } from '../core/home-state';
 import type { HomeSection } from '../core/router';
 import type { TemplateId } from '../templates';
 import type { ColorHarmony, EditorMode, ExportFormat, NoticeCode, SmoothingCurve, ToolId } from '../core/types';
@@ -303,6 +303,38 @@ export const strings = {
       'videos-cleared': 'Vidéos supprimées.',
     },
     loading: 'Chargement…',
+    videos: {
+      types: { mp4: 'MP4', webm: 'WebM', gif: 'GIF' } satisfies Record<VideoFileType, string>,
+      open: (name: string, type: string): string => `Lire la vidéo ${type} de ${name}`,
+      empty: 'Vos exports GIF et vidéo apparaîtront ici, prêts à être revus ou partagés.',
+      storage: (used: string, quota: string): string => `${used} utilisés sur ${quota}`,
+      storageLabel: 'Espace de stockage utilisé',
+      nearlyFull: 'L’espace de stockage est presque plein.',
+      prune: 'Supprimer les plus anciennes',
+      clear: 'Tout supprimer',
+      confirmClear: 'Supprimer toutes les vidéos conservées dans l’app ? Les fichiers déjà téléchargés ne sont pas touchés.',
+      player: (name: string): string => `Vidéo de « ${name} »`,
+      play: 'Lire',
+      pause: 'Mettre en pause',
+      fullscreen: 'Plein écran',
+      download: 'Télécharger',
+      share: 'Partager',
+      delete: 'Supprimer',
+      close: 'Fermer',
+      confirmDelete: 'Supprimer cette vidéo de l’app ?',
+      unavailable: 'Cette vidéo n’est plus disponible.',
+    },
+    settingsSheet: {
+      title: 'Réglages',
+      theme: 'Thème',
+      themes: { auto: 'Automatique', light: 'Clair', dark: 'Sombre' } satisfies Record<ThemePreference, string>,
+      defaultFormat: 'Format par défaut',
+      defaultFps: 'IPS par défaut',
+      videos: 'Vidéos conservées',
+      clearVideos: 'Effacer les vidéos stockées',
+      noVideos: 'Aucune vidéo conservée.',
+      close: 'OK',
+    },
   },
 
   templates: {

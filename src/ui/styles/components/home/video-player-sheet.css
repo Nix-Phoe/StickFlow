@@ -1,0 +1,57 @@
+/* Lecteur des vidéos conservées. */
+
+.player {
+  width: min(calc(100vw - 2 * var(--space-2)), var(--player-width));
+}
+
+.player__stage {
+  display: grid;
+  place-items: center;
+  min-height: var(--player-min-height);
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-player-bg);
+}
+
+.player__media {
+  max-width: 100%;
+  max-height: var(--player-max-height);
+}
+
+.player__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.player__action {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-half);
+  min-width: var(--player-action-width);
+  min-height: var(--touch-target);
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-accent);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}
+
+.player__action[hidden] {
+  display: none;
+}
+
+@media (hover: hover) {
+  .player__action:hover {
+    background: var(--color-fill-hover);
+  }
+}
+
+.player__action--destructive {
+  color: var(--color-destructive);
+}

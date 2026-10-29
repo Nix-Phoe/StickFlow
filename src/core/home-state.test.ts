@@ -8,6 +8,10 @@ import {
   RECENT_PROJECTS,
   shownProjects,
   sortProjects,
+  isVideoType,
+  storageNearlyFull,
+  videosToPrune,
+  type VideoSummary,
 } from './home-state';
 import type { ProjectSummary } from './types';
 
@@ -73,5 +77,35 @@ describe('normalizePreferences', () => {
     expect(
       normalizePreferences({ sort: 'za', view: 'list', theme: 'neon', defaultFormat: { preset: 'square', width: 1, height: 1 }, defaultFps: 500 }),
     ).toEqual({ sort: 'za', view: 'list', theme: 'auto', defaultFormat: presetFormat('square'), defaultFps: 60 });
+  });
+});
+
+describe('stockage des vidéos', () => {
+  const video = (id: string, createdAt: number, size: number): VideoSummary => ({
+    id,
+    projectId: null,
+    projectName: id,
+    type: 'mp4',
+    duration: 1,
+    size,
+    createdAt,
+    thumbnail: null,
+  });
+
+  it('says when the storage is nearly full', () => {
+    expect(storageNearlyFull({ usage: 850, quota: 1000 })).toBe(true);
+    expect(storageNearlyFull({ usage: 500, quota: 1000 })).toBe(false);
+    expect(storageNearlyFull(null)).toBe(false);
+  });
+
+  it('picks the oldest videos to delete until enough room is free', () => {
+    const videos = [video('new', 3, 100), video('old', 1, 100), video('mid', 2, 100)];
+    // 900 / 1000 utilisés : il faut libérer 200 pour revenir à 70 %.
+    expect(videosToPrune(videos, { usage: 900, quota: 1000 })).toEqual(['old', 'mid']);
+    expect(videosToPrune(videos, { usage: 500, quota: 1000 })).toEqual([]);
+  });
+
+  it('recognises the files kept in « Mes vidéos »', () => {
+    expect(['mp4', 'webm', 'gif', 'zip'].filter(isVideoType)).toEqual(['mp4', 'webm', 'gif']);
   });
 });

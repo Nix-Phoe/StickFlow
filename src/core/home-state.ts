@@ -147,3 +147,31 @@ export function normalizePreferences(value: unknown): Preferences {
         : DEFAULT_PREFERENCES.defaultFps,
   };
 }
+
+/** Au-delà de cette part de l'espace disponible, l'accueil propose de supprimer d'anciennes vidéos. */
+export const STORAGE_WARNING_RATIO = 0.8;
+/** Part de l'espace visée après le ménage. */
+const STORAGE_TARGET_RATIO = 0.7;
+
+const VIDEO_TYPES: readonly VideoFileType[] = ['mp4', 'webm', 'gif'];
+
+/** Fichiers exportés conservés dans « Mes vidéos » (une séquence PNG ne l'est pas). */
+export function isVideoType(extension: string): extension is VideoFileType {
+  return (VIDEO_TYPES as readonly string[]).includes(extension);
+}
+
+export function storageNearlyFull(storage: { usage: number; quota: number } | null): boolean {
+  return storage !== null && storage.quota > 0 && storage.usage / storage.quota >= STORAGE_WARNING_RATIO;
+}
+
+/** Vidéos à supprimer, des plus anciennes aux plus récentes, pour revenir à 70 % de l'espace. */
+export function videosToPrune(videos: readonly VideoSummary[], storage: { usage: number; quota: number }): string[] {
+  let excess = storage.usage - storage.quota * STORAGE_TARGET_RATIO;
+  const ids: string[] = [];
+  for (const video of [...videos].sort((a, b) => a.createdAt - b.createdAt)) {
+    if (excess <= 0) break;
+    ids.push(video.id);
+    excess -= video.size;
+  }
+  return ids;
+}

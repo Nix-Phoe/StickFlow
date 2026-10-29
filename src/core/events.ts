@@ -83,6 +83,10 @@ export interface AppEvents {
   'library:delete': { projectId: string };
   'library:export': { projectId: string; format: ExportFormat };
   /** Recherche des projets et des modèles par nom (en direct). */
+  /** Vidéos conservées (« Mes vidéos ») : en supprimer une, les plus anciennes (espace presque plein), ou toutes. */
+  'video:delete': { videoId: string };
+  'videos:prune': void;
+  'videos:clear': void;
   'home:search': { query: string };
   'home:sort': { sort: ProjectSort };
   'home:view': { view: ProjectView };

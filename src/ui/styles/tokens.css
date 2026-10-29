@@ -140,6 +140,10 @@
   --hero-stickman-size: 120px;
   --empty-illustration-size: 96px;
   --sheet-width: 480px;
+  --player-width: 720px;
+  --player-min-height: 200px;
+  --player-max-height: 60dvh;
+  --player-action-width: 72px;
   --search-width: 560px;
   --list-thumb-width: 128px;
   /* Rapport des vignettes de cartes (un format différent y tient entier, centré). */
@@ -154,6 +158,8 @@
   /* Badges posés sur une vignette (format, type de fichier, durée). */
   --color-badge-bg: rgba(0, 0, 0, 0.6);
   --color-badge-label: #ffffff;
+  /* Fond du lecteur vidéo (noir dans les deux thèmes, comme une salle de projection). */
+  --color-player-bg: #000000;
   --color-frame-edge: rgba(0, 102, 204, 0.5);
   --tool-button-height: 64px;
   --hex-field-width: 96px;

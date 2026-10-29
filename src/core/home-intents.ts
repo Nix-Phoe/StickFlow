@@ -5,9 +5,10 @@
 import type { Project } from './types';
 import type { ProjectLibrary } from '../storage/library';
 import type { PreferencesStore } from '../storage/preferences';
+import type { VideoLibrary } from '../storage/video-store';
 import { createProject, uniqueName } from '../model/new-project';
 import type { AppEventBus } from './events';
-import { normalizePreferences, type HomeNoticeCode, type HomeState, type Preferences } from './home-state';
+import { isVideoType, normalizePreferences, videosToPrune, type HomeNoticeCode, type HomeState, type Preferences } from './home-state';
 import type { Route } from './router';
 import type { Store } from './store';
 import type { ExportFormat } from './types';
@@ -16,6 +17,10 @@ import type { ExportFormat } from './types';
 export interface ExportedFile {
   blob: Blob;
   filename: string;
+  /** « mp4 », « webm », « gif » ou « zip » (séquence PNG). */
+  extension: string;
+  /** Durée, en secondes. */
+  duration: number;
 }
 
 export interface HomeIntentOptions {
@@ -34,6 +39,10 @@ export interface HomeIntentOptions {
   exportProject?: (project: Project, format: ExportFormat, onProgress: (progress: number) => void) => Promise<ExportedFile>;
   /** Remet le fichier exporté à l'utilisateur (téléchargement). */
   download?: (file: ExportedFile) => void;
+  /** Vidéos exportées conservées dans l'app (« Mes vidéos »). */
+  videos?: VideoLibrary;
+  /** Espace utilisé et disponible (`navigator.storage.estimate()`), s'il est connu. */
+  estimateStorage?: () => Promise<{ usage: number; quota: number } | null>;
 }
 
 export interface HomeIntents {
@@ -61,7 +70,22 @@ export function connectHomeIntents(options: HomeIntentOptions): HomeIntents {
 
   async function refresh(): Promise<void> {
     store.update({ projects: await library.list() });
+    await refreshVideos();
   }
+
+  async function refreshVideos(): Promise<void> {
+    if (!options.videos) return;
+    store.update({ videos: await options.videos.list(), storage: (await options.estimateStorage?.()) ?? null });
+  }
+
+  /** Une opération sur les vidéos, puis la liste et l'espace à jour, puis un message. */
+  const onVideos = (operation: (videos: VideoLibrary) => Promise<void>, code: HomeNoticeCode): void =>
+    run(async () => {
+      if (!options.videos) return;
+      await operation(options.videos);
+      await refreshVideos();
+      notify('success', code);
+    });
 
   function setPreferences(changes: Partial<Preferences>): void {
     const next = normalizePreferences({ ...store.state.preferences, ...changes });
@@ -120,6 +144,18 @@ export function connectHomeIntents(options: HomeIntentOptions): HomeIntents {
             store.update({ exporting: { projectId, progress } }),
           );
           options.download?.(file);
+          // Un GIF ou une vidéo est aussi conservé dans « Mes vidéos » (pas une séquence PNG).
+          if (options.videos && isVideoType(file.extension)) {
+            await options.videos.add({
+              projectId,
+              projectName: project.name,
+              type: file.extension,
+              blob: file.blob,
+              duration: file.duration,
+              thumbnail: (await library.list()).find((p) => p.id === projectId)?.thumbnail ?? null,
+            });
+            await refreshVideos();
+          }
           notify('success', 'exported', file.filename);
         } catch (error) {
           notify('error', 'export-failed', error);
@@ -127,6 +163,14 @@ export function connectHomeIntents(options: HomeIntentOptions): HomeIntents {
           store.update({ exporting: null });
         }
       }),
+    ),
+    bus.on('video:delete', ({ videoId }) => onVideos((videos) => videos.remove(videoId), 'video-deleted')),
+    bus.on('videos:clear', () => onVideos((videos) => videos.clear(), 'videos-cleared')),
+    bus.on('videos:prune', () =>
+      onVideos(async (videos) => {
+        const storage = (await options.estimateStorage?.()) ?? store.state.storage;
+        if (storage) await videos.removeMany(videosToPrune(store.state.videos ?? [], storage));
+      }, 'videos-cleared'),
     ),
     bus.on('home:search', ({ query }) => store.update({ query })),
     bus.on('home:sort', ({ sort }) => setPreferences({ sort })),

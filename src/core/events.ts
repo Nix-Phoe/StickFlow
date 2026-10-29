@@ -1,4 +1,5 @@
 import type { VideoFormat } from './formats';
+import type { HomeSheet, Preferences, ProjectSort, ProjectView } from './home-state';
 import type { Route } from './router';
 import type { PartialPaintSettings } from './session';
 import type {
@@ -73,6 +74,21 @@ export interface AppEvents {
 
   /** Va vers une page (accueil, section, éditeur) ; quitter l'éditeur le sauvegarde d'abord. */
   'route:change': { route: Route };
+  // ---------- Accueil ----------
+  /** Crée un projet (format, IPS et nom par défaut s'ils manquent, modèle facultatif) et l'ouvre. */
+  'project:create': { name?: string; format?: VideoFormat; fps?: number; templateId?: string | null };
+  /** Renomme, copie (sous le nom donné), supprime ou exporte un projet enregistré. */
+  'library:rename': { projectId: string; name: string };
+  'library:duplicate': { projectId: string; name: string };
+  'library:delete': { projectId: string };
+  'library:export': { projectId: string; format: ExportFormat };
+  /** Recherche des projets et des modèles par nom (en direct). */
+  'home:search': { query: string };
+  'home:sort': { sort: ProjectSort };
+  'home:view': { view: ProjectView };
+  /** Ouvre une feuille (création, réglages, lecteur vidéo) ; `null` la ferme. */
+  'home:sheet': { sheet: HomeSheet | null };
+  'settings:change': Partial<Preferences>;
   'project:save': void;
   /** Enregistre une copie sous ce nom, qui devient le document courant. */
   'project:save-as': { name: string };

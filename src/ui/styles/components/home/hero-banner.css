@@ -1,0 +1,109 @@
+/* Bannière d'accueil : dégradé discret de la couleur d'accent, matériau translucide. */
+
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-3) var(--space-3);
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--hero-gradient);
+  box-shadow: var(--shadow-panel);
+  color: var(--color-on-accent);
+  text-align: center;
+}
+
+/* Reflet translucide par-dessus le dégradé (matériau). */
+.hero::before {
+  position: absolute;
+  inset: 0;
+  background: var(--hero-sheen);
+  content: "";
+  pointer-events: none;
+}
+
+.hero > * {
+  position: relative;
+}
+
+.hero__stickman {
+  position: absolute;
+  right: var(--space-3);
+  bottom: calc(-1 * var(--space-2));
+  color: var(--color-hero-ghost);
+  pointer-events: none;
+}
+
+.hero__logo {
+  width: var(--hero-stickman-size);
+  height: var(--hero-stickman-size);
+  transform-origin: 50% 90%;
+  animation: hero-sway var(--duration-ambient) var(--ease-standard) infinite alternate;
+}
+
+@keyframes hero-sway {
+  from {
+    transform: rotate(-4deg);
+  }
+
+  to {
+    transform: rotate(5deg) translateY(calc(-1 * var(--space-half)));
+  }
+}
+
+.hero__title {
+  font-size: var(--font-size-large-title);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+/* ---------- Champ de recherche (aussi dans les en-têtes de section) ---------- */
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: min(100%, var(--search-width));
+  min-height: var(--control-height);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-label-secondary);
+}
+
+.search-field__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--control-height);
+  border: 0;
+  background: transparent;
+  color: var(--color-label);
+  outline: none;
+}
+
+.search-field:focus-within {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (max-width: 599px) {
+  .hero {
+    padding: var(--space-3) var(--space-2) var(--space-2);
+  }
+
+  .hero__title {
+    font-size: var(--font-size-title);
+  }
+
+  .hero__stickman {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__logo {
+    animation: none;
+  }
+}

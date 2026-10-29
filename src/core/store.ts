@@ -13,29 +13,30 @@ export interface AppState {
   session: Session;
 }
 
-export type StateListener = (state: Readonly<AppState>, previous: Readonly<AppState>) => void;
-export type StatePatch = Partial<AppState> | ((state: Readonly<AppState>) => Partial<AppState>);
+export type StateListener<S = AppState> = (state: Readonly<S>, previous: Readonly<S>) => void;
+export type StatePatch<S = AppState> = Partial<S> | ((state: Readonly<S>) => Partial<S>);
 
-export class Store {
-  private current: AppState;
-  private readonly listeners = new Set<StateListener>();
+/** État centralisé d'une vue : celui de l'éditeur (`AppState`) par défaut, ou celui de l'accueil. */
+export class Store<S extends object = AppState> {
+  private current: S;
+  private readonly listeners = new Set<StateListener<S>>();
 
-  constructor(initial: AppState) {
+  constructor(initial: S) {
     this.current = initial;
   }
 
-  get state(): Readonly<AppState> {
+  get state(): Readonly<S> {
     return this.current;
   }
 
-  update(patch: StatePatch): void {
+  update(patch: StatePatch<S>): void {
     const changes = typeof patch === 'function' ? patch(this.current) : patch;
     const previous = this.current;
     this.current = { ...previous, ...changes };
     this.listeners.forEach((listener) => listener(this.current, previous));
   }
 
-  subscribe(listener: StateListener): () => void {
+  subscribe(listener: StateListener<S>): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
@@ -44,7 +45,7 @@ export class Store {
    * Appelle `listener` immédiatement, puis à chaque fois que la valeur
    * retournée par `selector` change (comparaison par référence).
    */
-  watch<T>(selector: (state: Readonly<AppState>) => T, listener: (value: T) => void): () => void {
+  watch<T>(selector: (state: Readonly<S>) => T, listener: (value: T) => void): () => void {
     let last = selector(this.current);
     listener(last);
     return this.subscribe((state) => {

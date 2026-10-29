@@ -3,18 +3,17 @@
 // fichier à `download`. Navigateur uniquement.
 
 import type { AppEventBus } from '../core/events';
-import { sequenceOf } from '../core/selectors';
 import type { Session } from '../core/session';
 import type { Store } from '../core/store';
 import type { ExportFormat, Project } from '../core/types';
 import type { DrawingSurface } from '../drawing/surface';
-import type { SequenceFrame } from '../model/sequence';
+import { deriveSequence, type SequenceFrame } from '../model/sequence';
 import { aspectRatio } from '../core/formats';
 import { fitWorldHeight } from '../render/camera';
 import { paintScene } from '../render/canvas2d';
 import { EXPORT_COLORS, parseHexColor } from '../render/color';
 import { buildSceneLayers } from '../render/scene-layers';
-import { exportFileName, pickVideoFormat, planExport, type ExportPlan } from './export-plan';
+import { exportFileName, pickVideoFormat, planDuration, planExport, type ExportPlan } from './export-plan';
 import { encodeGif } from './gif';
 import { zipFiles } from './zip';
 
@@ -29,6 +28,8 @@ export interface ExporterOptions {
   download: (blob: Blob, filename: string) => void;
   /** Calque de dessin du décor. */
   drawing: DrawingSurface;
+  /** Après un export réussi (pour conserver la vidéo dans l'app). */
+  onExported?: (result: ExportResult, project: Project) => void;
 }
 
 interface Exported {
@@ -36,23 +37,43 @@ interface Exported {
   extension: string;
 }
 
-export function connectExporter({ bus, store, download, drawing }: ExporterOptions): () => void {
+/** Fichier exporté, prêt à être téléchargé (et conservé dans « Mes vidéos » pour un GIF ou une vidéo). */
+export interface ExportResult {
+  blob: Blob;
+  filename: string;
+  /** Extension réelle : « mp4 », « webm » (navigateur sans MP4), « gif » ou « zip ». */
+  extension: string;
+  /** Durée, en secondes. */
+  duration: number;
+}
+
+/** Exporte un projet : dessine chaque frame du plan d'export dans un canvas hors écran, puis l'encode. */
+export async function exportProject(
+  project: Project,
+  format: ExportFormat,
+  { drawing, onProgress }: { drawing: DrawingSurface; onProgress: (progress: number) => void },
+): Promise<ExportResult> {
+  const plan = planExport(project, deriveSequence(project), format);
+  // Le calque de dessin doit être entièrement décodé avant la première image.
+  await drawing.sync(project.environment.drawing.tiles);
+  const paint: Painter = (context, frame, background) => drawFrame(context, project, frame, background, drawing);
+  const { blob, extension } = await encoders[format](paint, plan, onProgress);
+  return { blob, extension, filename: exportFileName(project.name, extension), duration: planDuration(plan) };
+}
+
+export function connectExporter({ bus, store, download, drawing, onExported }: ExporterOptions): () => void {
   const setSession = (patch: Partial<Session>): void =>
     store.update((s) => ({ session: { ...s.session, ...patch } }));
 
   async function run(format: ExportFormat): Promise<void> {
     if (store.state.session.exportProgress !== null) return;
     const project = store.state.project.present;
-    const plan = planExport(project, sequenceOf(store.state), format);
     setSession({ exportProgress: 0, notice: null });
     try {
-      // Le calque de dessin doit être entièrement décodé avant la première image.
-      await drawing.sync(project.environment.drawing.tiles);
-      const paint: Painter = (context, frame, background) => drawFrame(context, project, frame, background, drawing);
-      const { blob, extension } = await encoders[format](paint, plan, (progress) => setSession({ exportProgress: progress }));
-      const filename = exportFileName(project.name, extension);
-      download(blob, filename);
-      setSession({ notice: { kind: 'success', code: 'exported', detail: filename } });
+      const result = await exportProject(project, format, { drawing, onProgress: (progress) => setSession({ exportProgress: progress }) });
+      download(result.blob, result.filename);
+      onExported?.(result, project);
+      setSession({ notice: { kind: 'success', code: 'exported', detail: result.filename } });
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       setSession({ notice: { kind: 'error', code: 'export-failed', detail } });

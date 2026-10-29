@@ -1,0 +1,49 @@
+/* Bouton flottant « + » : rond, couleur d'accent, ombre douce. */
+
+.fab {
+  position: fixed;
+  right: max(var(--space-3), env(safe-area-inset-right));
+  bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  z-index: var(--z-fab);
+  display: grid;
+  place-items: center;
+  width: var(--fab-size);
+  height: var(--fab-size);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-fill);
+  box-shadow: var(--shadow-fab);
+  color: var(--color-on-accent);
+  transition:
+    transform var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.fab__icon {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+@media (hover: hover) {
+  .fab:hover {
+    background: var(--color-accent-fill-hover);
+    transform: scale(1.05);
+  }
+}
+
+.fab:active {
+  transform: scale(0.94);
+}
+
+/* Au-dessus de la barre d'onglets sur téléphone et tablette. */
+@media (max-width: 899px) {
+  .fab {
+    bottom: calc(var(--tab-bar-height) + var(--space-2) + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab {
+    transition: none;
+  }
+}

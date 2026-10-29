@@ -4,7 +4,7 @@ import type { LoopSettings, Project } from '../core/types';
 import type { SequenceFrame } from '../model/sequence';
 import { testProject } from '../test/fixtures';
 import { presetFormat } from '../core/formats';
-import { exportFileName, exportSize, pickVideoFormat, planExport } from './export-plan';
+import { exportFileName, exportSize, pickVideoFormat, planDuration, planExport } from './export-plan';
 
 const frame = (id: string): SequenceFrame => ({ kind: 'keyframe', id, poses: {} });
 const sequence = [frame('a'), frame('b'), frame('c')];
@@ -23,6 +23,13 @@ describe('exportSize', () => {
     expect(exportSize(testProject({ format: presetFormat('vertical') }))).toEqual({ width: 1080, height: 1920 });
     expect(exportSize(testProject({ format: presetFormat('custom', { width: 640, height: 480 }) }))).toEqual({ width: 640, height: 480 });
     expect(planExport(testProject({ format: presetFormat('square') }), sequence, 'gif').size).toEqual({ width: 1080, height: 1080 });
+  });
+});
+
+describe('planDuration', () => {
+  it('is the time the exported frames last, in seconds', () => {
+    expect(planDuration(planExport(project({}, 10), sequence, 'gif'))).toBeCloseTo(0.3);
+    expect(planDuration(planExport(project({ enabled: true, repeatCount: 2 }, 10), sequence, 'mp4'))).toBeCloseTo(0.6);
   });
 });
 

@@ -1,6 +1,9 @@
 // Textes de l'interface, centralisés pour une traduction future.
 
 import type { FormatPreset } from '../core/formats';
+import type { ProjectSort, ProjectView } from '../core/home-state';
+import type { HomeSection } from '../core/router';
+import type { TemplateId } from '../templates';
 import type { ColorHarmony, EditorMode, ExportFormat, NoticeCode, SmoothingCurve, ToolId } from '../core/types';
 
 const plural = (n: number, singular: string, pluralForm: string): string =>
@@ -211,8 +214,111 @@ export const strings = {
     },
   },
 
+  time: {
+    justNow: 'à l’instant',
+  },
+
   home: {
+    navigation: 'Navigation',
+    sections: {
+      home: 'Accueil',
+      projects: 'Mes projets',
+      templates: 'Modèles',
+      videos: 'Mes vidéos',
+    } satisfies Record<HomeSection, string>,
+    /** Libellés courts de la barre d'onglets (téléphone). */
+    tabs: {
+      home: 'Accueil',
+      projects: 'Projets',
+      templates: 'Modèles',
+      videos: 'Vidéos',
+    } satisfies Record<HomeSection, string>,
+    newProject: 'Nouveau projet',
     create: 'Créer le projet',
+    fps: 'Images par seconde',
+    settings: 'Réglages',
+    hero: {
+      title: 'Que voulez-vous animer aujourd’hui ?',
+      search: 'Rechercher un projet ou un modèle',
+      shortcuts: 'Créer un projet au format',
+      shortcut: (name: string): string => `Nouveau projet ${name}`,
+    },
+    seeAll: 'Voir tout',
+    seeAllLabel: (section: string): string => `Voir tout : ${section}`,
+    sort: 'Trier',
+    sorts: {
+      modified: 'Modifié',
+      created: 'Créé',
+      az: 'A-Z',
+      za: 'Z-A',
+    } satisfies Record<ProjectSort, string>,
+    view: 'Affichage',
+    views: {
+      grid: 'Grille',
+      list: 'Liste',
+    } satisfies Record<ProjectView, string>,
+    noResults: (query: string): string => `Aucun résultat pour « ${query} ».`,
+    empty: {
+      title: 'Aucun projet pour l’instant',
+      text: 'Choisissez un format, un modèle de départ, et donnez vie à votre premier stickman.',
+      action: 'Créer mon premier projet',
+    },
+    card: {
+      open: (name: string): string => `Ouvrir ${name}`,
+      actions: (name: string): string => `Actions pour ${name}`,
+      meta: (fps: number, frames: number): string => `${fps} IPS · ${plural(frames, 'image', 'images')}`,
+      rename: 'Renommer',
+      renameField: 'Nouveau nom du projet',
+      duplicate: 'Dupliquer',
+      export: 'Exporter',
+      delete: 'Supprimer',
+      openItem: 'Ouvrir',
+      confirmDelete: (name: string): string => `Supprimer « ${name} » ? Cette action est définitive.`,
+      copyName: (name: string): string => `${name} (copie)`,
+      exporting: (progress: number): string => `Export… ${Math.round(progress * 100)} %`,
+    },
+    fab: 'Nouveau projet',
+    createSheet: {
+      title: 'Nouveau projet',
+      name: 'Nom du projet',
+      namePlaceholder: 'Projet sans titre',
+      template: 'Modèle de départ',
+      noTemplate: 'Aucun',
+      submit: 'Créer',
+      cancel: 'Annuler',
+    },
+    exportSheet: {
+      title: (name: string): string => `Exporter « ${name} »`,
+      format: 'Format du fichier',
+      submit: 'Exporter',
+      cancel: 'Fermer',
+    },
+    notices: {
+      duplicated: 'Projet dupliqué.',
+      deleted: 'Projet supprimé.',
+      exported: (filename: string): string => `Exporté : ${filename}`,
+      'export-failed': (detail: string): string => `Échec de l’export : ${detail}`,
+      'action-failed': (detail: string): string => `L’action a échoué : ${detail}`,
+      'video-deleted': 'Vidéo supprimée.',
+      'videos-cleared': 'Vidéos supprimées.',
+    },
+    loading: 'Chargement…',
+  },
+
+  templates: {
+    title: 'Commencer avec un modèle',
+    names: {
+      walk: 'Marche',
+      run: 'Course',
+      jump: 'Saut',
+      punch: 'Coup de poing',
+      wave: 'Salut de la main',
+      blank: 'Vide',
+    } satisfies Record<TemplateId, string>,
+    use: (name: string): string => `Nouveau projet à partir du modèle « ${name} »`,
+    previous: 'Modèles précédents',
+    next: 'Modèles suivants',
+    frames: (n: number): string => plural(n, 'image clé', 'images clés'),
   },
 
   documentTitle: {

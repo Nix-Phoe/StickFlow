@@ -57,3 +57,8 @@ export function pickVideoFormat(isTypeSupported: (mimeType: string) => boolean):
 export function exportSize(project: Project): { width: number; height: number } {
   return { width: project.format.width, height: project.format.height };
 }
+
+/** Durée de ce qui est exporté (un passage du GIF), en secondes. */
+export function planDuration(plan: ExportPlan): number {
+  return (plan.frames.length * plan.delayMs) / 1000;
+}

@@ -1,48 +1,137 @@
-// Vue « Accueil » : retrouver ses projets et en créer de nouveaux.
+// Vue « Accueil » : retrouver ses projets, en créer (format, modèle), retrouver ses vidéos.
+// Elle crée son bus, son store et ses modules au montage, et libère tout à la destruction.
 
-import type { Route } from '../core/router';
-import { createInitialState } from '../core/store';
-import { createDefaultSkeleton, sortSkeleton } from '../model';
+import '../ui/styles/components/home/home.css';
+
+import { createEventBus, type AppEventName } from '../core/events';
+import { connectHomeIntents, type HomeIntents } from '../core/home-intents';
+import { createHomeState, normalizePreferences, type HomeState } from '../core/home-state';
+import type { HomeSection, Route } from '../core/router';
+import { Store } from '../core/store';
+import { createDrawingSurface, type DrawingSurface } from '../drawing/surface';
+import { exportProject } from '../export';
+import { projectThumbnail } from '../render/thumbnail';
 import type { ProjectLibrary } from '../storage';
+import type { PreferencesStore } from '../storage/preferences';
+import { loadTemplate } from '../templates';
+import type { Component } from '../ui/component';
+import type { HomeContext, TemplateCatalog } from '../ui/components/home/context';
+import { createCreateProjectSheet } from '../ui/components/home/create-project-sheet';
+import { createExportSheet } from '../ui/components/home/export-sheet';
+import { createFloatingAddButton } from '../ui/components/home/floating-add-button';
+import { createHeroBanner } from '../ui/components/home/hero-banner';
+import { createHomeNotice } from '../ui/components/home/home-notice';
+import { createProjectGrid } from '../ui/components/home/project-grid';
+import { createSidebar } from '../ui/components/home/sidebar';
+import { createTemplateCarousel } from '../ui/components/home/template-carousel';
 import { h } from '../ui/dom';
+import { downloadBlob } from '../ui/download';
 import { strings } from '../ui/strings';
+import { applyTheme } from '../ui/theme';
+import { createProjectPreviewer } from './project-previewer';
 import type { View } from './view-host';
 
 export interface HomeViewOptions {
+  section: HomeSection;
   library: ProjectLibrary;
-  navigate: (route: Route, options?: { replace?: boolean }) => void;
+  preferences: PreferencesStore;
+  navigate: (route: Route) => void;
 }
 
-export function createHomeView({ library, navigate }: HomeViewOptions): View {
-  const list = h('ul', { class: 'home__list' });
-  const create = h('button', { type: 'button', class: 'button-primary' }, [strings.home.create]);
-  create.addEventListener('click', async () => {
-    const { project } = createInitialState(strings.defaultProjectName, sortSkeleton(createDefaultSkeleton()), strings.characters.defaultName(1));
-    const { id } = await library.save(project.present);
-    navigate({ name: 'editor', projectId: id });
-  });
-  const root = h('main', { class: 'home' }, [h('h1', {}, [strings.appName]), create, list]);
+/** Composants de chaque section, de haut en bas. */
+const SECTIONS: Record<HomeSection, (context: HomeContext) => Component[]> = {
+  home: (context) => [
+    createHeroBanner(context),
+    createTemplateCarousel(context, { variant: 'carousel' }),
+    createProjectGrid(context, { variant: 'recent' }),
+  ],
+  projects: (context) => [createProjectGrid(context, { variant: 'all' })],
+  templates: (context) => [createTemplateCarousel(context, { variant: 'all' })],
+  videos: () => [],
+};
 
-  async function refresh(): Promise<void> {
-    const entries = await library.list();
-    list.replaceChildren(
-      ...entries.map((entry) => {
-        const open = h('button', { type: 'button', class: 'button-secondary' }, [entry.name]);
-        open.addEventListener('click', () => navigate({ name: 'editor', projectId: entry.id }));
-        return h('li', {}, [open]);
-      }),
-    );
+export function createHomeView({ section, library, preferences, navigate }: HomeViewOptions): View {
+  const bus = createEventBus();
+  const store = new Store<HomeState>(createHomeState(section, normalizePreferences(preferences.load())));
+  const preview = createProjectPreviewer(library);
+  const templates = createTemplateCatalog();
+  const context: HomeContext = { bus, store, preview, templates };
+  const cleanups: Array<() => void> = [];
+
+  // Calque de dessin des exports lancés depuis l'accueil, créé au premier export.
+  let drawing: DrawingSurface | null = null;
+  const intents: HomeIntents = connectHomeIntents({
+    bus,
+    store,
+    library,
+    preferences,
+    navigate,
+    templates,
+    names: { project: strings.defaultProjectName, character: strings.characters.defaultName(1) },
+    thumbnail: (project) => projectThumbnail(project, null),
+    exportProject: (project, format, onProgress) => exportProject(project, format, { drawing: (drawing ??= createDrawingSurface()), onProgress }),
+    download: ({ blob, filename }) => downloadBlob(blob, filename),
+  });
+  cleanups.push(
+    intents.disconnect,
+    preview.destroy,
+    bus.onAny((type, payload) => {
+      if (!QUIET_EVENTS.has(type as AppEventName)) console.info(`[event] ${String(type)}`, payload ?? '');
+    }),
+    store.watch((s) => s.preferences.theme, applyTheme),
+  );
+
+  const content = h('div', { class: 'home__content' });
+  const main = h('main', { class: 'home__main', id: 'home-main', tabindex: -1 }, [content]);
+  const root = h('div', { class: 'home' });
+
+  let sectionComponents: Component[] = [];
+  function showSection(next: HomeSection): void {
+    sectionComponents.forEach((component) => component.destroy());
+    sectionComponents = SECTIONS[next](context);
+    sectionComponents.forEach((component) => component.mount(content));
+    main.scrollTop = 0;
+    document.title = next === 'home' ? strings.documentTitle.home : `${strings.home.sections[next]} · ${strings.appName}`;
   }
 
   return {
     mount(parent) {
       parent.append(root);
-      document.title = strings.documentTitle.home;
-      void refresh();
+      // Dans l'ordre de lecture : barre latérale, contenu, bouton « + », feuilles, messages.
+      const sidebar = createSidebar(context);
+      sidebar.mount(root);
+      root.append(main);
+      const rest = [createFloatingAddButton, createCreateProjectSheet, createExportSheet, createHomeNotice].map((create) => create(context));
+      rest.forEach((component) => component.mount(root));
+      cleanups.push(...[sidebar, ...rest].map((component) => () => component.destroy()));
+      cleanups.push(store.watch((s) => s.section, showSection));
     },
-    update: (route) => route.name !== 'editor',
+    update(route) {
+      if (route.name === 'editor') return false;
+      store.update({ section: route.name, query: route.name === store.state.section ? store.state.query : '' });
+      return true;
+    },
     destroy() {
+      sectionComponents.forEach((component) => component.destroy());
+      cleanups.reverse().forEach((cleanup) => cleanup());
       root.remove();
+    },
+  };
+}
+
+const QUIET_EVENTS: ReadonlySet<AppEventName> = new Set(['home:search']);
+
+/** Modèles de départ et leurs vignettes (calculées une fois). */
+function createTemplateCatalog(): TemplateCatalog {
+  const thumbnails = new Map<string, string | null>();
+  return {
+    load: loadTemplate,
+    thumbnail(templateId) {
+      if (!thumbnails.has(templateId)) {
+        const template = loadTemplate(templateId);
+        thumbnails.set(templateId, template ? projectThumbnail(template, null) : null);
+      }
+      return thumbnails.get(templateId) ?? null;
     },
   };
 }

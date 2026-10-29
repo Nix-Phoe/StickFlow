@@ -1,0 +1,170 @@
+/* Sections de l'accueil (en-tête, contrôles) et grille / liste de projets. */
+
+.home-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.home-section__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-2);
+}
+
+.home-section__header[hidden] {
+  display: none;
+}
+
+.home-section__title {
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-bold);
+}
+
+h1.home-section__title {
+  font-size: var(--font-size-large-title);
+}
+
+.home-section__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.home-section__see-all {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .home-section__see-all:hover {
+    background: var(--color-accent-soft);
+  }
+}
+
+.home-section__status {
+  color: var(--color-label-secondary);
+}
+
+.home-section__status:empty {
+  display: none;
+}
+
+/* ---------- Menu déroulant « Trier » (bouton contextuel natif) ---------- */
+.home-select__label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.home-select {
+  min-height: var(--touch-target);
+  padding: 0 calc(var(--space-2) + var(--icon-size-sm)) 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-fill);
+  color: var(--color-label);
+  font-weight: var(--font-weight-medium);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.home-select__chevron {
+  position: absolute;
+  right: var(--space-1);
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-label-secondary);
+  pointer-events: none;
+}
+
+/* ---------- Grille ou liste ---------- */
+.view-toggle {
+  display: inline-flex;
+  padding: var(--segment-inset);
+  border-radius: var(--radius-pill);
+  background: var(--color-fill);
+}
+
+.view-toggle__button {
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: calc(var(--touch-target) - 2 * var(--segment-inset));
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-label-secondary);
+}
+
+.view-toggle__button[aria-pressed="true"] {
+  background: var(--color-segment-selected);
+  box-shadow: var(--shadow-segment);
+  color: var(--color-label);
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--project-card-min-width), 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-grid--list {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+}
+
+/* ---------- État vide ---------- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-5) var(--space-3);
+  border: var(--border-strong) dashed var(--color-separator);
+  border-radius: var(--radius-xl);
+  text-align: center;
+}
+
+.empty-state[hidden] {
+  display: none;
+}
+
+.empty-state__art {
+  display: grid;
+  place-items: center;
+  width: calc(var(--empty-illustration-size) + var(--space-4));
+  height: calc(var(--empty-illustration-size) + var(--space-4));
+  margin-bottom: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.empty-state__logo {
+  width: var(--empty-illustration-size);
+  height: var(--empty-illustration-size);
+}
+
+.empty-state__title {
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-semibold);
+}
+
+.empty-state__text {
+  max-width: var(--search-width);
+  margin-bottom: var(--space-1);
+  color: var(--color-label-secondary);
+}

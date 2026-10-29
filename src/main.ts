@@ -6,6 +6,9 @@ import './ui/styles/controls.css';
 
 import { browserHashPort, createRouter } from './core/router';
 import { createIdbStore, createMemoryStore, createProjectLibrary } from './storage';
+import { normalizePreferences } from './core/home-state';
+import { createLocalPreferences } from './storage/preferences';
+import { applyTheme } from './ui/theme';
 import { createEditorView } from './views/editor-view';
 import { createHomeView } from './views/home-view';
 import { createViewHost } from './views/view-host';
@@ -20,11 +23,15 @@ const library = createProjectLibrary(persistent ? createIdbStore() : createMemor
   index: persistent ? createIdbStore('stickflow-index', 'projects') : createMemoryStore(),
 });
 
+// Préférences de l'appareil (thème, tri, vue, format par défaut) : le thème s'applique dès le départ.
+const preferences = createLocalPreferences();
+applyTheme(normalizePreferences(preferences.load()).theme);
+
 const router = createRouter(browserHashPort(), (route) => void host.show(route));
 const navigate = router.navigate;
 const host = createViewHost(root, (route) =>
   route.name === 'editor'
     ? createEditorView({ projectId: route.projectId, library, navigate })
-    : createHomeView({ library, navigate }),
+    : createHomeView({ section: route.name, library, preferences, navigate }),
 );
 router.start();

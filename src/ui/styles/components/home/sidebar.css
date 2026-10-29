@@ -1,0 +1,204 @@
+/* Barre latérale de l'accueil (liste de barre latérale iPadOS), barre d'onglets sous 900 px. */
+
+.home-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+  padding: var(--space-2);
+  overflow-y: auto;
+  border-right: var(--border-hairline) solid var(--color-separator);
+  background: var(--material-regular);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+}
+
+.home-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-half) var(--space-1);
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-bold);
+}
+
+.home-sidebar__logo {
+  display: grid;
+  place-items: center;
+  width: var(--brand-icon-size);
+  height: var(--brand-icon-size);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-fill);
+  color: var(--color-on-accent);
+}
+
+.home-sidebar__logo .logo {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+/* ---------- Navigation ---------- */
+.home-nav__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-nav__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  color: var(--color-label);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.home-nav__link .icon {
+  color: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .home-nav__link:hover {
+    background: var(--color-fill-hover);
+  }
+}
+
+.home-nav__link[aria-current="page"] {
+  background: var(--color-accent-fill);
+  color: var(--color-on-accent);
+}
+
+.home-nav__link[aria-current="page"] .icon {
+  color: inherit;
+}
+
+.home-nav__tab-label {
+  display: none;
+}
+
+/* ---------- Nouveau projet ---------- */
+.home-sidebar__new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.home-sidebar__heading {
+  font-size: var(--font-size-headline);
+  font-weight: var(--font-weight-semibold);
+}
+
+.home-sidebar__label {
+  color: var(--color-label-secondary);
+  font-size: var(--font-size-footnote);
+}
+
+.home-sidebar__fps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+.home-sidebar__create {
+  width: 100%;
+}
+
+.home-sidebar__settings {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--touch-target);
+  margin-top: auto;
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-label);
+  font-weight: var(--font-weight-medium);
+}
+
+.home-sidebar__settings .icon {
+  color: var(--color-label-secondary);
+}
+
+@media (hover: hover) {
+  .home-sidebar__settings:hover {
+    background: var(--color-fill-hover);
+  }
+}
+
+/* ---------- Sous 900 px : barre d'onglets en bas (style iOS) ---------- */
+@media (max-width: 899px) {
+  .home-sidebar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--z-drawer);
+    flex-direction: row;
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    overflow: visible;
+    border-top: var(--border-hairline) solid var(--color-separator);
+    border-right: 0;
+    background: var(--material-thick);
+  }
+
+  .home-sidebar__brand,
+  .home-sidebar__new,
+  .home-sidebar__settings {
+    display: none;
+  }
+
+  .home-nav {
+    flex: 1 1 auto;
+  }
+
+  .home-nav__list {
+    flex-direction: row;
+    gap: 0;
+  }
+
+  .home-nav__list > li {
+    flex: 1 1 0;
+  }
+
+  .home-nav__link {
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-half);
+    min-height: var(--tab-bar-height);
+    padding: var(--space-half) 0;
+    border-radius: 0;
+    color: var(--color-label-secondary);
+    font-size: var(--font-size-caption);
+  }
+
+  .home-nav__link .icon {
+    color: inherit;
+  }
+
+  .home-nav__link[aria-current="page"] {
+    background: transparent;
+    color: var(--color-accent);
+  }
+
+  .home-nav__label {
+    display: none;
+  }
+
+  .home-nav__tab-label {
+    display: inline;
+  }
+}

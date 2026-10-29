@@ -29,6 +29,7 @@
   --color-accent-soft-strong: rgba(0, 102, 204, 0.2);
   --color-on-accent: #ffffff;
   --color-focus-ring: rgba(0, 102, 204, 0.6);
+  --color-destructive: #d70015;              /* systemRed assombri (AA) */
 
   /* Canvas (les couleurs lues par le rendu WebGL doivent rester en hexadécimal) */
   --color-stickman: #1c1c1e;
@@ -51,6 +52,7 @@
   --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-thumb: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
   --shadow-segment: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+  --shadow-fab: 0 4px 12px rgba(0, 102, 204, 0.32), 0 1px 3px rgba(0, 0, 0, 0.12);
 
   /* ---------- Typographie ---------- */
   --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
@@ -61,6 +63,8 @@
   --font-size-body: 0.9375rem;      /* 15 px */
   --font-size-headline: 1rem;       /* 16 px */
   --font-size-title: 1.25rem;       /* 20 px */
+  --font-size-title-1: 1.5rem;      /* 24 px */
+  --font-size-large-title: 1.75rem; /* 28 px */
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
@@ -83,6 +87,7 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-pill: 999px;
 
   /* ---------- Bordures ---------- */
@@ -100,6 +105,7 @@
   --drawer-max-width: 85vw;
   --dialog-width: 420px;
   --dialog-max-height: 560px;
+  --dialog-max-height-tall: 760px;
   --control-height: 44px;
   --segment-inset: 2px;
   --switch-width: 51px;
@@ -122,8 +128,32 @@
   --paint-preview-height: 220px;
   --paint-strip-height: 28px;
   --format-preview-size: 28px;
+  --menu-width: 200px;
+  /* Accueil */
+  --home-sidebar-width: 280px;
+  --home-content-max-width: 1200px;
+  --project-card-min-width: 220px;
+  --template-card-width: 168px;
+  --shortcut-size: 56px;
+  --fab-size: 56px;
+  --tab-bar-height: 56px;
+  --hero-stickman-size: 120px;
+  --empty-illustration-size: 96px;
+  --sheet-width: 480px;
+  --search-width: 560px;
+  --list-thumb-width: 128px;
+  /* Rapport des vignettes de cartes (un format différent y tient entier, centré). */
+  --card-media-ratio: 16 / 9;
   /* Extérieur du cadre de la vidéo sur la scène (letterboxing). */
   --color-letterbox: rgba(0, 0, 0, 0.32);
+  /* Bannière d'accueil : dégradé discret de l'accent, reflet translucide. */
+  --hero-gradient: linear-gradient(135deg, #2f8fff 0%, #0066cc 58%, #0052a3 100%);
+  --hero-sheen: radial-gradient(80% 120% at 100% 0%, rgba(255, 255, 255, 0.24), transparent 60%);
+  --color-hero-disc: rgba(255, 255, 255, 0.94);
+  --color-hero-ghost: rgba(255, 255, 255, 0.3);
+  /* Badges posés sur une vignette (format, type de fichier, durée). */
+  --color-badge-bg: rgba(0, 0, 0, 0.6);
+  --color-badge-label: #ffffff;
   --color-frame-edge: rgba(0, 102, 204, 0.5);
   --tool-button-height: 64px;
   --hex-field-width: 96px;
@@ -141,18 +171,24 @@
   --z-base: 0;
   --z-sticky: 10;
   --z-drawer: 100;
+  --z-menu: 200;
+  --z-fab: 300;
 
   /* ---------- Animations d'interface ---------- */
   --duration-fast: 150ms;
   --duration-base: 250ms;
   --duration-slow: 350ms;
+  /* Mouvement décoratif lent et continu (stickman de la bannière). */
+  --duration-ambient: 3200ms;
   --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
   --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* ---------- Couleurs : mode sombre ---------- */
+/* ---------- Couleurs : mode sombre ----------
+   Automatique (thème du système), sauf si les Réglages imposent le clair ou le sombre
+   (`data-theme` sur <html>). Les deux blocs doivent rester identiques. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --color-bg: #000000;
     --color-surface: #1c1c1e;
     --color-surface-raised: #2c2c2e;
@@ -174,6 +210,7 @@
     --color-accent-soft-strong: rgba(10, 132, 255, 0.28);
     --color-on-accent: #ffffff;
     --color-focus-ring: rgba(10, 132, 255, 0.7);
+    --color-destructive: #ff453a;
 
     --color-stickman: #f2f2f7;
     --color-canvas: #1c1c1e;
@@ -181,6 +218,10 @@
     --color-grid-line-major: rgba(235, 235, 245, 0.1);
     --color-thumb-bg: #2c2c2e;
     --color-letterbox: rgba(0, 0, 0, 0.45);
+    --hero-gradient: linear-gradient(135deg, #0a84ff 0%, #0058b0 58%, #003f80 100%);
+    --hero-sheen: radial-gradient(80% 120% at 100% 0%, rgba(255, 255, 255, 0.16), transparent 60%);
+    --color-hero-disc: rgba(28, 28, 30, 0.88);
+    --color-hero-ghost: rgba(255, 255, 255, 0.22);
     --color-frame-edge: rgba(10, 132, 255, 0.6);
 
     --material-regular: rgba(28, 28, 30, 0.72);
@@ -190,7 +231,62 @@
 
     --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.4);
     --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-fab: 0 4px 14px rgba(10, 132, 255, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
   }
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #000000;
+  --color-surface: #1c1c1e;
+  --color-surface-raised: #2c2c2e;
+  --color-label: #ffffff;
+  --color-label-secondary: #ebebf5;
+  --color-label-tertiary: #aeaeb2;
+  --color-separator: rgba(84, 84, 88, 0.6);
+  --color-fill: rgba(118, 118, 128, 0.24);
+  --color-fill-hover: rgba(118, 118, 128, 0.32);
+  --color-fill-pressed: rgba(118, 118, 128, 0.44);
+  --color-segment-selected: #636366;
+  --color-switch-thumb: #ffffff;
+  --color-scrim: rgba(0, 0, 0, 0.56);
+
+  --color-accent: #0a84ff;
+  --color-accent-fill: #0071e3;
+  --color-accent-fill-hover: #0a84ff;
+  --color-accent-soft: rgba(10, 132, 255, 0.18);
+  --color-accent-soft-strong: rgba(10, 132, 255, 0.28);
+  --color-on-accent: #ffffff;
+  --color-focus-ring: rgba(10, 132, 255, 0.7);
+  --color-destructive: #ff453a;
+
+  --color-stickman: #f2f2f7;
+  --color-canvas: #1c1c1e;
+  --color-grid-line: rgba(235, 235, 245, 0.05);
+  --color-grid-line-major: rgba(235, 235, 245, 0.1);
+  --color-thumb-bg: #2c2c2e;
+  --color-letterbox: rgba(0, 0, 0, 0.45);
+  --hero-gradient: linear-gradient(135deg, #0a84ff 0%, #0058b0 58%, #003f80 100%);
+  --hero-sheen: radial-gradient(80% 120% at 100% 0%, rgba(255, 255, 255, 0.16), transparent 60%);
+  --color-hero-disc: rgba(28, 28, 30, 0.88);
+  --color-hero-ghost: rgba(255, 255, 255, 0.22);
+  --color-frame-edge: rgba(10, 132, 255, 0.6);
+
+  --material-regular: rgba(28, 28, 30, 0.72);
+  --material-thick: rgba(28, 28, 30, 0.88);
+  --material-fallback: #1c1c1e;
+  --app-backdrop: radial-gradient(120% 80% at 0% 0%, rgba(10, 132, 255, 0.12), transparent 60%), var(--color-bg);
+
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-fab: 0 4px 14px rgba(10, 132, 255, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 /* Écrans peu hauts (téléphone en paysage) : interface compacte. */

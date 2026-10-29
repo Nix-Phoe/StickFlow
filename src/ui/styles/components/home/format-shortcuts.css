@@ -1,0 +1,87 @@
+/* Raccourcis ronds par format, dans la bannière d'accueil. */
+
+.format-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.format-shortcut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-half);
+  min-width: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-on-accent);
+}
+
+.format-shortcut__disc {
+  display: grid;
+  place-items: center;
+  width: var(--shortcut-size);
+  height: var(--shortcut-size);
+  border-radius: var(--radius-pill);
+  background: var(--color-hero-disc);
+  color: var(--color-accent);
+  box-shadow: var(--shadow-raised);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .format-shortcut:hover .format-shortcut__disc {
+    transform: translateY(calc(-1 * var(--space-half)));
+  }
+}
+
+.format-shortcut:active .format-shortcut__disc {
+  transform: scale(0.94);
+}
+
+.format-shortcut__box {
+  display: grid;
+  place-items: center;
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+.format-shortcut__frame {
+  width: var(--frame-width);
+  height: var(--frame-height);
+  border: var(--border-strong) solid currentColor;
+  border-radius: var(--radius-xs);
+}
+
+.format-shortcut__label {
+  font-size: var(--font-size-footnote);
+  font-weight: var(--font-weight-semibold);
+}
+
+.format-shortcut__ratio {
+  font-size: var(--font-size-caption);
+  opacity: 0.85;
+}
+
+.format-shortcut__ratio:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .format-shortcut__disc {
+    transition: none;
+  }
+}
+
+/* Téléphone : les cinq raccourcis tiennent sur une ligne. */
+@media (max-width: 599px) {
+  .format-shortcuts {
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+  }
+}

@@ -1,0 +1,115 @@
+/* Menu « ⋮ » : bouton rond et liste d'actions en matériau translucide. */
+
+.menu {
+  position: relative;
+}
+
+.menu__button {
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-label-secondary);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .menu__button:hover {
+    background: var(--color-fill-hover);
+  }
+}
+
+.menu.is-open .menu__button,
+.menu__button:active {
+  background: var(--color-fill-pressed);
+}
+
+.menu__list {
+  position: absolute;
+  top: calc(100% + var(--space-half));
+  right: 0;
+  z-index: var(--z-menu);
+  display: flex;
+  flex-direction: column;
+  min-width: var(--menu-width);
+  padding: var(--space-half);
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-md);
+  background: var(--material-thick);
+  box-shadow: var(--shadow-raised);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+  transform-origin: top right;
+  animation: menu-in var(--duration-fast) var(--ease-emphasized);
+}
+
+.menu.opens-up .menu__list {
+  top: auto;
+  bottom: calc(100% + var(--space-half));
+  transform-origin: bottom right;
+}
+
+.menu__list[hidden] {
+  display: none;
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--font-size-body);
+  text-align: start;
+}
+
+.menu__item .icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-label-secondary);
+}
+
+.menu__item:hover,
+.menu__item:focus-visible {
+  outline: none;
+  background: var(--color-accent-fill);
+  color: var(--color-on-accent);
+}
+
+.menu__item:hover .icon,
+.menu__item:focus-visible .icon {
+  color: inherit;
+}
+
+.menu__item--destructive {
+  color: var(--color-destructive);
+}
+
+.menu__item--destructive .icon {
+  color: var(--color-destructive);
+}
+
+.menu__item--destructive:hover,
+.menu__item--destructive:focus-visible {
+  background: var(--color-destructive);
+  color: var(--color-on-accent);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu__list {
+    animation: none;
+  }
+}

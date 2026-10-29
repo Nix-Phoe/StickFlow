@@ -1,0 +1,164 @@
+/* Carte de projet : vignette au rapport du format, nom, détails et menu « ⋮ ». */
+
+.project-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "media media"
+    "body menu";
+  align-items: center;
+  overflow: visible;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+  transition:
+    transform var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .project-card:hover {
+    box-shadow: var(--shadow-raised);
+    transform: translateY(calc(-1 * var(--border-strong)));
+  }
+}
+
+/* La vignette garde une hauteur fixe ; l'image du format y tient entière (letterboxing). */
+.project-card__media {
+  position: relative;
+  grid-area: media;
+  display: grid;
+  place-items: center;
+  aspect-ratio: var(--card-media-ratio);
+  overflow: hidden;
+  container-type: size;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-thumb-bg);
+}
+
+/* Image et aperçu au rapport du format (--card-ratio = largeur / hauteur), le plus grand possible. */
+.project-card__thumb,
+.project-card__preview {
+  position: absolute;
+  inset: 0;
+  width: min(100cqw, 100cqh * var(--card-ratio));
+  height: min(100cqh, 100cqw / var(--card-ratio));
+  margin: auto;
+}
+
+.project-card__preview {
+  visibility: hidden;
+}
+
+.project-card.is-previewing .project-card__preview {
+  visibility: visible;
+}
+
+.project-card__placeholder {
+  color: var(--color-label-tertiary);
+}
+
+.project-card__placeholder .logo {
+  width: var(--empty-illustration-size);
+  height: var(--empty-illustration-size);
+  opacity: var(--opacity-muted);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-half);
+  min-height: var(--badge-size);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-badge-bg);
+  color: var(--color-badge-label);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.badge .icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.project-card__badge {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+}
+
+/* Le bouton Ouvrir couvre la vignette et le nom (zone cliquable entière). */
+.project-card__open {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+}
+
+.project-card__body {
+  grid-area: body;
+  min-width: 0;
+  padding: var(--space-1) 0 var(--space-1) var(--space-2);
+}
+
+.project-card__name {
+  overflow: hidden;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-1);
+  color: var(--color-label-secondary);
+  font-size: var(--font-size-footnote);
+}
+
+.project-card__meta > * + *::before {
+  margin-right: var(--space-1);
+  content: "·";
+}
+
+.project-card__rename {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-1);
+  border: var(--border-hairline) solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Le menu passe au-dessus du bouton Ouvrir. */
+.project-card__menu {
+  position: relative;
+  z-index: 2;
+  grid-area: menu;
+  margin-right: var(--space-half);
+}
+
+/* ---------- Vue en liste ---------- */
+.project-grid--list .project-card {
+  grid-template-columns: var(--list-thumb-width) minmax(0, 1fr) auto;
+  grid-template-areas: "media body menu";
+}
+
+.project-grid--list .project-card__media {
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-card {
+    transition: none;
+  }
+}

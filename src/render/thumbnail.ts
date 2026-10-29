@@ -74,11 +74,21 @@ export function projectThumbnail(project: Project, drawing: DrawingImage | null)
   const { width, height } = thumbnailSize(project.format);
   canvas.width = width;
   canvas.height = height;
+  if (!frame || !paintProjectFrame(canvas, project, frame, drawing)) return null;
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * Dessine une frame d'un projet dans tout le canvas (à sa taille en pixels), aux couleurs de
+ * l'export : vignettes enregistrées et aperçu animé des cartes de l'accueil. `false` sans Canvas 2D.
+ */
+export function paintProjectFrame(canvas: HTMLCanvasElement, project: Project, frame: SequenceFrame, drawing: DrawingImage | null): boolean {
   const context = canvas.getContext('2d');
-  if (!context || !frame) return null;
+  const { width, height } = canvas;
+  if (!context || width === 0 || height === 0) return false;
   context.fillStyle = project.environment.background ?? EXPORT_COLORS.background;
   context.fillRect(0, 0, width, height);
   const layers = thumbnailLayers(project, frame, parseHexColor(EXPORT_COLORS.stickman));
   paintScene(context, { width, height, worldHeight: fitWorldHeight({ width, height }, aspectRatio(project.format)) }, layers, drawing);
-  return canvas.toDataURL('image/png');
+  return true;
 }

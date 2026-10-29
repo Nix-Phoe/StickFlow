@@ -5,7 +5,7 @@
 ## Projet et session
 
 **Projet** :
-L'animation que l'utilisateur crée et sauvegarde : son nom, son IPS, son squelette, ses frames et ses réglages IA. Toute modification d'un Projet peut être annulée.
+L'animation que l'utilisateur crée et sauvegarde : son nom, son IPS, ses personnages, ses images clés, son décor, ses couleurs récentes et ses réglages IA. Toute modification d'un Projet peut être annulée.
 _Avoid_ : document, fichier, animation (pour désigner l'ensemble)
 
 **Bibliothèque** :
@@ -13,8 +13,26 @@ L'ensemble des Projets enregistrés sur l'appareil, que l'on rouvre depuis « Ou
 _Avoid_ : galerie, historique, fichiers récents
 
 **Session** :
-L'état de travail du moment : frame active, lecture en cours, vitesse de prévisualisation, mode d'édition, format d'export. Elle n'est ni sauvegardée ni annulable.
+L'état de travail du moment : frame active, sélection, lecture en cours, vitesse de prévisualisation, mode d'édition, outil, format d'export. Elle n'est ni sauvegardée ni annulable.
 _Avoid_ : état d'interface, préférences
+
+**Mode d'édition** :
+Le contexte dans lequel la scène réagit au pointeur : Personnages ou Environnement. Il se choisit par l'onglet du panneau flottant ; l'autre contexte est atténué et ne capte pas les clics.
+_Avoid_ : onglet (pour désigner le mode), outil
+
+## Personnages
+
+**Personnage** :
+Un stickman de la scène, avec son propre squelette, son apparence et sa pose dans chaque image clé. Il peut être masqué (ni affiché ni exporté) ou verrouillé (affiché, mais non sélectionnable). Un Projet en contient toujours au moins un.
+_Avoid_ : acteur, figure, stickman (pour désigner l'objet du Projet)
+
+**Partie** :
+Le segment qui relie un nœud à son parent, désigné par l'id de ce nœud ; la tête est une partie à part entière. On colore les parties une à une ou plusieurs à la fois.
+_Avoid_ : membre, os, segment (dans les textes affichés)
+
+**Apparence** :
+La couleur du personnage entier, la couleur propre de chaque partie et la taille (50 à 200 %). Elle est la même dans toutes les frames.
+_Avoid_ : style, skin
 
 ## Squelette
 
@@ -63,6 +81,28 @@ _Avoid_ : curseur, playhead
 **IPS** :
 Le nombre de frames jouées par seconde, de 1 à 60.
 _Avoid_ : FPS, cadence
+
+## Décor
+
+**Environnement** :
+Le décor de la scène : arrière-plan, formes et calque de dessin. En version 1.0, il est le même dans toutes les frames.
+_Avoid_ : scène (pour désigner le décor seul), fond
+
+**Forme** :
+Un objet vectoriel du décor (carré, cercle, rectangle, triangle, ligne) que l'on sélectionne, déplace, redimensionne et fait pivoter.
+_Avoid_ : figure, dessin
+
+**Calque de dessin** :
+L'image matricielle du décor sur laquelle peignent les outils de dessin, découpée en tuiles ; chaque trait n'enregistre que les tuiles qu'il touche.
+_Avoid_ : canvas, toile, bitmap
+
+**Outil** :
+Ce que fait le pointeur en mode Environnement : sélection, une forme à tracer, Remplir, ou un outil de dessin (stylo fin, feutre, pinceau, gomme, plume, aérographe). Il fait partie de la Session.
+_Avoid_ : brosse (pour l'ensemble), mode
+
+**Couleurs récentes** :
+Les 8 dernières couleurs choisies, enregistrées avec le Projet mais hors de l'historique d'annulation.
+_Avoid_ : historique des couleurs, palette
 
 ## Améliorations IA
 

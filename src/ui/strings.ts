@@ -485,5 +485,6 @@ export const strings = {
 
   units: {
     frames: (n: number): string => plural(n, 'image', 'images'),
+    videos: (n: number): string => plural(n, 'vidéo', 'vidéos'),
   },
 } as const;

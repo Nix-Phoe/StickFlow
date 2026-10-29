@@ -93,3 +93,28 @@
     transition: none;
   }
 }
+
+/* ---------- Barre du haut (téléphone et tablette) ---------- */
+.home-topbar {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .home-topbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-bottom: calc(-1 * var(--space-2));
+  }
+
+  .home-topbar__name {
+    flex: 1 1 auto;
+    font-size: var(--font-size-title);
+    font-weight: var(--font-weight-bold);
+  }
+}
+
+.settings__clear {
+  align-self: flex-start;
+  color: var(--color-destructive);
+}

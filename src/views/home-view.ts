@@ -23,7 +23,9 @@ import { createFloatingAddButton } from '../ui/components/home/floating-add-butt
 import { createHeroBanner } from '../ui/components/home/hero-banner';
 import { createHomeNotice } from '../ui/components/home/home-notice';
 import { createProjectGrid } from '../ui/components/home/project-grid';
+import { createSettingsSheet } from '../ui/components/home/settings-sheet';
 import { createSidebar } from '../ui/components/home/sidebar';
+import { createTopBar } from '../ui/components/home/top-bar';
 import { createTemplateCarousel } from '../ui/components/home/template-carousel';
 import { createVideoGrid } from '../ui/components/home/video-grid';
 import { createVideoPlayerSheet } from '../ui/components/home/video-player-sheet';
@@ -108,11 +110,18 @@ export function createHomeView({ section, library, preferences, videos, navigate
       const sidebar = createSidebar(context);
       sidebar.mount(root);
       root.append(main);
-      const rest = [createFloatingAddButton, createCreateProjectSheet, createExportSheet, createVideoPlayerSheet, createHomeNotice].map((create) =>
-        create(context),
-      );
+      const topBar = createTopBar(context);
+      topBar.mount(content);
+      const rest = [
+        createFloatingAddButton,
+        createCreateProjectSheet,
+        createExportSheet,
+        createVideoPlayerSheet,
+        createSettingsSheet,
+        createHomeNotice,
+      ].map((create) => create(context));
       rest.forEach((component) => component.mount(root));
-      cleanups.push(...[sidebar, ...rest].map((component) => () => component.destroy()));
+      cleanups.push(...[sidebar, topBar, ...rest].map((component) => () => component.destroy()));
       cleanups.push(store.watch((s) => s.section, showSection));
     },
     update(route) {

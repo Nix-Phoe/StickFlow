@@ -1,6 +1,7 @@
 /* Barre d'outils supérieure. */
 
 .toolbar {
+  container-type: inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
@@ -17,22 +18,160 @@
   justify-content: flex-end;
 }
 
+/* Le bouton « Personnages & Environnement », puis le module de lecture, côte à côte. */
 .toolbar__center {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-half);
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.toolbar__controls,
+.toolbar__editor {
   border: var(--border-hairline) solid var(--color-separator);
-  border-radius: var(--radius-pill);
   background: var(--material-fallback);
   box-shadow: var(--shadow-panel);
 }
 
+.toolbar__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-half);
+  border-radius: var(--radius-pill);
+}
+
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .toolbar__center {
+  .toolbar__controls,
+  .toolbar__editor {
     background: var(--material-regular);
     -webkit-backdrop-filter: var(--material-blur);
     backdrop-filter: var(--material-blur);
+  }
+}
+
+/* Bouton à libellé : icônes, titre et indication, chevron du menu. Même hauteur que le module de lecture. */
+.toolbar__editor {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: calc(var(--touch-target) + 2 * var(--space-half));
+  padding: var(--space-half) var(--space-2) var(--space-half) var(--space-half);
+  border-radius: var(--radius-lg);
+  color: var(--color-label);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .toolbar__editor:hover {
+    background: var(--color-fill-hover);
+  }
+}
+
+.toolbar__editor:active {
+  background: var(--color-fill-pressed);
+}
+
+.toolbar__editor:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.toolbar__editor-icons {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-half);
+  min-width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.toolbar__editor-icons .icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.toolbar__editor-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: var(--line-height-tight);
+}
+
+.toolbar__editor-title {
+  font-size: var(--font-size-subhead);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.toolbar__editor-hint {
+  color: var(--color-label-secondary);
+  font-size: var(--font-size-caption);
+  white-space: nowrap;
+}
+
+.toolbar__editor-chevron {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-label-secondary);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+/* Panneau ouvert : bouton en couleur d'accent, chevron retourné. */
+.toolbar__editor[aria-expanded="true"] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.toolbar__editor[aria-expanded="true"] .toolbar__editor-icons {
+  background: var(--color-accent-fill);
+  color: var(--color-on-accent);
+}
+
+.toolbar__editor[aria-expanded="true"] .toolbar__editor-chevron {
+  color: var(--color-accent);
+  transform: rotate(180deg);
+}
+
+/* Barre étroite : titre sur deux lignes sans indication, puis seulement les icônes
+   (le nom accessible reste complet). */
+@container (max-width: 759px) {
+  .toolbar__editor {
+    padding-right: var(--space-2);
+  }
+
+  .toolbar__editor-text {
+    width: min-content;
+  }
+
+  .toolbar__editor-title {
+    white-space: normal;
+  }
+
+  .toolbar__editor-hint,
+  .toolbar__editor-chevron {
+    display: none;
+  }
+}
+
+@container (max-width: 619px) {
+  .toolbar__editor {
+    padding-right: var(--space-half);
+  }
+
+  .toolbar__editor-text,
+  .toolbar__editor-chevron {
+    display: none;
   }
 }
 
@@ -69,9 +208,11 @@
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .toolbar__center {
+  .toolbar__controls {
+    flex: 1;
     justify-content: space-between;
     gap: var(--space-1);
+    min-width: 0;
     overflow-x: auto;
   }
 
@@ -98,7 +239,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toolbar__play > .icon {
+  .toolbar__play > .icon,
+  .toolbar__editor,
+  .toolbar__editor-chevron {
     transition: none;
   }
 }

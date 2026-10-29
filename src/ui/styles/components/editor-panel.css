@@ -76,12 +76,6 @@
   margin-top: 0;
 }
 
-/* Bouton d'ouverture actif dans la barre d'outils. */
-.icon-button.is-active {
-  background: var(--color-accent-soft-strong);
-  color: var(--color-accent);
-}
-
 /* Téléphone : feuille du bas, pour ne pas cacher le canvas. */
 @media (max-width: 599px) {
   .editor-panel {

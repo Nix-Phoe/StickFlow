@@ -92,6 +92,9 @@ export const strings = {
 
   editorPanel: {
     open: 'Ajouter ou modifier un personnage ou l’environnement',
+    /** Libellé visible du bouton d'ouverture, dans la barre d'outils. */
+    buttonTitle: 'Personnages & Environnement', // insécable : « Personnages & » reste sur une ligne
+    buttonHint: 'Ajouter ou modifier',
     title: 'Personnages et environnement',
     close: 'Fermer le panneau',
     tabs: 'Contexte d’édition',

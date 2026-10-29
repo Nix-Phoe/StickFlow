@@ -83,7 +83,7 @@ Règles communes aux fonctionnalités IA :
 ```
 
 - **Panneau gauche** : en-tête (nom du projet, indicateur « Mode : Personnages / Environnement », sauvegarder), section « Améliorations IA » (Fluidité, Répétition), section « Animation » (IPS), puis bouton **Exporter** avec choix du format en bas. Il n'a plus de sélecteur de mode (v1.0).
-- **Barre supérieure** : bouton « Personnages & Environnement » (ouvre le panneau flottant), annuler, rétablir, Lecture / Pause (un seul bouton), Stop, vitesses x1 / x2 / x5 / x10.
+- **Barre supérieure** : bouton à libellé « Personnages & Environnement · Ajouter ou modifier » placé juste à gauche du module de lecture (ouvre le panneau flottant ; titre sur deux lignes puis icônes seules quand la barre rétrécit, requêtes de conteneur), puis le module : annuler, rétablir, Lecture / Pause (un seul bouton), Stop, vitesses x1 / x2 / x5 / x10.
 - **Panneau flottant** (v1.0) : popover ancré sous son bouton, onglets `Personnages | Environnement` ; feuille du bas sous 600 px de large.
 - **Zone centrale** : canvas de dessin.
 - **Barre inférieure** : timeline des frames + bouton « + ».

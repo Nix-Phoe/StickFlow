@@ -11,7 +11,7 @@ import { strings } from '../strings';
 
 const t = strings.toolbar;
 
-/** Barre supérieure : tiroir (petits écrans), annuler / rétablir, lecture / pause (un seul bouton), stop, vitesse. */
+/** Barre supérieure : tiroir (petits écrans), bouton « Personnages & Environnement », annuler / rétablir, lecture / pause (un seul bouton), stop, vitesse. */
 export function createToolbar({ bus, store }: ComponentContext): Component {
   const cleanups: Array<() => void> = [];
 
@@ -25,15 +25,30 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
   });
   menuButton.setAttribute('aria-controls', ids.sidePanel);
 
-  // Ouvre le panneau « Personnages & Environnement » (ancré sous ce bouton).
-  const editorButton = createIconButton({
-    icon: 'editor',
-    label: strings.editorPanel.open,
-    action: 'panel:toggle',
-    variant: 'filled',
-    onClick: () => bus.emit('panel:toggle', { open: !store.state.session.panelOpen }),
-  });
-  editorButton.id = ids.editorButton;
+  // Ouvre le panneau « Personnages & Environnement » (ancré sous ce bouton). Bouton à libellé
+  // visible, à côté des contrôles de lecture ; sur une barre étroite, il ne garde que ses icônes.
+  const editorStrings = strings.editorPanel;
+  const editorButton = h(
+    'button',
+    {
+      type: 'button',
+      id: ids.editorButton,
+      class: 'toolbar__editor',
+      // Le nom accessible commence par le libellé visible (WCAG 2.5.3), même quand il est masqué.
+      'aria-label': `${editorStrings.buttonTitle} : ${editorStrings.open}`,
+      title: editorStrings.open,
+      'data-action': 'panel:toggle',
+    },
+    [
+      h('span', { class: 'toolbar__editor-icons', 'aria-hidden': 'true' }, [icon('person'), icon('editor')]),
+      h('span', { class: 'toolbar__editor-text' }, [
+        h('span', { class: 'toolbar__editor-title' }, [editorStrings.buttonTitle]),
+        h('span', { class: 'toolbar__editor-hint' }, [editorStrings.buttonHint]),
+      ]),
+      icon('down', 'icon toolbar__editor-chevron'),
+    ],
+  );
+  editorButton.addEventListener('click', () => bus.emit('panel:toggle', { open: !store.state.session.panelOpen }));
   editorButton.setAttribute('aria-controls', ids.editorPanel);
   editorButton.setAttribute('aria-haspopup', 'dialog');
 
@@ -87,12 +102,14 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
     h('div', { class: 'toolbar__start' }, [menuButton]),
     h('div', { class: 'toolbar__center' }, [
       editorButton,
-      h('div', { class: 'toolbar__group', role: 'group', 'aria-label': `${t.undo} / ${t.redo}` }, [
-        undoButton,
-        redoButton,
+      h('div', { class: 'toolbar__controls' }, [
+        h('div', { class: 'toolbar__group', role: 'group', 'aria-label': `${t.undo} / ${t.redo}` }, [
+          undoButton,
+          redoButton,
+        ]),
+        h('div', { class: 'toolbar__group', role: 'group', 'aria-label': t.playbackGroup }, [playButton, stopButton]),
+        speedControl.element,
       ]),
-      h('div', { class: 'toolbar__group', role: 'group', 'aria-label': t.playbackGroup }, [playButton, stopButton]),
-      speedControl.element,
     ]),
     h('div', { class: 'toolbar__end' }),
   ]);
@@ -109,10 +126,7 @@ export function createToolbar({ bus, store }: ComponentContext): Component {
     ),
     store.watch((s) => s.session.playbackSpeed, (speed) => speedControl.setValue(speed)),
     store.watch((s) => s.session.drawerOpen, (open) => menuButton.setAttribute('aria-expanded', String(open))),
-    store.watch((s) => s.session.panelOpen, (open) => {
-      editorButton.setAttribute('aria-expanded', String(open));
-      editorButton.classList.toggle('is-active', open);
-    }),
+    store.watch((s) => s.session.panelOpen, (open) => editorButton.setAttribute('aria-expanded', String(open))),
     store.watch((s) => canUndo(s.project), (can) => (undoButton.disabled = !can)),
     store.watch((s) => canRedo(s.project), (can) => (redoButton.disabled = !can)),
   );

@@ -3,10 +3,9 @@
 import type { ExportFormat, Project } from '../core/types';
 import type { SequenceFrame } from '../model/sequence';
 
-/** Taille des images exportées, en pixels (16:9, même cadrage vertical que la scène). */
-export const EXPORT_SIZE = { width: 1280, height: 720 } as const;
-
 export interface ExportPlan {
+  /** Taille des images, en pixels : la résolution du format de la vidéo. */
+  size: { width: number; height: number };
   frames: readonly SequenceFrame[];
   delayMs: number;
   /** Compteur de boucle du GIF : -1 une lecture, 0 en boucle, n répétitions en plus. */
@@ -23,6 +22,7 @@ export function planExport(project: Project, sequence: readonly SequenceFrame[],
   const repeats = !loop.enabled ? 1 : loop.infinite ? Infinity : loop.repeatCount;
   const passes = format === 'mp4' && Number.isFinite(repeats) ? repeats : 1;
   return {
+    size: exportSize(project),
     frames: Array.from({ length: passes }, () => sequence).flat(),
     delayMs: 1000 / project.fps,
     gifRepeat: repeats === Infinity ? 0 : repeats - 1 > 0 ? repeats - 1 : -1,
@@ -51,4 +51,9 @@ const VIDEO_FORMATS = [
 export function pickVideoFormat(isTypeSupported: (mimeType: string) => boolean): { mimeType: string; extension: string } | null {
   const format = VIDEO_FORMATS.find(({ mimeType }) => isTypeSupported(mimeType));
   return format ? { mimeType: format.mimeType, extension: format.extension } : null;
+}
+
+/** Résolution des images exportées : celle du format de la vidéo du projet. */
+export function exportSize(project: Project): { width: number; height: number } {
+  return { width: project.format.width, height: project.format.height };
 }

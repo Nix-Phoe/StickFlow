@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_FORMAT, presetFormat } from '../../core/formats';
 import { ORIGIN, testFrame, testProject } from '../../test/fixtures';
 import {
   applyChange,
@@ -104,6 +105,27 @@ describe('applyChange: settings', () => {
       { type: 'poseKeyframe', keyframeId: 'f1', poses: { c1: { pose: { torso: 1 }, rootPosition: { x: 5, y: 5 } } } },
     ]);
     expect(original).toEqual(snapshot);
+  });
+});
+
+describe('applyChange: format de la vidéo', () => {
+  it('changes the video format as an undoable step', () => {
+    const history = apply(createHistory(project()), [{ type: 'setFormat', format: presetFormat('vertical') }]);
+    expect(history.present.format).toEqual(presetFormat('vertical'));
+    expect(undo(history).present.format).toEqual(DEFAULT_FORMAT);
+  });
+
+  it('normalizes the format and ignores a format that does not change anything', () => {
+    const start = createHistory(project());
+    expect(apply(start, [{ type: 'setFormat', format: { preset: 'square', width: 1, height: 1 } }]).present.format).toEqual(
+      presetFormat('square'),
+    );
+    expect(apply(start, [{ type: 'setFormat', format: DEFAULT_FORMAT }])).toBe(start);
+  });
+
+  it('gives a project without a format the default one', () => {
+    const { format: _ignored, ...withoutFormat } = project();
+    expect(createHistory(withoutFormat as ReturnType<typeof project>).present.format).toEqual(DEFAULT_FORMAT);
   });
 });
 

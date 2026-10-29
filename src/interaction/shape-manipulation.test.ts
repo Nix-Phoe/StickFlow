@@ -5,10 +5,13 @@ import { connectIntents } from '../core/intents';
 import { createInitialState, Store } from '../core/store';
 import type { ToolId, Vec2 } from '../core/types';
 import { createDefaultSkeleton, sortSkeleton } from '../model/skeleton';
+import { DEFAULT_FORMAT } from '../core/formats';
+import { stageWorldHeight, worldToScreen } from '../render/camera';
 import { connectShapeManipulation } from './shape-manipulation';
 
-/** 800 × 400 px pour une hauteur de monde de 400 : 1 px = 1 unité, origine en (400, 200). */
+/** Scène de 800 × 400 px montrant le cadre 16:9 du projet, avec sa marge. */
 const VIEWPORT = { width: 800, height: 400 };
+const WORLD_HEIGHT = stageWorldHeight(VIEWPORT, DEFAULT_FORMAT);
 
 function setup(tool: ToolId = 'rectangle') {
   const bus = createEventBus();
@@ -33,7 +36,7 @@ interface Extra {
   shiftKey?: boolean;
   pointerType?: 'mouse' | 'touch';
 }
-const screen = (p: Vec2, extra: Extra = {}) => ({ pointerId: 1, x: p.x + 400, y: 200 - p.y, ...VIEWPORT, ...extra });
+const screen = (p: Vec2, extra: Extra = {}) => ({ pointerId: 1, ...worldToScreen(p, VIEWPORT, WORLD_HEIGHT), ...VIEWPORT, ...extra });
 const down = (bus: AppEventBus, p: Vec2, extra?: Extra): void => bus.emit('stage:pointer:down', screen(p, extra));
 const move = (bus: AppEventBus, p: Vec2, extra?: Extra): void => bus.emit('stage:pointer:move', screen(p, extra));
 const up = (bus: AppEventBus, p: Vec2, extra?: Extra): void => bus.emit('stage:pointer:up', screen(p, extra));

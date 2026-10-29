@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_FORMAT, presetFormat } from '../core/formats';
 import type { Project } from '../core/types';
 import { testCharacter, testFrame, testProject, testShape } from '../test/fixtures';
 import { fromProjectFile, PROJECT_FILE_FORMAT, PROJECT_FILE_VERSION, ProjectFileError, toProjectFile } from './project-file';
@@ -7,6 +8,7 @@ import { fromProjectFile, PROJECT_FILE_FORMAT, PROJECT_FILE_VERSION, ProjectFile
 const project: Project = testProject({
   name: 'Saut',
   fps: 24,
+  format: presetFormat('vertical'),
   characters: [
     testCharacter('c1', { name: 'Léa', appearance: {
         scale: 1.5,
@@ -39,11 +41,11 @@ type Editable = { project: Record<string, unknown> & { keyframes: unknown[]; cha
 const editable = (): Editable => reread(toProjectFile(project)) as Editable;
 
 describe('toProjectFile', () => {
-  it('tags the file with its format and version 2', () => {
+  it('tags the file with its format and version 3', () => {
     const file = toProjectFile(project);
     expect(file.format).toBe(PROJECT_FILE_FORMAT);
-    expect(file.version).toBe(2);
-    expect(PROJECT_FILE_VERSION).toBe(2);
+    expect(file.version).toBe(3);
+    expect(PROJECT_FILE_VERSION).toBe(3);
   });
 
   it('only stores keyframes, never generated frames', () => {
@@ -51,6 +53,7 @@ describe('toProjectFile', () => {
       'ai',
       'characters',
       'environment',
+      'format',
       'fps',
       'keyframes',
       'name',
@@ -113,6 +116,21 @@ describe('fromProjectFile', () => {
     const file = editable();
     delete (file.project.characters[0] as { appearance: { segmentBands?: unknown } }).appearance.segmentBands;
     expect(fromProjectFile(file).characters[0]?.appearance.segmentBands).toEqual({});
+  });
+
+  it('opens a version 2 file (before video formats) in YouTube 16:9', () => {
+    const file = editable() as unknown as { version: number; project: Record<string, unknown> };
+    file.version = 2;
+    delete file.project.format;
+    expect(fromProjectFile(file).format).toEqual(DEFAULT_FORMAT);
+  });
+
+  it('reads back a custom format and rejects a damaged one', () => {
+    const custom = { ...project, format: { preset: 'custom' as const, width: 1000, height: 700 } };
+    expect(fromProjectFile(reread(toProjectFile(custom))).format).toEqual(custom.format);
+    const file = editable();
+    file.project.format = { preset: 'custom', width: 'large', height: 700 };
+    expect(() => fromProjectFile(file)).toThrow(ProjectFileError);
   });
 
   it('keeps out-of-range numbers for the Projet module to clamp', () => {

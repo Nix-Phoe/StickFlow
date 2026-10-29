@@ -35,6 +35,15 @@
   touch-action: none;
 }
 
+/* Cadre de la vidéo : l'extérieur est assombri (letterboxing), le pointeur passe au travers. */
+.canvas-area__frame {
+  position: absolute;
+  border-radius: var(--radius-xs);
+  outline: var(--border-hairline) solid var(--color-frame-edge);
+  box-shadow: 0 0 0 100vmax var(--color-letterbox);
+  pointer-events: none;
+}
+
 .canvas-area__canvas[data-mode="environment"][data-tool="select"] {
   cursor: default;
 }

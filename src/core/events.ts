@@ -1,3 +1,4 @@
+import type { VideoFormat } from './formats';
 import type { Route } from './router';
 import type { PartialPaintSettings } from './session';
 import type {
@@ -130,6 +131,8 @@ export interface AppEvents {
   'ai:loop:change': Partial<LoopSettings>;
 
   'animation:fps:change': { fps: number };
+  /** Format de la vidéo du projet (préréglage ou taille libre) : cadre de la scène et export. */
+  'project:format:change': { format: VideoFormat };
   'animation:onion-skin:change': { enabled: boolean };
 
   'export:format:change': { format: ExportFormat };

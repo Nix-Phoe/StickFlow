@@ -1,5 +1,7 @@
 // Types partagés du projet. Aucune dépendance au DOM ni à WebGL.
 
+import type { VideoFormat } from './formats';
+
 /** Forme dessinée pour un nœud : un trait du parent au nœud, ou un disque plein (la tête). */
 export type NodeShape = 'segment' | 'circle';
 
@@ -135,6 +137,8 @@ export interface Project {
   name: string;
   /** 1 à 60. */
   fps: number;
+  /** Format de la vidéo : cadre de la scène et résolution de l'export (v2.0). */
+  format: VideoFormat;
   /** Dans l'ordre d'affichage : le dernier est dessiné au-dessus. Au moins un. */
   characters: Character[];
   keyframes: Keyframe[];

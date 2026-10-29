@@ -10,6 +10,8 @@ import {
   type SmoothingCurve,
 } from '../../core/types';
 import type { Component, ComponentContext } from '../component';
+import { outOfFrame } from '../../model/format-fit';
+import { createFormatPicker } from '../controls/format-picker';
 import { createIconButton } from '../controls/icon-button';
 import { createSegmented } from '../controls/segmented';
 import { createSlider } from '../controls/slider';
@@ -234,9 +236,22 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
     ]),
   ]);
 
+  // ---------- Format de la vidéo ----------
+  const formatPicker = createFormatPicker({
+    name: 'project-format',
+    label: strings.formats.label,
+    action: 'project:format:change',
+    value: store.state.project.present.format,
+    layout: 'tiles',
+    onChange: (format) => bus.emit('project:format:change', { format }),
+  });
+  const formatWarning = h('p', { class: 'side-panel__warning', role: 'status', 'aria-live': 'polite' });
+  const formatGroup = h('div', { class: 'group side-panel__format' }, [formatPicker.element, formatWarning]);
+
   const body = h('div', { class: 'side-panel__body' }, [
     section('section-ai', t.aiSection, [smoothingGroup, loopGroup]),
     section('section-animation', t.animationSection, [animationGroup]),
+    section('section-format', t.formatSection, [formatGroup]),
     // Emplacements réservés (effets prédéfinis, zone de prompt) : phase 8.
     section('section-effects', t.effectsSection, [], { slot: 'effects', hidden: true }),
     section('section-prompt', t.promptSection, [], { slot: 'prompt', hidden: true }),
@@ -326,6 +341,15 @@ export function createSidePanel({ bus, store }: ComponentContext): Component {
       },
     ),
     store.watch((s) => s.project.present.fps, (fps) => fpsStepper.setValue(fps)),
+    store.watch((s) => s.project.present.format, (format) => formatPicker.setValue(format)),
+    // Des personnages ou des formes qui dépassent du cadre ne seront pas (entièrement) exportés.
+    store.watch(
+      (s) => s.project.present,
+      (project) => {
+        const outside = outOfFrame(project, project.format);
+        formatWarning.textContent = strings.formats.outOfFrame(outside.characters.length, outside.shapes.length);
+      },
+    ),
     store.watch((s) => s.session.onionSkin, (enabled) => onionSkinSwitch.setChecked(enabled)),
     store.watch((s) => s.session.exportFormat, (format) => formatControl.setValue(format)),
     store.watch((s) => s.session.drawerOpen, () => applyDrawerState(true)),

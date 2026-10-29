@@ -1,6 +1,7 @@
 import { DEFAULT_APPEARANCE } from '../model/character';
 import { createHistory, type ProjectHistory } from '../model/project';
 import { deriveSequence } from '../model/sequence';
+import { DEFAULT_FORMAT } from './formats';
 import { createId } from './id';
 import { createSession, fitSessionToSequence, selectPart, type Session } from './session';
 import type { Project, SkeletonNode } from './types';
@@ -79,6 +80,7 @@ export function createInitialState(projectName: string, skeleton: SkeletonNode[]
   const project = createHistory({
     name: projectName,
     fps: 12,
+    format: DEFAULT_FORMAT,
     characters: [{ id: characterId, name: characterName, visible: true, locked: false, skeleton, appearance: { ...DEFAULT_APPEARANCE } }],
     keyframes: [
       { id: createId(), poses: { [characterId]: { pose: {}, rootPosition: rest } } },

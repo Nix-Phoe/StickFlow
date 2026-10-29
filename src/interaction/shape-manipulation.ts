@@ -15,7 +15,7 @@ import {
   shapeFromDrag,
   type ShapeHandle,
 } from '../model/shape';
-import { pixelsToWorld, screenToWorld, STAGE_WORLD_HEIGHT } from '../render/camera';
+import { pixelsToWorld, screenToWorld, stageWorldHeight } from '../render/camera';
 
 /** Rayon de saisie d'une poignée de forme, et marge autour d'une forme, en pixels CSS. */
 const HANDLE_RADIUS_PX = { touch: 22, precise: 12 } as const;
@@ -40,8 +40,10 @@ export function connectShapeManipulation({ bus, store }: ShapeManipulationOption
   /** `token` distingue chaque geste dans l'historique (un geste = une étape d'annulation). */
   let gesture: { pointerId: number; token: string; value: Gesture } | null = null;
 
-  const toWorld = (p: StagePointer): Vec2 => screenToWorld(p, p, STAGE_WORLD_HEIGHT);
-  const toUnits = (p: StagePointer, px: number): number => pixelsToWorld(px, p.height, STAGE_WORLD_HEIGHT);
+  /** Hauteur du monde de la scène : le cadre du format du projet, avec sa marge. */
+  const worldHeight = (p: StagePointer): number => stageWorldHeight(p, store.state.project.present.format);
+  const toWorld = (p: StagePointer): Vec2 => screenToWorld(p, p, worldHeight(p));
+  const toUnits = (p: StagePointer, px: number): number => pixelsToWorld(px, p.height, worldHeight(p));
   const precision = (p: StagePointer): 'touch' | 'precise' => (p.pointerType === 'touch' ? 'touch' : 'precise');
   const shapes = (): readonly Shape[] => store.state.project.present.environment.shapes;
 

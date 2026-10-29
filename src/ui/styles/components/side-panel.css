@@ -243,6 +243,21 @@
   opacity: var(--opacity-muted);
 }
 
+.side-panel__format {
+  padding: var(--space-1);
+}
+
+.side-panel__warning {
+  margin-top: var(--space-1);
+  padding: 0 var(--space-half);
+  color: var(--color-label-secondary);
+  font-size: var(--font-size-footnote);
+}
+
+.side-panel__warning:empty {
+  display: none;
+}
+
 .side-panel__notice {
   color: var(--color-label-tertiary);
   font-size: var(--font-size-caption);

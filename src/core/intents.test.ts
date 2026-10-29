@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { canRedo, canUndo } from '../model/project';
+import { DEFAULT_FORMAT, presetFormat } from './formats';
 import { createDefaultSkeleton, sortSkeleton } from '../model/skeleton';
 import { createEventBus } from './events';
 import { connectIntents } from './intents';
@@ -34,6 +35,14 @@ describe('connectIntents: Projet', () => {
     const { bus, project } = setup();
     bus.emit('animation:fps:change', { fps: 99 });
     expect(project().fps).toBe(60);
+  });
+
+  it('changes the video format of the project, undoably', () => {
+    const { bus, project } = setup();
+    bus.emit('project:format:change', { format: presetFormat('vertical') });
+    expect(project().format).toEqual(presetFormat('vertical'));
+    bus.emit('history:undo');
+    expect(project().format).toEqual(DEFAULT_FORMAT);
   });
 
   it('undoes and redoes a Projet change', () => {

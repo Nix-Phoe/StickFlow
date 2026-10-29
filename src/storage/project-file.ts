@@ -19,12 +19,13 @@ import {
   type SmoothingSettings,
   type Vec2,
 } from '../core/types';
+import { normalizeFormat, type VideoFormat } from '../core/formats';
 import { normalizeHex } from '../model/color';
 import { SkeletonError, sortSkeleton } from '../model/skeleton';
 import { migrateProject } from './migrate';
 
 export const PROJECT_FILE_FORMAT = 'stickflow-project';
-export const PROJECT_FILE_VERSION = 2;
+export const PROJECT_FILE_VERSION = 3;
 
 export interface ProjectFile {
   format: typeof PROJECT_FILE_FORMAT;
@@ -37,11 +38,11 @@ export class ProjectFileError extends Error {
 }
 
 export function toProjectFile(project: Project): ProjectFile {
-  const { name, fps, characters, keyframes, environment, recentColors, ai } = project;
+  const { name, fps, format, characters, keyframes, environment, recentColors, ai } = project;
   return {
     format: PROJECT_FILE_FORMAT,
     version: PROJECT_FILE_VERSION,
-    project: { name, fps, characters, keyframes, environment, recentColors, ai },
+    project: { name, fps, format, characters, keyframes, environment, recentColors, ai },
   };
 }
 
@@ -59,6 +60,7 @@ export function fromProjectFile(data: unknown): Project {
   return {
     name: string(project.name, 'nom'),
     fps: number(project.fps, 'IPS'),
+    format: readFormat(project.format),
     characters: array(project.characters, 'personnages').map(readCharacter),
     keyframes: array(project.keyframes, 'images clés').map(readKeyframe),
     environment: readEnvironment(project.environment),
@@ -104,6 +106,16 @@ function readCharacter(value: unknown): Character {
       segmentBands,
     },
   };
+}
+
+/** Format de la vidéo ; un préréglage inconnu devient une taille libre (normalizeFormat). */
+function readFormat(value: unknown): VideoFormat {
+  const format = record(value, 'format de la vidéo');
+  return normalizeFormat({
+    preset: string(format.preset, 'préréglage du format'),
+    width: number(format.width, 'largeur du format'),
+    height: number(format.height, 'hauteur du format'),
+  });
 }
 
 function readNode(value: unknown): SkeletonNode {

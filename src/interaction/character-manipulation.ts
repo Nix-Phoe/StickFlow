@@ -7,7 +7,7 @@ import { activeFrame } from '../core/selectors';
 import type { Store } from '../core/store';
 import type { Character, Vec2 } from '../core/types';
 import { posedCharacter } from '../model/character';
-import { pixelsToWorld, screenToWorld, STAGE_WORLD_HEIGHT } from '../render/camera';
+import { pixelsToWorld, screenToWorld, stageWorldHeight } from '../render/camera';
 import { pickCharacterTarget, type HitTolerance } from './hit-test';
 import { startNodeDrag, type NodeDrag } from './node-drag';
 import { cycleNode, nudgeNode } from './node-keys';
@@ -25,7 +25,9 @@ export interface CharacterManipulationOptions {
 export function connectCharacterManipulation({ bus, store }: CharacterManipulationOptions): () => void {
   let drag: { pointerId: number; characterId: string; session: NodeDrag } | null = null;
 
-  const toWorld = (p: StagePointer): Vec2 => screenToWorld(p, p, STAGE_WORLD_HEIGHT);
+  /** Hauteur du monde de la scène : le cadre du format du projet, avec sa marge. */
+  const worldHeight = (p: StagePointer): number => stageWorldHeight(p, store.state.project.present.format);
+  const toWorld = (p: StagePointer): Vec2 => screenToWorld(p, p, worldHeight(p));
   /** La manipulation porte toujours sur la frame active (une frame générée devient image clé au premier geste). */
   const current = () => activeFrame(store.state)?.frame;
   const character = (id: string | null): Character | undefined =>
@@ -33,7 +35,7 @@ export function connectCharacterManipulation({ bus, store }: CharacterManipulati
 
   function tolerance(pointer: StagePointer): HitTolerance {
     const kind = pointer.pointerType === 'touch' ? 'touch' : 'precise';
-    const toUnits = (px: number): number => pixelsToWorld(px, pointer.height, STAGE_WORLD_HEIGHT);
+    const toUnits = (px: number): number => pixelsToWorld(px, pointer.height, worldHeight(pointer));
     return { handle: toUnits(HANDLE_HIT_RADIUS_PX[kind]), segment: toUnits(SEGMENT_HIT_MARGIN_PX[kind]) };
   }
 

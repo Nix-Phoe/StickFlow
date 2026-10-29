@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { LoopSettings, Project } from '../core/types';
 import type { SequenceFrame } from '../model/sequence';
 import { testProject } from '../test/fixtures';
-import { exportFileName, pickVideoFormat, planExport } from './export-plan';
+import { presetFormat } from '../core/formats';
+import { exportFileName, exportSize, pickVideoFormat, planExport } from './export-plan';
 
 const frame = (id: string): SequenceFrame => ({ kind: 'keyframe', id, poses: {} });
 const sequence = [frame('a'), frame('b'), frame('c')];
@@ -15,6 +16,14 @@ const project = (loop: Partial<LoopSettings> = {}, fps = 10): Project => testPro
     smoothing: { enabled: true, intensity: 3, curve: 'smooth' },
     loop: { enabled: false, repeatCount: 3, infinite: false, transitionFrames: 4, ...loop },
   },
+});
+
+describe('exportSize', () => {
+  it('uses the resolution of the video format of the project', () => {
+    expect(exportSize(testProject({ format: presetFormat('vertical') }))).toEqual({ width: 1080, height: 1920 });
+    expect(exportSize(testProject({ format: presetFormat('custom', { width: 640, height: 480 }) }))).toEqual({ width: 640, height: 480 });
+    expect(planExport(testProject({ format: presetFormat('square') }), sequence, 'gif').size).toEqual({ width: 1080, height: 1080 });
+  });
 });
 
 describe('planExport', () => {

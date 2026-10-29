@@ -9,10 +9,12 @@ import type { Store } from '../core/store';
 import type { ExportFormat, Project } from '../core/types';
 import type { DrawingSurface } from '../drawing/surface';
 import type { SequenceFrame } from '../model/sequence';
+import { aspectRatio } from '../core/formats';
+import { fitWorldHeight } from '../render/camera';
 import { paintScene } from '../render/canvas2d';
 import { parseHexColor } from '../render/color';
 import { buildSceneLayers } from '../render/scene-layers';
-import { EXPORT_SIZE, exportFileName, pickVideoFormat, planExport, type ExportPlan } from './export-plan';
+import { exportFileName, pickVideoFormat, planExport, type ExportPlan } from './export-plan';
 import { encodeGif } from './gif';
 import { zipFiles } from './zip';
 
@@ -75,7 +77,7 @@ type Encoder = (paint: Painter, plan: ExportPlan, onProgress: (progress: number)
 
 const encoders: Record<ExportFormat, Encoder> = {
   async gif(paint, plan, onProgress) {
-    const { canvas, context } = createCanvas({ willReadFrequently: true });
+    const { canvas, context } = createCanvas(plan.size, { willReadFrequently: true });
     const frames: Uint8ClampedArray[] = [];
     for (const [i, frame] of plan.frames.entries()) {
       paint(context, frame, EXPORT_COLORS.background);
@@ -88,7 +90,7 @@ const encoders: Record<ExportFormat, Encoder> = {
   },
 
   async png(paint, plan, onProgress) {
-    const { canvas, context } = createCanvas();
+    const { canvas, context } = createCanvas(plan.size);
     const digits = String(plan.frames.length).length;
     const files = [];
     for (const [i, frame] of plan.frames.entries()) {
@@ -104,7 +106,7 @@ const encoders: Record<ExportFormat, Encoder> = {
     const format = typeof MediaRecorder === 'undefined' ? null : pickVideoFormat((type) => MediaRecorder.isTypeSupported(type));
     if (!format) throw new Error("Ce navigateur ne sait pas enregistrer de vidéo");
 
-    const { canvas, context } = createCanvas();
+    const { canvas, context } = createCanvas(plan.size);
     // Capture manuelle : une image de la vidéo par frame, au rythme de l'animation.
     const stream = canvas.captureStream(0);
     const [track] = stream.getVideoTracks();
@@ -145,13 +147,13 @@ const encoders: Record<ExportFormat, Encoder> = {
 
 // ---------- Dessin ----------
 
-function createCanvas(attributes?: CanvasRenderingContext2DSettings): {
+function createCanvas(size: { width: number; height: number }, attributes?: CanvasRenderingContext2DSettings): {
   canvas: HTMLCanvasElement;
   context: CanvasRenderingContext2D;
 } {
   const canvas = document.createElement('canvas');
-  canvas.width = EXPORT_SIZE.width;
-  canvas.height = EXPORT_SIZE.height;
+  canvas.width = size.width;
+  canvas.height = size.height;
   const context = canvas.getContext('2d', attributes);
   if (!context) throw new Error('Canvas 2D indisponible');
   return { canvas, context };
@@ -180,7 +182,9 @@ function drawFrame(
     selection: { selectedCharacterId: null, selectedNodeId: null, selectedParts: [], selectedShapeId: null },
     palette: { stickman: parseHexColor(EXPORT_COLORS.stickman), accent: parseHexColor(EXPORT_COLORS.stickman) },
   });
-  paintScene(context, { width, height }, layers, { image: drawing.canvas, bounds: drawing.bounds });
+  // Le canvas a le rapport du format : il montre exactement le cadre.
+  const worldHeight = fitWorldHeight({ width, height }, aspectRatio(project.format));
+  paintScene(context, { width, height, worldHeight }, layers, { image: drawing.canvas, bounds: drawing.bounds });
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement, type: string): Promise<Blob> {

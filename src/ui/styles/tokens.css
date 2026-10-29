@@ -79,6 +79,7 @@
   --space-6: 48px;
 
   /* ---------- Rayons ---------- */
+  --radius-xs: 3px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -120,6 +121,10 @@
   --character-thumb-height: 44px;
   --paint-preview-height: 220px;
   --paint-strip-height: 28px;
+  --format-preview-size: 28px;
+  /* Extérieur du cadre de la vidéo sur la scène (letterboxing). */
+  --color-letterbox: rgba(0, 0, 0, 0.32);
+  --color-frame-edge: rgba(0, 102, 204, 0.5);
   --tool-button-height: 64px;
   --hex-field-width: 96px;
   --number-field-width: 64px;
@@ -175,6 +180,8 @@
     --color-grid-line: rgba(235, 235, 245, 0.05);
     --color-grid-line-major: rgba(235, 235, 245, 0.1);
     --color-thumb-bg: #2c2c2e;
+    --color-letterbox: rgba(0, 0, 0, 0.45);
+    --color-frame-edge: rgba(10, 132, 255, 0.6);
 
     --material-regular: rgba(28, 28, 30, 0.72);
     --material-thick: rgba(28, 28, 30, 0.88);

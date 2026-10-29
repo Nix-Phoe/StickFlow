@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_FORMAT } from '../core/formats';
 import { migrateProject, MIGRATED_CHARACTER } from './migrate';
 
 const v1Project = {
@@ -44,9 +45,17 @@ describe('migrateProject', () => {
     });
   });
 
-  it('leaves a version 2 project as it is', () => {
-    const v2 = { name: 'x' };
-    expect(migrateProject(2, v2)).toBe(v2);
+  it('gives a version 2 project the YouTube 16:9 format', () => {
+    expect(migrateProject(2, { name: 'x' })).toEqual({ name: 'x', format: DEFAULT_FORMAT });
+  });
+
+  it('takes a version 1 project all the way to version 3', () => {
+    expect(migrateProject(1, v1Project)).toMatchObject({ format: DEFAULT_FORMAT });
+  });
+
+  it('leaves a version 3 project as it is', () => {
+    const v3 = { name: 'x' };
+    expect(migrateProject(3, v3)).toBe(v3);
   });
 
   it('leaves malformed data for the reader to reject', () => {

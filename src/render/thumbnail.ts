@@ -4,6 +4,8 @@
 
 import type { Project } from '../core/types';
 import type { SequenceFrame } from '../model/sequence';
+import { aspectRatio } from '../core/formats';
+import { fitWorldHeight } from './camera';
 import { paintScene, type DrawingImage } from './canvas2d';
 import { parseHexColor, type Rgba } from './color';
 import type { StickmanStyle } from './scene';
@@ -48,5 +50,7 @@ export function paintThumbnail(
     context.fillStyle = background;
     context.fillRect(0, 0, width, height);
   }
-  paintScene(context, { width, height }, thumbnailLayers(project, frame, parseHexColor(stickman)), drawing);
+  // Tout le cadre du format tient dans la vignette.
+  const worldHeight = fitWorldHeight({ width, height }, aspectRatio(project.format));
+  paintScene(context, { width, height, worldHeight }, thumbnailLayers(project, frame, parseHexColor(stickman)), drawing);
 }

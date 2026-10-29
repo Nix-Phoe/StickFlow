@@ -8,6 +8,7 @@ import { activeFrame, sequenceOf } from '../core/selectors';
 import type { Store } from '../core/store';
 import { rgbToHex } from '../model/color';
 import type { DrawingSurface } from '../drawing/surface';
+import { stageWorldHeight } from './camera';
 import { parseHexColor, type Rgba } from './color';
 import { createStageRenderer } from './renderer';
 import { buildSceneLayers } from './scene-layers';
@@ -42,7 +43,11 @@ export function connectStageView({ bus, store, canvas, drawing }: StageViewOptio
       selection: session,
       palette: { stickman: readColor(COLOR_TOKENS.stickman), accent: readColor(COLOR_TOKENS.accent) },
     });
-    renderer.draw(layers, { background: background ? parseHexColor(background) : null, drawing });
+    renderer.draw(layers, {
+      background: background ? parseHexColor(background) : null,
+      drawing,
+      worldHeight: stageWorldHeight(canvas, project.present.format),
+    });
   }
 
   function scheduleDraw(): void {

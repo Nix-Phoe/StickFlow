@@ -7,7 +7,7 @@ import type { Store } from '../core/store';
 import { DRAWING_TOOLS, type DrawingTool, type Vec2 } from '../core/types';
 import { hexToRgb } from '../model/color';
 import { DRAWING_LAYER, tilesInRect, worldToLayer, type PixelRect } from '../model/drawing-layer';
-import { screenToWorld, STAGE_WORLD_HEIGHT } from '../render/camera';
+import { screenToWorld, stageWorldHeight } from '../render/camera';
 import { createStroke, dabsBounds, type Dab, type Stroke } from './brush';
 import { floodFill } from './flood-fill';
 import type { DrawingSurface } from './surface';
@@ -42,7 +42,7 @@ export function connectDrawingTool({ bus, store, surface, now = () => performanc
     bounds: PixelRect | null;
   } | null = null;
 
-  const toLayer = (pointer: StagePointer): Vec2 => worldToLayer(screenToWorld(pointer, pointer, STAGE_WORLD_HEIGHT));
+  const toLayer = (pointer: StagePointer): Vec2 => worldToLayer(screenToWorld(pointer, pointer, stageWorldHeight(pointer, store.state.project.present.format)));
 
   function paint(dabs: Dab[]): void {
     if (!active || !strokeContext || dabs.length === 0) return;

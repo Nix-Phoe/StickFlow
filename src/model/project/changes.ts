@@ -1,6 +1,7 @@
 // Changements nommés du Projet et invariants. Fonctions pures : un changement sans effet
 // renvoie le même objet Projet, ce qui permet de ne pas créer d'étape d'annulation.
 
+import { DEFAULT_FORMAT, normalizeFormat, sameFormat, type VideoFormat } from '../../core/formats';
 import { createId } from '../../core/id';
 import {
   clamp,
@@ -21,6 +22,8 @@ import { normalizeHex } from '../color';
 export type ProjectChange =
   | { type: 'rename'; name: string }
   | { type: 'setFps'; fps: number }
+  /** Format de la vidéo (préréglage ou taille libre) : cadre de la scène et résolution de l'export. */
+  | { type: 'setFormat'; format: VideoFormat }
   | { type: 'updateSmoothing'; changes: Partial<SmoothingSettings> }
   | { type: 'updateLoop'; changes: Partial<LoopSettings> }
   /**
@@ -89,6 +92,7 @@ export function coalesceKey(change: ProjectChange): string | null {
       return `shape:${change.shape.id}:${change.gesture ?? ''}`;
     case 'updateShape':
       return `shape:${change.shapeId}:${change.gesture ?? ''}`;
+    case 'setFormat':
     case 'deleteKeyframe':
     case 'addCharacter':
     case 'duplicateCharacter':
@@ -111,6 +115,10 @@ export function applyToProject(project: Project, change: ProjectChange): Project
     case 'setFps': {
       const fps = toLimit(change.fps, LIMITS.fps, project.fps);
       return fps === project.fps ? project : { ...project, fps };
+    }
+    case 'setFormat': {
+      const format = normalizeFormat(change.format);
+      return sameFormat(format, project.format) ? project : { ...project, format };
     }
     case 'updateSmoothing': {
       const smoothing = normalizeSmoothing({ ...project.ai.smoothing, ...change.changes });
@@ -300,6 +308,7 @@ export function normalizeProject(project: Project): Project {
   return {
     ...project,
     fps: toLimit(project.fps, LIMITS.fps, LIMITS.fps.min),
+    format: project.format ? normalizeFormat(project.format) : DEFAULT_FORMAT,
     characters,
     keyframes: keyframes.map((k) => {
       const poses: Record<string, FramePose> = {};

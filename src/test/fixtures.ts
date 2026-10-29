@@ -1,5 +1,6 @@
 // Données de test partagées : Projet minimal avec un personnage « c1 » et deux images clés.
 
+import { DEFAULT_FORMAT } from '../core/formats';
 import type { Character, Keyframe, Project, Shape, Vec2 } from '../core/types';
 import { createDefaultSkeleton, sortSkeleton } from '../model/skeleton';
 
@@ -43,6 +44,7 @@ export function testProject(overrides: Partial<Project> = {}): Project {
   return {
     name: 'Test',
     fps: 12,
+    format: DEFAULT_FORMAT,
     characters: [testCharacter('c1')],
     keyframes: [testFrame('f1'), testFrame('f2')],
     environment: { background: null, shapes: [], drawing: { tiles: {} } },

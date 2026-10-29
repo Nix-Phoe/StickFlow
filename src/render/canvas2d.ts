@@ -1,11 +1,18 @@
 // Dessin de la scène en Canvas 2D (vignettes de la timeline, export). Mêmes couches et même
-// géométrie que le rendu WebGL (scene-layers.ts), même cadrage vertical (STAGE_WORLD_HEIGHT).
+// géométrie que le rendu WebGL (scene-layers.ts) ; le cadrage vertical est donné par `worldHeight`.
 
 import { triangleVertices } from '../model/shape';
 import { STAGE_WORLD_HEIGHT, worldToScreen, type Viewport } from './camera';
 import type { Rgba } from './color';
 import type { CapsuleClip, ColoredCapsule, ShapeInstance } from './scene';
 import type { SceneLayer } from './scene-layers';
+
+/** Zone de dessin en pixels, et hauteur du monde qu'elle montre (STAGE_WORLD_HEIGHT par défaut). */
+export interface PaintViewport extends Viewport {
+  worldHeight?: number;
+}
+
+const worldHeightOf = (viewport: PaintViewport): number => viewport.worldHeight ?? STAGE_WORLD_HEIGHT;
 
 /** Image du calque de dessin et son rectangle dans le monde (coin bas-gauche, taille). */
 export interface DrawingImage {
@@ -16,16 +23,16 @@ export interface DrawingImage {
 /** Dessine les couches de la scène dans `context`, sur une zone de `viewport` pixels. */
 export function paintScene(
   context: CanvasRenderingContext2D,
-  viewport: Viewport,
+  viewport: PaintViewport,
   layers: readonly SceneLayer[],
   drawing: DrawingImage | null,
 ): void {
-  const scale = viewport.height / STAGE_WORLD_HEIGHT;
+  const scale = viewport.height / worldHeightOf(viewport);
   for (const layer of layers) {
     if (layer.kind === 'drawing') {
       if (!drawing || layer.opacity <= 0) continue;
       const { x, y, width, height } = drawing.bounds;
-      const topLeft = worldToScreen({ x, y: y + height }, viewport, STAGE_WORLD_HEIGHT);
+      const topLeft = worldToScreen({ x, y: y + height }, viewport, worldHeightOf(viewport));
       context.globalAlpha = layer.opacity;
       context.drawImage(drawing.image, topLeft.x, topLeft.y, width * scale, height * scale);
       context.globalAlpha = 1;
@@ -37,12 +44,12 @@ export function paintScene(
   }
 }
 
-export function paintCapsules(context: CanvasRenderingContext2D, viewport: Viewport, capsules: readonly ColoredCapsule[]): void {
-  const scale = viewport.height / STAGE_WORLD_HEIGHT;
+export function paintCapsules(context: CanvasRenderingContext2D, viewport: PaintViewport, capsules: readonly ColoredCapsule[]): void {
+  const scale = viewport.height / worldHeightOf(viewport);
   context.lineCap = 'round';
   for (const capsule of capsules) {
-    const a = worldToScreen(capsule.a, viewport, STAGE_WORLD_HEIGHT);
-    const b = worldToScreen(capsule.b, viewport, STAGE_WORLD_HEIGHT);
+    const a = worldToScreen(capsule.a, viewport, worldHeightOf(viewport));
+    const b = worldToScreen(capsule.b, viewport, worldHeightOf(viewport));
     const radius = capsule.radius * scale;
     const color = cssColor(capsule.color);
     context.save();
@@ -67,7 +74,7 @@ export function paintCapsules(context: CanvasRenderingContext2D, viewport: Viewp
  * Découpe d'une zone de couleur : la bande perpendiculaire à l'axe entre `from` et `to`, assez large
  * pour la capsule (`reach`, unités du monde) ; un bout à 0 ou 1 s'étend au-delà, pour garder l'arrondi.
  */
-function clipBand(context: CanvasRenderingContext2D, viewport: Viewport, clip: CapsuleClip, reach: number): void {
+function clipBand(context: CanvasRenderingContext2D, viewport: PaintViewport, clip: CapsuleClip, reach: number): void {
   const dx = clip.end.x - clip.start.x;
   const dy = clip.end.y - clip.start.y;
   const length = Math.hypot(dx, dy) || 1;
@@ -78,7 +85,7 @@ function clipBand(context: CanvasRenderingContext2D, viewport: Viewport, clip: C
     return worldToScreen(
       { x: clip.start.x + along.x * distance + across.x * side * reach, y: clip.start.y + along.y * distance + across.y * side * reach },
       viewport,
-      STAGE_WORLD_HEIGHT,
+      worldHeightOf(viewport),
     );
   };
   const corners = [at(clip.from, -1), at(clip.to, -1), at(clip.to, 1), at(clip.from, 1)];
@@ -88,9 +95,9 @@ function clipBand(context: CanvasRenderingContext2D, viewport: Viewport, clip: C
   context.clip();
 }
 
-function paintShape(context: CanvasRenderingContext2D, viewport: Viewport, shape: ShapeInstance): void {
-  const scale = viewport.height / STAGE_WORLD_HEIGHT;
-  const center = worldToScreen(shape, viewport, STAGE_WORLD_HEIGHT);
+function paintShape(context: CanvasRenderingContext2D, viewport: PaintViewport, shape: ShapeInstance): void {
+  const scale = viewport.height / worldHeightOf(viewport);
+  const center = worldToScreen(shape, viewport, worldHeightOf(viewport));
   const hw = (shape.width / 2) * scale;
   const hh = (shape.height / 2) * scale;
   context.save();

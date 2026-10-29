@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_FORMAT } from '../core/formats';
 import type { Character, Keyframe, LoopSettings, Project, SkeletonNode, SmoothingSettings } from '../core/types';
 import { catmullRom } from './interpolation';
 import { deriveSequence } from './sequence';
@@ -35,6 +36,7 @@ function project(
   return {
     name: 'Test',
     fps: 12,
+    format: DEFAULT_FORMAT,
     characters: [character],
     keyframes,
     environment: { background: null, shapes: [], drawing: { tiles: {} } },

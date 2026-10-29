@@ -1,7 +1,6 @@
 import '../styles/components/characters-tab.css';
 
 import { LIMITS, type Character } from '../../core/types';
-import { EXPORT_SIZE } from '../../export/export-plan';
 import { partColor, restSize } from '../../model/character';
 import { normalizeHex, PRESET_COLORS } from '../../model/color';
 import { STAGE_WORLD_HEIGHT } from '../../render/camera';
@@ -18,8 +17,6 @@ import { strings } from '../strings';
 
 const t = strings.characters;
 const a = strings.appearance;
-/** Pixels de l'image exportée par unité du monde, pour annoncer la taille d'origine. */
-const EXPORT_PIXELS_PER_UNIT = EXPORT_SIZE.height / STAGE_WORLD_HEIGHT;
 /** Token de la couleur automatique (celle du thème). */
 const AUTO_COLOR_TOKEN = '--color-stickman';
 
@@ -332,7 +329,9 @@ export function createCharactersTab({ bus, store }: ComponentContext): Component
     scaleSlider.setValue(percent);
     if (document.activeElement !== scaleInput) scaleInput.value = String(percent);
     const size = restSize(character);
-    originalSize.textContent = a.originalSize(Math.round(size.width * EXPORT_PIXELS_PER_UNIT), Math.round(size.height * EXPORT_PIXELS_PER_UNIT));
+    // Pixels de l'image exportée par unité du monde : le cadre du format fait STAGE_WORLD_HEIGHT de haut.
+    const pixelsPerUnit = store.state.project.present.format.height / STAGE_WORLD_HEIGHT;
+    originalSize.textContent = a.originalSize(Math.round(size.width * pixelsPerUnit), Math.round(size.height * pixelsPerUnit));
   }
 
   const root = h('div', { class: 'characters-tab' }, [list, addButton, actions, hint, appearance]);
@@ -351,6 +350,8 @@ export function createCharactersTab({ bus, store }: ComponentContext): Component
     store.watch((s) => s.project.present.characters, renderAppearance),
     store.watch((s) => s.session.selectedCharacterId, renderAppearance),
     store.watch((s) => s.session.selectedParts, renderAppearance),
+    // La taille d'origine annoncée dépend de la résolution du format.
+    store.watch((s) => s.project.present.format, renderAppearance),
     store.watch((s) => s.project.present.recentColors, (colors) => picker.setRecent(colors)),
     store.watch((s) => s.session.partialPaint.open, (open) => paintButton.setAttribute('aria-expanded', String(open))),
   );

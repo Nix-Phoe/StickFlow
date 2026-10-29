@@ -1,0 +1,147 @@
+/* Choix du format de la vidéo : liste (nom, rapport, résolution) ou vignettes compactes. */
+
+.format-picker {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.format-picker__options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+}
+
+.format-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--touch-target);
+  padding: var(--space-half) var(--space-1);
+  border: var(--border-hairline) solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .format-option:hover {
+    background: var(--color-fill-hover);
+  }
+}
+
+.format-option:has(.format-option__input:checked) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+/* Le bouton radio reste accessible au clavier, mais c'est la ligne entière qui s'affiche. */
+.format-option__input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.format-option:has(.format-option__input:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Petit rectangle aux proportions du format, centré dans un carré fixe. */
+.format-option__preview {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--format-preview-size);
+  height: var(--format-preview-size);
+}
+
+.format-option__frame {
+  width: var(--frame-width, 100%);
+  height: var(--frame-height, 56%);
+  border: var(--border-strong) solid var(--color-label-secondary);
+  border-radius: var(--radius-xs);
+}
+
+.format-option:has(.format-option__input:checked) .format-option__frame {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft-strong);
+}
+
+.format-option__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: var(--line-height-tight);
+}
+
+.format-option__name {
+  overflow: hidden;
+  font-size: var(--font-size-subhead);
+  font-weight: var(--font-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.format-option__detail {
+  color: var(--color-label-secondary);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.format-option__detail:empty {
+  display: none;
+}
+
+/* Vignettes : une rangée de 5 cases, l'aperçu au-dessus du nom court. */
+.format-picker--tiles .format-picker__options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.format-picker--tiles .format-option {
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-half);
+  padding: var(--space-1) var(--space-half);
+  text-align: center;
+}
+
+.format-picker--tiles .format-option__text {
+  align-items: center;
+}
+
+.format-picker--tiles .format-option__name {
+  font-size: var(--font-size-caption);
+}
+
+/* Taille libre. */
+.format-picker__custom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.format-picker__custom[hidden] {
+  display: none;
+}
+
+.format-picker__side {
+  width: var(--number-field-width);
+  min-height: var(--control-height);
+  padding: 0 var(--space-1);
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.format-picker__times,
+.format-picker__unit {
+  color: var(--color-label-secondary);
+  font-size: var(--font-size-footnote);
+}

@@ -2,6 +2,7 @@
 // (vignettes de la liste, fenêtre « Coloration partielle ») : ses vraies couleurs et ses zones
 // de couleur, et en option le contour des parties choisies. Le cadrage est pur ; le dessin, Canvas 2D.
 
+import { DEFAULT_FORMAT } from '../core/formats';
 import type { Character, FramePose, Vec2 } from '../core/types';
 import { characterBounds } from '../model/character';
 import { STAGE_WORLD_HEIGHT, screenToWorld, type Viewport } from './camera';
@@ -62,6 +63,7 @@ export function paintCharacterPreview(
     project: {
       name: '',
       fps: 1,
+      format: DEFAULT_FORMAT,
       characters: [character],
       keyframes: [],
       environment: { background: null, shapes: [], drawing: { tiles: {} } },

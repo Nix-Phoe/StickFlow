@@ -2,10 +2,17 @@
 
 import { mat3 } from 'gl-matrix';
 
+import { aspectRatio, type VideoFormat } from '../core/formats';
 import type { Vec2 } from '../core/types';
+import { FRAME_WORLD_HEIGHT } from '../model/format-fit';
 
-/** Hauteur du monde visible sur la scène, en unités. Le stickman par défaut en mesure ~210. */
-export const STAGE_WORLD_HEIGHT = 400;
+/**
+ * Hauteur du monde de référence, en unités : celle du cadre de la vidéo (le stickman par défaut
+ * en mesure ~210). Aperçus et vignettes de personnages s'en servent aussi.
+ */
+export const STAGE_WORLD_HEIGHT = FRAME_WORLD_HEIGHT;
+/** Marge laissée autour du cadre dans l'éditeur, en fraction de la zone de scène (de chaque côté). */
+export const STAGE_FRAME_MARGIN = 0.05;
 
 export interface Viewport {
   /** Largeur en pixels physiques. */
@@ -50,6 +57,33 @@ export function screenToWorld(point: Vec2, viewport: Viewport, worldHeight: numb
 /** Distance à l'écran → distance dans le monde (ex. rayon de la zone tactile d'une poignée). */
 export function pixelsToWorld(pixels: number, viewportHeight: number, worldHeight: number): number {
   return (pixels * worldHeight) / viewportHeight;
+}
+
+/**
+ * Hauteur du monde à montrer pour que le cadre de rapport `aspect` tienne dans `viewport`, avec
+ * `margin` (fraction de chaque côté) autour. Sans marge et au bon rapport : exactement le cadre (export).
+ */
+export function fitWorldHeight(viewport: Viewport, aspect: number, margin = 0): number {
+  const frameWidth = FRAME_WORLD_HEIGHT * aspect;
+  const needed = Math.max(FRAME_WORLD_HEIGHT, (frameWidth * viewport.height) / (viewport.width || 1));
+  return needed / (1 - 2 * margin);
+}
+
+/** Hauteur du monde de la scène de l'éditeur : le cadre du format, centré, avec sa marge. */
+export function stageWorldHeight(viewport: Viewport, format: VideoFormat): number {
+  return fitWorldHeight(viewport, aspectRatio(format), STAGE_FRAME_MARGIN);
+}
+
+/** Rectangle du cadre à l'écran (même unité que `viewport`), pour une caméra de hauteur `worldHeight`. */
+export function frameScreenRect(
+  viewport: Viewport,
+  aspect: number,
+  worldHeight: number,
+): { x: number; y: number; width: number; height: number } {
+  const pixelsPerUnit = viewport.height / worldHeight;
+  const height = FRAME_WORLD_HEIGHT * pixelsPerUnit;
+  const width = height * aspect;
+  return { x: (viewport.width - width) / 2, y: (viewport.height - height) / 2, width, height };
 }
 
 /** Point du monde → point de l'écran (inverse de `screenToWorld`). */

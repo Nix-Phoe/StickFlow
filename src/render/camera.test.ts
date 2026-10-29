@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Vec2 } from '../core/types';
-import { createCamera, pixelsToWorld, screenToWorld, worldToScreen } from './camera';
+import { createCamera, fitWorldHeight, frameScreenRect, pixelsToWorld, screenToWorld, worldToScreen } from './camera';
 
 /** Applique une matrice 3×3 colonne-major (format WebGL / gl-matrix) à un point 2D. */
 function project(matrix: ArrayLike<number>, p: Vec2): Vec2 {
@@ -105,5 +105,34 @@ describe('worldToScreen', () => {
   it('scales with the viewport height (thumbnails)', () => {
     // 80 px de haut pour 400 unités : 1 unité = 0,2 px.
     expect(worldToScreen({ x: 100, y: 100 }, { width: 128, height: 80 }, 400)).toEqual({ x: 84, y: 20 });
+  });
+});
+
+describe('fitWorldHeight and frameScreenRect (cadre au format de la vidéo)', () => {
+  const wide = 16 / 9;
+  const tall = 9 / 16;
+
+  it('shows exactly the frame when the viewport has its ratio and there is no margin (export)', () => {
+    expect(fitWorldHeight({ width: 1920, height: 1080 }, wide)).toBeCloseTo(400);
+    expect(fitWorldHeight({ width: 1080, height: 1920 }, tall)).toBeCloseTo(400);
+  });
+
+  it('leaves room around the frame in the editor', () => {
+    expect(fitWorldHeight({ width: 1600, height: 900 }, wide, 0.05)).toBeCloseTo(400 / 0.9);
+  });
+
+  it('fits a tall frame in a wide viewport by its height, and a wide frame in a tall viewport by its width', () => {
+    expect(fitWorldHeight({ width: 1600, height: 800 }, tall)).toBeCloseTo(400);
+    // Cadre 16:9 (711 unités de large) dans un écran carré : 711 unités de large, donc de haut.
+    expect(fitWorldHeight({ width: 800, height: 800 }, wide)).toBeCloseTo(400 * wide);
+  });
+
+  it('places the frame centred on screen, at the scale of the camera', () => {
+    const viewport = { width: 1600, height: 800 };
+    const rect = frameScreenRect(viewport, tall, fitWorldHeight(viewport, tall, 0.05));
+    expect(rect.height).toBeCloseTo(720);
+    expect(rect.width).toBeCloseTo(720 * tall);
+    expect(rect.x + rect.width / 2).toBeCloseTo(800);
+    expect(rect.y).toBeCloseTo(40);
   });
 });

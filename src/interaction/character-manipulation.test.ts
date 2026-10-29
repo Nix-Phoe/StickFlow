@@ -7,11 +7,14 @@ import { createInitialState, Store } from '../core/store';
 import type { Vec2 } from '../core/types';
 import { solvePose } from '../model/kinematics';
 import { createDefaultSkeleton, sortSkeleton } from '../model/skeleton';
+import { DEFAULT_FORMAT } from '../core/formats';
+import { stageWorldHeight, worldToScreen } from '../render/camera';
 import { connectCharacterManipulation } from './character-manipulation';
 
 const HALF_PI = Math.PI / 2;
-/** 800 × 400 px pour une hauteur de monde de 400 : 1 px = 1 unité, origine en (400, 200). */
+/** Scène de 800 × 400 px montrant le cadre 16:9 du projet, avec sa marge. */
 const VIEWPORT = { width: 800, height: 400 };
+const WORLD_HEIGHT = stageWorldHeight(VIEWPORT, DEFAULT_FORMAT);
 
 function setup() {
   const bus = createEventBus();
@@ -42,7 +45,7 @@ interface Extra {
 }
 
 function screen(p: Vec2, extra: Extra = {}) {
-  return { pointerId: 1, x: p.x + VIEWPORT.width / 2, y: VIEWPORT.height / 2 - p.y, ...VIEWPORT, ...extra };
+  return { pointerId: 1, ...worldToScreen(p, VIEWPORT, WORLD_HEIGHT), ...VIEWPORT, ...extra };
 }
 const down = (bus: AppEventBus, p: Vec2, extra?: Extra): void => bus.emit('stage:pointer:down', screen(p, extra));
 const move = (bus: AppEventBus, p: Vec2, extra?: Extra): void => bus.emit('stage:pointer:move', screen(p, extra));

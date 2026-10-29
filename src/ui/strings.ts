@@ -1,5 +1,6 @@
 // Textes de l'interface, centralisés pour une traduction future.
 
+import type { FormatPreset } from '../core/formats';
 import type { ColorHarmony, EditorMode, ExportFormat, NoticeCode, SmoothingCurve, ToolId } from '../core/types';
 
 const plural = (n: number, singular: string, pluralForm: string): string =>
@@ -179,6 +180,37 @@ export const strings = {
     percent: (n: number): string => `${n} %`,
   },
 
+  formats: {
+    label: 'Format de la vidéo',
+    names: {
+      youtube: 'YouTube',
+      vertical: 'Shorts / TikTok / Reels',
+      square: 'Instagram (carré)',
+      portrait: 'Instagram (portrait)',
+      custom: 'Personnalisé',
+    } satisfies Record<FormatPreset, string>,
+    shortNames: {
+      youtube: 'YouTube',
+      vertical: 'Vertical',
+      square: 'Carré',
+      portrait: 'Portrait',
+      custom: 'Libre',
+    } satisfies Record<FormatPreset, string>,
+    customDetail: 'Largeur et hauteur au choix',
+    size: (width: number, height: number): string => `${width} × ${height}`,
+    width: 'Largeur, en pixels',
+    height: 'Hauteur, en pixels',
+    pixels: 'px',
+    /** Avertissement : des éléments dépassent du cadre du format. */
+    outOfFrame: (characters: number, shapes: number): string => {
+      const parts = [
+        characters > 0 ? plural(characters, 'personnage', 'personnages') : '',
+        shapes > 0 ? plural(shapes, 'forme', 'formes') : '',
+      ].filter(Boolean);
+      return parts.length === 0 ? '' : `${parts.join(' et ')} ${characters + shapes > 1 ? 'sortent' : 'sort'} du cadre.`;
+    },
+  },
+
   home: {
     create: 'Créer le projet',
   },
@@ -250,6 +282,7 @@ export const strings = {
     },
 
     animationSection: 'Animation',
+    formatSection: 'Format de la vidéo',
     fps: 'Images par seconde (IPS)',
     onionSkin: 'Pelure d’oignon',
     onionSkinToggle: 'Afficher l’image précédente en transparence',

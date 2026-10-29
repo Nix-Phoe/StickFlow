@@ -1,7 +1,9 @@
 import '../styles/components/canvas-area.css';
 
 import type { StagePointer } from '../../core/events';
+import { aspectRatio } from '../../core/formats';
 import { NUDGE_FINE_STEP, NUDGE_STEP } from '../../interaction';
+import { frameScreenRect, stageWorldHeight } from '../../render/camera';
 import type { Component, ComponentContext } from '../component';
 import { h, ids } from '../dom';
 import { strings } from '../strings';
@@ -19,13 +21,28 @@ export function createCanvasArea({ bus, store }: ComponentContext): Component {
     tabindex: 0,
     'aria-label': strings.stage.canvas,
   });
-  const root = h('div', { class: 'canvas-area' }, [canvas]);
+  // Cadre de la vidéo (format du projet) : l'extérieur est assombri, sans gêner le pointeur.
+  const frame = h('div', { class: 'canvas-area__frame', 'aria-hidden': 'true' });
+  const root = h('div', { class: 'canvas-area' }, [canvas, frame]);
+
+  /** Place le cadre comme le rendu : même hauteur de monde (cadre du format et sa marge). */
+  function placeFrame(): void {
+    const viewport = { width: canvas.clientWidth, height: canvas.clientHeight };
+    if (viewport.width === 0 || viewport.height === 0) return;
+    const { format } = store.state.project.present;
+    const rect = frameScreenRect(viewport, aspectRatio(format), stageWorldHeight(viewport, format));
+    frame.style.left = `${rect.x}px`;
+    frame.style.top = `${rect.y}px`;
+    frame.style.width = `${rect.width}px`;
+    frame.style.height = `${rect.height}px`;
+  }
 
   // Le curseur suit le contexte et l'outil (voir canvas-area.css).
   const stopWatching = [
     store.watch((s) => s.session.editorMode, (mode) => (canvas.dataset.mode = mode)),
     store.watch((s) => s.session.tool, (tool) => (canvas.dataset.tool = tool)),
     store.watch((s) => s.session.eyedropper, (picking) => canvas.classList.toggle('is-picking', picking)),
+    store.watch((s) => s.project.present.format, placeFrame),
   ];
 
   let observer: ResizeObserver | null = null;
@@ -101,6 +118,7 @@ export function createCanvasArea({ bus, store }: ComponentContext): Component {
   function applySize(width: number, height: number): void {
     const pixelRatio = window.devicePixelRatio || 1;
     if (width === 0 || height === 0) return;
+    placeFrame();
     if (canvas.width === width && canvas.height === height) return;
     canvas.width = width;
     canvas.height = height;

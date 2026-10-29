@@ -2,7 +2,7 @@
 // dans l'ordre des couches, sur fond transparent ou coloré.
 
 import type { PixelRect } from '../model/drawing-layer';
-import { createCamera, STAGE_WORLD_HEIGHT } from './camera';
+import { createCamera } from './camera';
 import type { Rgba } from './color';
 import { FLOATS_PER_CAPSULE, FLOATS_PER_SHAPE, packCapsules, packShapes } from './scene';
 import type { SceneLayer } from './scene-layers';
@@ -32,6 +32,8 @@ export interface DrawOptions {
   /** Fond opaque ; `null` laisse voir la page sous le canvas. */
   background: Rgba | null;
   drawing: DrawingSource | null;
+  /** Hauteur du monde montrée (cadre du format et sa marge). */
+  worldHeight: number;
 }
 
 export interface StageRenderer {
@@ -125,7 +127,7 @@ export function createStageRenderer(canvas: HTMLCanvasElement, options: StageRen
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-    const camera = createCamera({ width, height }, STAGE_WORLD_HEIGHT);
+    const camera = createCamera({ width, height }, drawOptions.worldHeight);
     const use = (program: Program): void => {
       gl.useProgram(program.program);
       gl.uniformMatrix3fv(program.uniforms.viewProjection ?? null, false, camera.viewProjection);

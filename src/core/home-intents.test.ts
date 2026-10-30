@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { imageBackground } from '../model/background';
+import { createAssetStore } from '../storage/asset-store';
 import { createMemoryStore } from '../storage/memory-store';
 import { createProjectLibrary } from '../storage/library';
 import { createMemoryPreferences } from '../storage/preferences';
@@ -98,6 +100,23 @@ describe('connectHomeIntents: projets', () => {
     await home.settled();
     expect(state().projects?.map((p) => p.id)).toEqual(['p2']);
     expect(state().notice).toMatchObject({ kind: 'success', code: 'deleted' });
+  });
+
+  it('shares the background image between a project and its copy, and deletes it with the last one (v2.1)', async () => {
+    const assets = createAssetStore(createMemoryStore(), { newId: () => 'a1' });
+    await assets.add({ blob: new Blob(['x']), width: 10, height: 10, mimeType: 'image/webp', source: 'device' });
+    const library = createProjectLibrary(createMemoryStore(), { newId: (() => { let n = 0; return () => `p${++n}`; })() });
+    const base = testProject({ name: 'Forêt' });
+    await library.save({ ...base, environment: { ...base.environment, background: imageBackground('a1') } });
+    const { bus, home } = await setup({ library, assets });
+    bus.emit('library:duplicate', { projectId: 'p1', name: 'Forêt (copie)' });
+    await home.settled();
+    bus.emit('library:delete', { projectId: 'p1' });
+    await home.settled();
+    expect(await assets.get('a1')).not.toBeNull();
+    bus.emit('library:delete', { projectId: 'p2' });
+    await home.settled();
+    expect(await assets.get('a1')).toBeNull();
   });
 
   it('reports a failed action', async () => {

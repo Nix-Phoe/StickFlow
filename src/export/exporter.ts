@@ -7,6 +7,7 @@ import type { Session } from '../core/session';
 import type { Store } from '../core/store';
 import type { ExportFormat, Project } from '../core/types';
 import type { DrawingSurface } from '../drawing/surface';
+import { solidColor } from '../model/background';
 import { deriveSequence, type SequenceFrame } from '../model/sequence';
 import { aspectRatio } from '../core/formats';
 import { fitWorldHeight } from '../render/camera';
@@ -185,7 +186,7 @@ function drawFrame(
 ): void {
   const { width, height } = context.canvas;
   context.clearRect(0, 0, width, height);
-  const background = project.environment.background ?? defaultBackground;
+  const background = solidColor(project.environment.background) ?? defaultBackground;
   if (background) {
     context.fillStyle = background;
     context.fillRect(0, 0, width, height);

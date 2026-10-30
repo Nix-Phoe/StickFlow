@@ -53,9 +53,23 @@ describe('migrateProject', () => {
     expect(migrateProject(1, v1Project)).toMatchObject({ format: DEFAULT_FORMAT });
   });
 
-  it('leaves a version 3 project as it is', () => {
-    const v3 = { name: 'x' };
-    expect(migrateProject(3, v3)).toBe(v3);
+  it('turns the colour background of version 3 into a colour background (version 4)', () => {
+    const v3 = { name: 'x', environment: { background: '#112233', shapes: [], drawing: { tiles: {} } } };
+    expect(migrateProject(3, v3)).toEqual({
+      name: 'x',
+      environment: { background: { type: 'color', color: '#112233' }, shapes: [], drawing: { tiles: {} } },
+    });
+    const none = { name: 'y', environment: { background: null, shapes: [], drawing: { tiles: {} } } };
+    expect(migrateProject(3, none)).toEqual(none);
+  });
+
+  it('takes a version 1 project all the way to version 4 (no background)', () => {
+    expect(migrateProject(1, v1Project)).toMatchObject({ environment: { background: null } });
+  });
+
+  it('leaves a version 4 project as it is', () => {
+    const v4 = { name: 'x' };
+    expect(migrateProject(4, v4)).toBe(v4);
   });
 
   it('leaves malformed data for the reader to reject', () => {

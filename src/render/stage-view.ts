@@ -6,6 +6,7 @@ import { onionSkinFrame } from '../animation/onion-skin';
 import type { AppEventBus } from '../core/events';
 import { activeFrame, sequenceOf } from '../core/selectors';
 import type { Store } from '../core/store';
+import { solidColor } from '../model/background';
 import { rgbToHex } from '../model/color';
 import type { DrawingSurface } from '../drawing/surface';
 import { stageWorldHeight } from './camera';
@@ -33,7 +34,7 @@ export function connectStageView({ bus, store, canvas, drawing }: StageViewOptio
     pendingFrame = 0;
     const { project, session } = store.state;
     const active = activeFrame(store.state);
-    const { background } = project.present.environment;
+    const background = solidColor(project.present.environment.background);
     const layers = buildSceneLayers({
       project: project.present,
       frame: active?.frame ?? null,
@@ -85,7 +86,7 @@ export function connectStageView({ bus, store, canvas, drawing }: StageViewOptio
     bus.on('stage:pointer:down', (pointer) => {
       if (!store.state.session.eyedropper) return;
       const pixel = renderer.readPixel((pointer.x * canvas.width) / pointer.width, (pointer.y * canvas.height) / pointer.height);
-      const background = store.state.project.present.environment.background;
+      const background = solidColor(store.state.project.present.environment.background);
       const [r, g, b] = pixel && pixel[3] > 0 ? pixel : background ? parseHexColor(background) : readColor(COLOR_TOKENS.canvas);
       bus.emit('eyedropper:pick', { color: rgbToHex(r * 255, g * 255, b * 255) });
     }),

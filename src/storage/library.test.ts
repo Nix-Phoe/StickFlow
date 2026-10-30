@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { presetFormat } from '../core/formats';
 import type { Project } from '../core/types';
 import { deriveSequence } from '../model/sequence';
+import { imageBackground } from '../model/background';
 import { testProject } from '../test/fixtures';
 import { createProjectLibrary, LibraryError, type KeyValueStore } from './library';
 import { createMemoryStore } from './memory-store';
@@ -49,7 +50,15 @@ describe('createProjectLibrary: enregistrer et ouvrir', () => {
       createdAt: 1000,
       updatedAt: 1000,
       thumbnail: 'data:image/png;base64,AA',
+      assetIds: [],
     });
+  });
+
+  it('lists in the summary the image used as background (v2.1)', async () => {
+    const { library } = setup();
+    const base = project('Forêt');
+    const withImage = { ...base, environment: { ...base.environment, background: imageBackground('a7') } };
+    expect((await library.save(withImage)).assetIds).toEqual(['a7']);
   });
 
   it('loads back a saved project', async () => {

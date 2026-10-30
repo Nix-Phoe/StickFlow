@@ -6,6 +6,7 @@ import { createId } from '../../core/id';
 import {
   clamp,
   LIMITS,
+  type Background,
   type Character,
   type ColorBand,
   type FramePose,
@@ -14,6 +15,7 @@ import {
   type Shape,
   type SmoothingSettings,
 } from '../../core/types';
+import { mergeBackground, normalizeBackground, type BackgroundPatch } from '../background';
 import { createCharacter, DUPLICATE_OFFSET, placeNewCharacter } from '../character';
 import { normalizeBands } from '../color-bands';
 import { normalizeHex } from '../color';
@@ -56,7 +58,11 @@ export type ProjectChange =
   | { type: 'updateShape'; shapeId: string; changes: Partial<Omit<Shape, 'id'>>; gesture?: string }
   | { type: 'removeShape'; shapeId: string }
   /** Remplace les tuiles peintes par un trait ; `null` = tuile redevenue transparente. */
-  | { type: 'paintDrawing'; tiles: Record<string, string | null> };
+  | { type: 'paintDrawing'; tiles: Record<string, string | null> }
+  /** Arrière-plan (v2.1) ; `null` = celui du thème. `gesture` : un glisser de slider forme une seule étape. */
+  | { type: 'setBackground'; background: Background | null; gesture?: string }
+  /** Réglages de l'arrière-plan actuel (angle du dégradé, cadrage et effets de l'image…). */
+  | { type: 'updateBackground'; changes: BackgroundPatch; gesture?: string };
 
 /** Réglages qui basculent : chaque bascule est une étape d'annulation à part. */
 const TOGGLES: ReadonlySet<string> = new Set(['enabled', 'curve', 'infinite']);
@@ -92,6 +98,9 @@ export function coalesceKey(change: ProjectChange): string | null {
       return `shape:${change.shape.id}:${change.gesture ?? ''}`;
     case 'updateShape':
       return `shape:${change.shapeId}:${change.gesture ?? ''}`;
+    case 'setBackground':
+    case 'updateBackground':
+      return change.gesture ? `background:${change.gesture}` : null;
     case 'setFormat':
     case 'deleteKeyframe':
     case 'addCharacter':
@@ -286,7 +295,23 @@ export function applyToProject(project: Project, change: ProjectChange): Project
       }
       return { ...project, environment: { ...project.environment, drawing: { tiles } } };
     }
+    case 'setBackground': {
+      const background = change.background === null ? null : normalizeBackground(change.background);
+      if (change.background !== null && background === null) return project;
+      return withBackground(project, background);
+    }
+    case 'updateBackground': {
+      const merged = mergeBackground(project.environment.background, change.changes);
+      const background = merged ? normalizeBackground(merged) : null;
+      return background ? withBackground(project, background) : project;
+    }
   }
+}
+
+/** Nouvel arrière-plan ; le même Projet s'il ne change rien. */
+function withBackground(project: Project, background: Background | null): Project {
+  if (JSON.stringify(background) === JSON.stringify(project.environment.background)) return project;
+  return { ...project, environment: { ...project.environment, background } };
 }
 
 /**
@@ -317,6 +342,7 @@ export function normalizeProject(project: Project): Project {
     }),
     environment: {
       ...project.environment,
+      background: project.environment.background ? normalizeBackground(project.environment.background) : null,
       shapes: project.environment.shapes.flatMap((s) => normalizeShape(s) ?? []),
     },
     recentColors: project.recentColors.slice(0, LIMITS.recentColors),

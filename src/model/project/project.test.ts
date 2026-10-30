@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_FORMAT, presetFormat } from '../../core/formats';
 import { ORIGIN, testFrame, testProject } from '../../test/fixtures';
+import { imageBackground } from '../background';
 import {
   applyChange,
   canRedo,
@@ -334,5 +335,39 @@ describe('applyChange: rename', () => {
       COALESCE_WINDOW_MS / 4,
     );
     expect(undo(history).present.name).toBe('Test');
+  });
+});
+
+describe('applyChange: arrière-plan (v2.1)', () => {
+  const photo = { ...imageBackground('a1'), zoom: 1 };
+
+  it('sets, changes and removes the background, each step undoable', () => {
+    const steps = apply(createHistory(project()), [
+      { type: 'setBackground', background: { type: 'color', color: '#112233' } },
+      { type: 'setBackground', background: photo },
+      { type: 'updateBackground', changes: { zoom: 2 } },
+      { type: 'setBackground', background: null },
+    ]);
+    expect(steps.present.environment.background).toBeNull();
+    const back = undo(steps);
+    expect(back.present.environment.background).toEqual({ ...photo, zoom: 2 });
+    expect(undo(undo(back)).present.environment.background).toEqual({ type: 'color', color: '#112233' });
+  });
+
+  it('ignores an invalid background and a setting for another type', () => {
+    const history = createHistory(project());
+    expect(applyChange(history, { type: 'setBackground', background: { type: 'builtin', id: 'beach' as never } }, 0)).toBe(history);
+    expect(applyChange(history, { type: 'updateBackground', changes: { zoom: 2 } }, 0)).toBe(history);
+  });
+
+  it('makes one undo step of a slider drag (same gesture), but two of two drags', () => {
+    const start = apply(createHistory(project()), [{ type: 'setBackground', background: photo }]);
+    const drag = (gesture: string, from: number): ProjectChange[] =>
+      [1.2, 1.5, 1.8].map((zoom) => ({ type: 'updateBackground', changes: { zoom: zoom + from }, gesture }));
+    const once = apply(start, drag('g1', 0), 100_000, 50);
+    expect(undo(once).present.environment.background).toEqual(photo);
+    const twice = apply(once, drag('g2', 1), 100_200, 50);
+    expect(twice.present.environment.background).toMatchObject({ zoom: 2.8 });
+    expect(undo(twice).present.environment.background).toMatchObject({ zoom: 1.8 });
   });
 });

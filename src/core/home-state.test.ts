@@ -26,6 +26,7 @@ const summary = (id: string, name: string, createdAt: number, updatedAt: number)
   createdAt,
   updatedAt,
   thumbnail: null,
+  assetIds: [],
 });
 
 const projects = [

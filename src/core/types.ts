@@ -99,13 +99,71 @@ export interface DrawingLayer {
   tiles: Record<string, string>;
 }
 
+// ---------- Arrière-plan (v2.1) ----------
+
+/** Arrière-plans intégrés, dessinés par le code (src/environment/backgrounds/). */
+export const BUILTIN_BACKGROUND_IDS = ['day-sky', 'sunset', 'starry-night', 'horizon', 'studio-grid', 'room'] as const;
+export type BuiltinBackgroundId = (typeof BUILTIN_BACKGROUND_IDS)[number];
+
+export const IMAGE_FITS = ['cover', 'contain', 'stretch', 'tile'] as const;
+/** Remplir (rogne), Ajuster (bandes), Étirer (déforme), Mosaïque (répète). */
+export type ImageFit = (typeof IMAGE_FITS)[number];
+
+/** Crédit d'une photo de banque d'images (affiché sous l'arrière-plan). */
+export interface ImageCredit {
+  author: string;
+  /** Page de la photo chez le fournisseur. */
+  url: string;
+  provider: string;
+}
+
+export interface ColorBackground {
+  type: 'color';
+  color: string;
+}
+
+export interface GradientBackground {
+  type: 'gradient';
+  from: string;
+  to: string;
+  /** Degrés, comme en CSS : 0 = vers le haut, 90 = vers la droite, 180 = vers le bas. */
+  angle: number;
+}
+
+export interface BuiltinBackground {
+  type: 'builtin';
+  id: BuiltinBackgroundId;
+}
+
+/** Image du magasin d'assets, cadrée dans le cadre du format, avec ses effets. */
+export interface ImageBackground {
+  type: 'image';
+  assetId: string;
+  fit: ImageFit;
+  /** Point focal de l'image (0 à 1), centré dans le cadre autant que possible. */
+  focus: { x: number; y: number };
+  /** 1 à 3. */
+  zoom: number;
+  /** Flou, en pixels de la résolution du format (0 à 20). */
+  blur: number;
+  /** 1 = normale. */
+  brightness: number;
+  /** 0 à 1, sur le blanc de l'export. */
+  opacity: number;
+  /** Voile de couleur posé sur l'image (`amount` de 0 à 1). */
+  tint: { color: string; amount: number } | null;
+  credit?: ImageCredit;
+}
+
+export type Background = ColorBackground | GradientBackground | BuiltinBackground | ImageBackground;
+
 /**
  * Décor : statique en version 1.0 (le même dans toutes les frames). Les formes ont des ids
  * stables pour qu'une image clé puisse un jour les animer.
  */
 export interface Environment {
-  /** Couleur d'arrière-plan ; `null` = celle du thème (blanc à l'export). */
-  background: string | null;
+  /** Arrière-plan (v2.1) ; `null` = celui du thème (blanc à l'export). */
+  background: Background | null;
   /** Dans l'ordre d'affichage : la dernière est au-dessus. */
   shapes: Shape[];
   drawing: DrawingLayer;
@@ -163,6 +221,8 @@ export interface ProjectSummary {
   updatedAt: number;
   /** Première frame, en PNG (data URL, petite taille) ; `null` si pas encore générée. */
   thumbnail: string | null;
+  /** Images du magasin d'assets utilisées par le projet (arrière-plan, v2.1). */
+  assetIds: string[];
 }
 
 /** Message bref affiché après une action longue (sauvegarde, ouverture, export). */
@@ -223,6 +283,10 @@ export const LIMITS = {
   bandsPerPart: 4,
   /** Épaisseur d'un trait (formes et dessin), en unités du monde. */
   strokeWidth: { min: 1, max: 40 },
+  /** Réglages d'une image d'arrière-plan (v2.1). */
+  backgroundZoom: { min: 1, max: 3 },
+  backgroundBlur: { min: 0, max: 20 },
+  backgroundBrightness: { min: 0.5, max: 1.5 },
 } as const;
 
 export function clamp(value: number, min: number, max: number): number {

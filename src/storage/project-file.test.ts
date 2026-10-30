@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_FORMAT, FORMAT_PRESETS, presetFormat } from '../core/formats';
-import type { Project } from '../core/types';
+import type { Background, Project } from '../core/types';
+import { imageBackground } from '../model/background';
 import { testCharacter, testFrame, testProject, testShape } from '../test/fixtures';
 import { fromProjectFile, PROJECT_FILE_FORMAT, PROJECT_FILE_VERSION, ProjectFileError, toProjectFile } from './project-file';
 
@@ -24,7 +25,7 @@ const project: Project = testProject({
     testFrame('k2', { torso: 1.2 }, { x: 10, y: -5 }, { c2: { pose: { head: 0.1 }, rootPosition: { x: 90, y: 0 } } }),
   ],
   environment: {
-    background: '#ffeedd',
+    background: { type: 'color', color: '#ffeedd' },
     shapes: [testShape('s1', { kind: 'triangle', fill: '#0000ff', rotation: 0.5 })],
     drawing: { tiles: { '0,1': 'data:image/png;base64,AAAA' } },
   },
@@ -41,11 +42,11 @@ type Editable = { project: Record<string, unknown> & { keyframes: unknown[]; cha
 const editable = (): Editable => reread(toProjectFile(project)) as Editable;
 
 describe('toProjectFile', () => {
-  it('tags the file with its format and version 3', () => {
+  it('tags the file with its format and version 4', () => {
     const file = toProjectFile(project);
     expect(file.format).toBe(PROJECT_FILE_FORMAT);
-    expect(file.version).toBe(3);
-    expect(PROJECT_FILE_VERSION).toBe(3);
+    expect(file.version).toBe(4);
+    expect(PROJECT_FILE_VERSION).toBe(4);
   });
 
   it('only stores keyframes, never generated frames', () => {
@@ -123,6 +124,42 @@ describe('fromProjectFile', () => {
     file.version = 2;
     delete file.project.format;
     expect(fromProjectFile(file).format).toEqual(DEFAULT_FORMAT);
+  });
+
+  it('reads back every kind of background (v2.1)', () => {
+    const backgrounds: Background[] = [
+      { type: 'gradient', from: '#ff0000', to: '#0000ff', angle: 135 },
+      { type: 'builtin', id: 'starry-night' },
+      {
+        ...imageBackground('a1', { author: 'Ana', url: 'https://www.pexels.com/photo/1', provider: 'Pexels' }),
+        fit: 'tile',
+        focus: { x: 0.2, y: 0.7 },
+        zoom: 1.5,
+        blur: 3,
+        brightness: 0.8,
+        opacity: 0.9,
+        tint: { color: '#000000', amount: 0.3 },
+      },
+    ];
+    for (const background of backgrounds) {
+      const saved = { ...project, environment: { ...project.environment, background } };
+      expect(fromProjectFile(reread(toProjectFile(saved))).environment.background).toEqual(background);
+    }
+  });
+
+  it('rejects a damaged background', () => {
+    for (const background of [{ type: 'image' }, { type: 'builtin', id: 7 }, { type: 'gradient', from: '#fff', to: 'x', angle: 0 }, '#ffffff']) {
+      const file = editable() as unknown as { project: { environment: Record<string, unknown> } };
+      file.project.environment.background = background;
+      expect(() => fromProjectFile(file)).toThrow(ProjectFileError);
+    }
+  });
+
+  it('opens a version 3 file whose background was a plain colour', () => {
+    const file = editable() as unknown as { version: number; project: { environment: Record<string, unknown> } };
+    file.version = 3;
+    file.project.environment.background = '#FFEEDD';
+    expect(fromProjectFile(file).environment.background).toEqual({ type: 'color', color: '#ffeedd' });
   });
 
   it('reads back every preset with its own format', () => {

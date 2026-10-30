@@ -3,6 +3,7 @@
 // Sans DOM : bibliothèque, préférences, modèles, vignettes et export sont injectés.
 
 import type { Project } from './types';
+import type { AssetStore } from '../storage/asset-store';
 import type { ProjectLibrary } from '../storage/library';
 import type { PreferencesStore } from '../storage/preferences';
 import type { VideoLibrary } from '../storage/video-store';
@@ -41,6 +42,8 @@ export interface HomeIntentOptions {
   download?: (file: ExportedFile) => void;
   /** Vidéos exportées conservées dans l'app (« Mes vidéos »). */
   videos?: VideoLibrary;
+  /** Images d'arrière-plan : celles qu'aucun projet n'utilise plus sont supprimées avec leur dernier projet (v2.1). */
+  assets?: Pick<AssetStore, 'removeUnused'>;
   /** Espace utilisé et disponible (`navigator.storage.estimate()`), s'il est connu. */
   estimateStorage?: () => Promise<{ usage: number; quota: number } | null>;
 }
@@ -129,8 +132,14 @@ export function connectHomeIntents(options: HomeIntentOptions): HomeIntents {
     ),
     bus.on('library:delete', ({ projectId }) =>
       run(async () => {
+        const removed = (await library.list()).find((summary) => summary.id === projectId);
         await library.remove(projectId);
         await refresh();
+        // Une copie partage l'image de son original : on ne la supprime qu'avec le dernier projet.
+        if (removed && removed.assetIds.length > 0 && options.assets) {
+          const used = new Set((store.state.projects ?? []).flatMap((summary) => summary.assetIds));
+          await options.assets.removeUnused(removed.assetIds, used);
+        }
         notify('success', 'deleted');
       }),
     ),

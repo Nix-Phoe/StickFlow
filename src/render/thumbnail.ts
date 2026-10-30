@@ -3,6 +3,7 @@
 // pour rester lisibles en petit.
 
 import type { Project } from '../core/types';
+import { solidColor } from '../model/background';
 import { deriveSequence, type SequenceFrame } from '../model/sequence';
 import { aspectRatio, type VideoFormat } from '../core/formats';
 import { fitWorldHeight } from './camera';
@@ -45,7 +46,7 @@ export function paintThumbnail(
   if (canvas.height !== height) canvas.height = height;
 
   context.clearRect(0, 0, width, height);
-  const { background } = project.environment;
+  const background = solidColor(project.environment.background);
   if (background) {
     context.fillStyle = background;
     context.fillRect(0, 0, width, height);
@@ -86,7 +87,7 @@ export function paintProjectFrame(canvas: HTMLCanvasElement, project: Project, f
   const context = canvas.getContext('2d');
   const { width, height } = canvas;
   if (!context || width === 0 || height === 0) return false;
-  context.fillStyle = project.environment.background ?? EXPORT_COLORS.background;
+  context.fillStyle = solidColor(project.environment.background) ?? EXPORT_COLORS.background;
   context.fillRect(0, 0, width, height);
   const layers = thumbnailLayers(project, frame, parseHexColor(EXPORT_COLORS.stickman));
   paintScene(context, { width, height, worldHeight: fitWorldHeight({ width, height }, aspectRatio(project.format)) }, layers, drawing);

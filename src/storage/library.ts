@@ -3,6 +3,7 @@
 // résumés (nom, format, IPS, dates, vignette) pour que l'accueil s'affiche sans charger les projets.
 import { createId } from '../core/id';
 import { LIMITS, type Project, type ProjectSummary } from '../core/types';
+import { backgroundAssetIds } from '../model/background';
 import { deriveSequence } from '../model/sequence';
 import { fromProjectFile, toProjectFile, type ProjectFile } from './project-file';
 import { createMemoryStore } from './memory-store';
@@ -66,7 +67,8 @@ export function createProjectLibrary(
 
   async function readSummary(id: string): Promise<ProjectSummary | null> {
     const value = await index.get(id);
-    return isSummary(value) ? value : null;
+    // Un résumé écrit avant la v2.1 n'a pas d'assetIds : son projet n'avait pas d'image.
+    return isSummary(value) ? { ...value, assetIds: Array.isArray(value.assetIds) ? value.assetIds : [] } : null;
   }
 
   async function write(
@@ -171,6 +173,7 @@ function summarize(
     createdAt,
     updatedAt,
     thumbnail,
+    assetIds: backgroundAssetIds(project),
   };
 }
 

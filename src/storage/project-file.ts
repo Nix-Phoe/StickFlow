@@ -3,12 +3,18 @@
 // est vérifiée ; les bornes des réglages sont ensuite appliquées par le module Projet (`createHistory`).
 
 import {
+  BUILTIN_BACKGROUND_IDS,
+  IMAGE_FITS,
   SHAPE_KINDS,
   SMOOTHING_CURVES,
+  type Background,
+  type BuiltinBackgroundId,
   type Character,
   type ColorBand,
   type Environment,
   type FramePose,
+  type ImageBackground,
+  type ImageFit,
   type Keyframe,
   type LoopSettings,
   type Project,
@@ -25,7 +31,7 @@ import { SkeletonError, sortSkeleton } from '../model/skeleton';
 import { migrateProject } from './migrate';
 
 export const PROJECT_FILE_FORMAT = 'stickflow-project';
-export const PROJECT_FILE_VERSION = 3;
+export const PROJECT_FILE_VERSION = 4;
 
 export interface ProjectFile {
   format: typeof PROJECT_FILE_FORMAT;
@@ -157,10 +163,61 @@ function readEnvironment(value: unknown): Environment {
     tiles[key] = string(tile, `tuile ${key}`);
   }
   return {
-    background: environment.background === null ? null : color(environment.background, 'arrière-plan'),
+    background: environment.background === null ? null : readBackground(environment.background),
     shapes: array(environment.shapes, 'formes').map(readShape),
     drawing: { tiles },
   };
+}
+
+/** Arrière-plan (v2.1) : structure vérifiée ici, bornes appliquées par le module Projet. */
+function readBackground(value: unknown): Background {
+  const background = record(value, 'arrière-plan');
+  switch (background.type) {
+    case 'color':
+      return { type: 'color', color: color(background.color, "couleur d'arrière-plan") };
+    case 'gradient':
+      return {
+        type: 'gradient',
+        from: color(background.from, 'début du dégradé'),
+        to: color(background.to, 'fin du dégradé'),
+        angle: number(background.angle, 'angle du dégradé'),
+      };
+    case 'builtin': {
+      const id = string(background.id, 'arrière-plan intégré');
+      if (!(BUILTIN_BACKGROUND_IDS as readonly string[]).includes(id)) throw new ProjectFileError(`Arrière-plan inconnu : ${id}`);
+      return { type: 'builtin', id: id as BuiltinBackgroundId };
+    }
+    case 'image':
+      return readImageBackground(background);
+    default:
+      throw new ProjectFileError(`Arrière-plan inconnu : ${String(background.type)}`);
+  }
+}
+
+function readImageBackground(background: Record<string, unknown>): ImageBackground {
+  const fit = string(background.fit, "ajustement de l'image");
+  if (!(IMAGE_FITS as readonly string[]).includes(fit)) throw new ProjectFileError(`Ajustement inconnu : ${fit}`);
+  const focus = record(background.focus, 'point focal');
+  const image: ImageBackground = {
+    type: 'image',
+    assetId: string(background.assetId, "image d'arrière-plan"),
+    fit: fit as ImageFit,
+    focus: { x: number(focus.x, 'point focal x'), y: number(focus.y, 'point focal y') },
+    zoom: number(background.zoom, 'zoom'),
+    blur: number(background.blur, 'flou'),
+    brightness: number(background.brightness, 'luminosité'),
+    opacity: number(background.opacity, 'opacité'),
+    tint: null,
+  };
+  if (background.tint !== null && background.tint !== undefined) {
+    const tint = record(background.tint, 'voile');
+    image.tint = { color: color(tint.color, 'couleur du voile'), amount: number(tint.amount, 'force du voile') };
+  }
+  if (background.credit !== undefined) {
+    const credit = record(background.credit, 'crédit');
+    image.credit = { author: string(credit.author, 'auteur'), url: string(credit.url, 'lien du crédit'), provider: string(credit.provider, 'fournisseur') };
+  }
+  return image;
 }
 
 function readShape(value: unknown): Shape {

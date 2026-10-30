@@ -1,5 +1,5 @@
-// Rendu WebGL 2 de la scène : calque de dessin texturé, formes et capsules instanciées,
-// dans l'ordre des couches, sur fond transparent ou coloré.
+// Rendu WebGL 2 de la scène : arrière-plan composé (v2.1), calque de dessin texturé, formes et
+// capsules instanciées, dans l'ordre des couches, sur fond transparent ou coloré.
 
 import type { PixelRect } from '../model/drawing-layer';
 import { createCamera } from './camera';
@@ -28,9 +28,19 @@ export interface DrawingSource {
   markAllDirty(): void;
 }
 
+/** Arrière-plan composé (v2.1) : sa texture n'est renvoyée au GPU que quand `version` change. */
+export interface BackdropSource {
+  canvas: TexImageSource & { width: number; height: number };
+  /** Cadre du format dans le monde (coin bas-gauche, taille). */
+  bounds: { x: number; y: number; width: number; height: number };
+  version: number;
+}
+
 export interface DrawOptions {
   /** Fond opaque ; `null` laisse voir la page sous le canvas. */
   background: Rgba | null;
+  /** Arrière-plan du décor, dessiné dans le cadre sous toutes les couches ; `null` sans arrière-plan. */
+  backdrop: BackdropSource | null;
   drawing: DrawingSource | null;
   /** Hauteur du monde montrée (cadre du format et sa marge). */
   worldHeight: number;
@@ -86,6 +96,9 @@ interface GpuResources {
   texture: WebGLTexture;
   /** Taille de la texture allouée ; 0 tant qu'aucun calque n'y a été chargé. */
   textureSize: { width: number; height: number };
+  backdropTexture: WebGLTexture;
+  /** Version de l'arrière-plan chargée dans sa texture ; -1 tant qu'aucune. */
+  backdropVersion: number;
 }
 
 export function createStageRenderer(canvas: HTMLCanvasElement, options: StageRendererOptions = {}): StageRenderer {
@@ -134,6 +147,24 @@ export function createStageRenderer(canvas: HTMLCanvasElement, options: StageRen
       gl.uniform1f(program.uniforms.pixelsPerUnit ?? null, camera.pixelsPerUnit);
       gl.bindVertexArray(program.vertexArray);
     };
+
+    const { backdrop } = drawOptions;
+    if (backdrop && backdrop.canvas.width > 0) {
+      if (gpu.backdropVersion !== backdrop.version) {
+        gl.bindTexture(gl.TEXTURE_2D, gpu.backdropTexture);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, backdrop.canvas);
+        gpu.backdropVersion = backdrop.version;
+      }
+      use(gpu.image);
+      const { x, y, width: w, height: h } = backdrop.bounds;
+      gl.uniform4f(gpu.image.uniforms.bounds ?? null, x, y, w, h);
+      gl.uniform1f(gpu.image.uniforms.opacity ?? null, 1);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, gpu.backdropTexture);
+      gl.uniform1i(gpu.image.uniforms.image ?? null, 0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
 
     for (const layer of layers) {
       if (layer.kind === 'drawing') {
@@ -188,6 +219,7 @@ export function createStageRenderer(canvas: HTMLCanvasElement, options: StageRen
         }
         gl.deleteBuffer(resources.cornerBuffer);
         gl.deleteTexture(resources.texture);
+        gl.deleteTexture(resources.backdropTexture);
         resources = null;
       }
       // Rend le contexte au navigateur tout de suite (il en limite le nombre), sans attendre le ramasse-miettes.
@@ -224,24 +256,30 @@ function createResources(gl: WebGL2RenderingContext): GpuResources {
   gl.bindBuffer(gl.ARRAY_BUFFER, cornerBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, QUAD_CORNERS, gl.STATIC_DRAW);
 
+  const resources: GpuResources = {
+    cornerBuffer,
+    capsules: createProgram(gl, cornerBuffer, capsuleVertex, capsuleFragment, CAPSULE_ATTRIBUTES, FLOATS_PER_CAPSULE, []),
+    shapes: createProgram(gl, cornerBuffer, shapeVertex, shapeFragment, SHAPE_ATTRIBUTES, FLOATS_PER_SHAPE, []),
+    image: createProgram(gl, cornerBuffer, imageVertex, imageFragment, [], 0, ['bounds', 'opacity', 'image']),
+    texture: createTexture(gl),
+    textureSize: { width: 0, height: 0 },
+    backdropTexture: createTexture(gl),
+    backdropVersion: -1,
+  };
+  gl.bindVertexArray(null);
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  return resources;
+}
+
+/** Texture filtrée linéairement, bornée aux bords (calque de dessin, arrière-plan). */
+function createTexture(gl: WebGL2RenderingContext): WebGLTexture {
   const texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-  const resources: GpuResources = {
-    cornerBuffer,
-    capsules: createProgram(gl, cornerBuffer, capsuleVertex, capsuleFragment, CAPSULE_ATTRIBUTES, FLOATS_PER_CAPSULE, []),
-    shapes: createProgram(gl, cornerBuffer, shapeVertex, shapeFragment, SHAPE_ATTRIBUTES, FLOATS_PER_SHAPE, []),
-    image: createProgram(gl, cornerBuffer, imageVertex, imageFragment, [], 0, ['bounds', 'opacity', 'image']),
-    texture,
-    textureSize: { width: 0, height: 0 },
-  };
-  gl.bindVertexArray(null);
-  gl.bindBuffer(gl.ARRAY_BUFFER, null);
-  return resources;
+  return texture;
 }
 
 /** Programme dessinant un quad par instance ; `floatsPerInstance` à 0 = un seul quad, sans instances. */

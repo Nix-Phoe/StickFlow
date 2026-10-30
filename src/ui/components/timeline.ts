@@ -38,7 +38,17 @@ interface Thumb {
  * comme la scène : couleurs et zones des personnages, décor.
  * Clavier : flèches gauche / droite, Début, Fin pour changer de frame ; Suppr pour supprimer une image clé.
  */
-export function createTimeline({ bus, store }: ComponentContext, drawing: TimelineDrawing | null = null): Component {
+/** Arrière-plan composé (v2.1), montré dans le cadre de chaque vignette. */
+export interface TimelineBackground {
+  image(): DrawingImage | null;
+  onChange(listener: () => void): () => void;
+}
+
+export function createTimeline(
+  { bus, store }: ComponentContext,
+  drawing: TimelineDrawing | null = null,
+  background: TimelineBackground | null = null,
+): Component {
   const cleanups: Array<() => void> = [];
   /** Vignettes conservées d'un rendu à l'autre, par id de frame : seules celles qui changent sont repeintes. */
   const thumbsById = new Map<string, Thumb>();
@@ -162,7 +172,7 @@ export function createTimeline({ bus, store }: ComponentContext, drawing: Timeli
 
   function paint(thumb: Thumb): void {
     const color = getComputedStyle(root).getPropertyValue(AUTO_COLOR_TOKEN).trim();
-    paintThumbnail(thumb.canvas, store.state.project.present, thumb.frame, color, drawing?.image() ?? null);
+    paintThumbnail(thumb.canvas, store.state.project.present, thumb.frame, color, drawing?.image() ?? null, background?.image() ?? null);
   }
 
   /** Repeint toutes les vignettes (apparence, décor, thème ou taille modifiés), une fois par image d'affichage. */
@@ -199,6 +209,8 @@ export function createTimeline({ bus, store }: ComponentContext, drawing: Timeli
     drawingTimer = window.setTimeout(repaintAll, DRAWING_REPAINT_DELAY_MS);
   });
   window.addEventListener('resize', repaintAll);
+  // L'arrière-plan est recomposé à part (image décodée, effets) : on repeint quand il est prêt.
+  const stopBackground = background?.onChange(repaintAll);
 
   cleanups.push(
     () => colorScheme.removeEventListener('change', repaintAll),
@@ -206,11 +218,11 @@ export function createTimeline({ bus, store }: ComponentContext, drawing: Timeli
     () => cancelAnimationFrame(repaintRequest),
     () => window.clearTimeout(drawingTimer),
     () => stopDrawing?.(),
+    () => stopBackground?.(),
     store.watch(sequenceOf, syncFrames),
     // Personnages ajoutés, masqués, recolorés, redimensionnés, décor modifié : toutes les vignettes changent.
     store.watch((s) => s.project.present.characters, repaintAll),
     store.watch((s) => s.project.present.environment.shapes, repaintAll),
-    store.watch((s) => s.project.present.environment.background, repaintAll),
     store.watch((s) => s.session.activeFrameId, renderActive),
     store.watch((s) => s.session.clipboard, (clipboard) => (pasteButton.disabled = clipboard === null)),
   );

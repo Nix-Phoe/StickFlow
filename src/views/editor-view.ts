@@ -8,14 +8,18 @@ import { isVideoType } from '../core/home-state';
 import { connectIntents } from '../core/intents';
 import type { Route } from '../core/router';
 import { createStateFromProject, Store } from '../core/store';
+import type { Project } from '../core/types';
 import { connectDrawingTool } from '../drawing/drawing-tool';
 import { createDrawingSurface } from '../drawing/surface';
+import { createAssetImages } from '../environment/asset-images';
+import { createBackgroundSurface } from '../environment/background-surface';
 import { connectExporter } from '../export';
 import { connectCharacterManipulation, connectShapeManipulation } from '../interaction';
 import { connectStageView } from '../render';
 import type { DrawingImage } from '../render/canvas2d';
 import { projectThumbnail } from '../render/thumbnail';
 import { connectProjectStorage, type ProjectLibrary, type ProjectStorage } from '../storage';
+import type { AssetStore } from '../storage/asset-store';
 import type { VideoLibrary } from '../storage/video-store';
 import type { Component, ComponentContext } from '../ui/component';
 import { createCanvasArea } from '../ui/components/canvas-area';
@@ -37,13 +41,15 @@ export interface EditorViewOptions {
   library: ProjectLibrary;
   /** Vidéos exportées conservées dans l'app (« Mes vidéos »). */
   videos: VideoLibrary;
+  /** Images d'arrière-plan (v2.1). */
+  assets: AssetStore;
   navigate: (route: Route, options?: { replace?: boolean }) => void;
 }
 
 /** Débogage : chaque événement est journalisé, sauf ceux émis en continu (glisser, lecture). */
 const QUIET_EVENTS: ReadonlySet<AppEventName> = new Set(['stage:pointer:move', 'frame:pose:change', 'playback:frame']);
 
-export function createEditorView({ projectId, library, videos, navigate }: EditorViewOptions): View {
+export function createEditorView({ projectId, library, videos, assets, navigate }: EditorViewOptions): View {
   const root = h('div', { class: 'app', 'aria-busy': 'true' });
   const cleanups: Array<() => void> = [];
   let storage: ProjectStorage | null = null;
@@ -68,12 +74,17 @@ export function createEditorView({ projectId, library, videos, navigate }: Edito
     const editorStore = new Store(initial);
     store = editorStore;
     const drawing = createDrawingSurface();
+    const images = createAssetImages(assets);
+    const background = createBackgroundSurface(images);
     const context: ComponentContext = { bus, store: editorStore };
 
     const drawingImage = (): DrawingImage => ({ image: drawing.canvas, bounds: drawing.bounds });
+    const thumbnail = (project: Project): string | null => projectThumbnail(project, drawingImage(), background.image());
     // La vignette de l'accueil est régénérée à chaque sauvegarde, à partir de la première frame.
-    storage = connectProjectStorage({ bus, store: editorStore, library, thumbnail: (project) => projectThumbnail(project, drawingImage()) });
+    storage = connectProjectStorage({ bus, store: editorStore, library, thumbnail });
     cleanups.push(
+      () => background.destroy(),
+      () => images.destroy(),
       connectIntents(bus, editorStore),
       connectCharacterManipulation(context),
       connectShapeManipulation(context),
@@ -85,6 +96,7 @@ export function createEditorView({ projectId, library, videos, navigate }: Edito
         store: editorStore,
         download: downloadBlob,
         drawing,
+        images,
         // Un GIF ou une vidéo rejoint aussi « Mes vidéos » sur l'accueil.
         onExported: (result, project) => {
           if (!isVideoType(result.extension)) return;
@@ -95,7 +107,7 @@ export function createEditorView({ projectId, library, videos, navigate }: Edito
               type: result.extension,
               blob: result.blob,
               duration: result.duration,
-              thumbnail: projectThumbnail(project, drawingImage()),
+              thumbnail: thumbnail(project),
             })
             .catch((error: unknown) => console.warn('[videos] Vidéo non conservée :', error));
         },
@@ -126,7 +138,7 @@ export function createEditorView({ projectId, library, videos, navigate }: Edito
       [createSidePanel(context), regions.panel],
       [createToolbar(context), regions.toolbar],
       [createCanvasArea(context), regions.stage],
-      [createTimeline(context, { image: drawingImage, onChange: drawing.onChange }), regions.timeline],
+      [createTimeline(context, { image: drawingImage, onChange: drawing.onChange }, background), regions.timeline],
       [createProjectsDialog(context), root],
       [createEditorPanel(context), root],
     ];
@@ -154,7 +166,7 @@ export function createEditorView({ projectId, library, videos, navigate }: Edito
     const stage = root.querySelector(`#${ids.stage}`);
     if (stage instanceof HTMLCanvasElement) {
       try {
-        cleanups.push(connectStageView({ bus, store: editorStore, canvas: stage, drawing }));
+        cleanups.push(connectStageView({ bus, store: editorStore, canvas: stage, drawing, background }));
       } catch (error) {
         console.error('[render] Rendu indisponible :', error);
       }

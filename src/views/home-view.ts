@@ -9,6 +9,7 @@ import { createHomeState, normalizePreferences, type HomeState } from '../core/h
 import type { HomeSection, Route } from '../core/router';
 import { Store } from '../core/store';
 import { createDrawingSurface, type DrawingSurface } from '../drawing/surface';
+import { createAssetImages } from '../environment/asset-images';
 import { exportProject } from '../export';
 import { projectThumbnail } from '../render/thumbnail';
 import type { ProjectLibrary } from '../storage';
@@ -32,6 +33,7 @@ import { createVideoPlayerSheet } from '../ui/components/home/video-player-sheet
 import { h } from '../ui/dom';
 import { downloadBlob } from '../ui/download';
 import { strings } from '../ui/strings';
+import type { AssetStore } from '../storage/asset-store';
 import { applyTheme } from '../ui/theme';
 import { createProjectPreviewer } from './project-previewer';
 import type { View } from './view-host';
@@ -41,6 +43,8 @@ export interface HomeViewOptions {
   library: ProjectLibrary;
   preferences: PreferencesStore;
   videos: VideoLibrary;
+  /** Images d'arrière-plan (v2.1) : aperçus, exports, et suppression avec le dernier projet qui les utilise. */
+  assets: AssetStore;
   navigate: (route: Route) => void;
 }
 
@@ -57,10 +61,11 @@ const SECTIONS: Record<HomeSection, (context: HomeContext) => Component[]> = {
   videos: (context) => [createVideoGrid(context, { variant: 'all' })],
 };
 
-export function createHomeView({ section, library, preferences, videos, navigate }: HomeViewOptions): View {
+export function createHomeView({ section, library, preferences, videos, assets, navigate }: HomeViewOptions): View {
   const bus = createEventBus();
   const store = new Store<HomeState>(createHomeState(section, normalizePreferences(preferences.load())));
-  const preview = createProjectPreviewer(library);
+  const images = createAssetImages(assets);
+  const preview = createProjectPreviewer(library, images);
   const templates = createTemplateCatalog();
   const context: HomeContext = { bus, store, preview, templates, videoFile: (videoId) => videos.file(videoId) };
   const cleanups: Array<() => void> = [];
@@ -76,14 +81,16 @@ export function createHomeView({ section, library, preferences, videos, navigate
     templates,
     names: { project: strings.defaultProjectName, character: strings.characters.defaultName(1) },
     thumbnail: (project) => projectThumbnail(project, null),
-    exportProject: (project, format, onProgress) => exportProject(project, format, { drawing: (drawing ??= createDrawingSurface()), onProgress }),
+    exportProject: (project, format, onProgress) => exportProject(project, format, { drawing: (drawing ??= createDrawingSurface()), images, onProgress }),
     download: ({ blob, filename }) => downloadBlob(blob, filename),
     videos,
+    assets,
     estimateStorage: estimateStorage,
   });
   cleanups.push(
     intents.disconnect,
     preview.destroy,
+    images.destroy,
     bus.onAny((type, payload) => {
       if (!QUIET_EVENTS.has(type as AppEventName)) console.info(`[event] ${String(type)}`, payload ?? '');
     }),

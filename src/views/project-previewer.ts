@@ -4,13 +4,15 @@
 import { frameDuration } from '../animation/playback';
 import type { Project } from '../core/types';
 import { createDrawingSurface, type DrawingSurface } from '../drawing/surface';
+import type { AssetImages } from '../environment/asset-images';
+import { createBackgroundSurface } from '../environment/background-surface';
 import { deriveSequence } from '../model/sequence';
 import type { DrawingImage } from '../render/canvas2d';
-import { paintProjectFrame, projectThumbnail } from '../render/thumbnail';
+import { paintProjectFrame, PROJECT_THUMBNAIL_SIZE, projectThumbnail } from '../render/thumbnail';
 import type { ProjectLibrary } from '../storage';
 import type { ProjectPreviewer } from '../ui/components/home/context';
 
-export function createProjectPreviewer(library: ProjectLibrary): ProjectPreviewer & { destroy(): void } {
+export function createProjectPreviewer(library: ProjectLibrary, images: AssetImages): ProjectPreviewer & { destroy(): void } {
   let stopCurrent: (() => void) | null = null;
   /** Dernier projet chargé : survoler deux fois la même carte ne le relit pas. */
   let cached: { id: string; project: Promise<Project> } | null = null;
@@ -28,6 +30,13 @@ export function createProjectPreviewer(library: ProjectLibrary): ProjectPreviewe
     return { surface, image: { image: surface.canvas, bounds: surface.bounds } };
   }
 
+  /** Arrière-plan composé à la taille d'une carte (v2.1), s'il y en a un. */
+  async function backdropOf(project: Project): Promise<DrawingImage | null> {
+    const surface = createBackgroundSurface(images, PROJECT_THUMBNAIL_SIZE * 2);
+    await surface.sync(project.environment.background, project.format);
+    return surface.image();
+  }
+
   return {
     play(projectId, canvas) {
       stopCurrent?.();
@@ -42,7 +51,7 @@ export function createProjectPreviewer(library: ProjectLibrary): ProjectPreviewe
 
       void (async () => {
         const project = await load(projectId);
-        const drawing = await drawingOf(project);
+        const [drawing, backdrop] = await Promise.all([drawingOf(project), backdropOf(project)]);
         if (stopped) return;
         const sequence = deriveSequence(project);
         const step = frameDuration(project.fps, 1);
@@ -52,7 +61,7 @@ export function createProjectPreviewer(library: ProjectLibrary): ProjectPreviewe
         const tick = (now: number): void => {
           if (stopped) return;
           const frame = sequence[Math.floor((now - start) / step) % sequence.length];
-          if (frame) paintProjectFrame(canvas, project, frame, drawing?.image ?? null);
+          if (frame) paintProjectFrame(canvas, project, frame, drawing?.image ?? null, backdrop);
           request = requestAnimationFrame(tick);
         };
         request = requestAnimationFrame(tick);
@@ -62,8 +71,8 @@ export function createProjectPreviewer(library: ProjectLibrary): ProjectPreviewe
 
     async thumbnail(projectId) {
       const project = await load(projectId);
-      const drawing = await drawingOf(project);
-      const thumbnail = projectThumbnail(project, drawing?.image ?? null);
+      const [drawing, backdrop] = await Promise.all([drawingOf(project), backdropOf(project)]);
+      const thumbnail = projectThumbnail(project, drawing?.image ?? null, backdrop);
       if (thumbnail) await library.setThumbnail(projectId, thumbnail);
       return thumbnail;
     },

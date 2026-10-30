@@ -9,6 +9,7 @@ import type { Store } from '../core/store';
 import { solidColor } from '../model/background';
 import { rgbToHex } from '../model/color';
 import type { DrawingSurface } from '../drawing/surface';
+import type { BackgroundSurface } from '../environment/background-surface';
 import { stageWorldHeight } from './camera';
 import { parseHexColor, type Rgba } from './color';
 import { createStageRenderer } from './renderer';
@@ -23,9 +24,11 @@ export interface StageViewOptions {
   store: Store;
   canvas: HTMLCanvasElement;
   drawing: DrawingSurface;
+  /** Arrière-plan composé (v2.1), dessiné dans le cadre du format sous toutes les couches. */
+  background: BackgroundSurface;
 }
 
-export function connectStageView({ bus, store, canvas, drawing }: StageViewOptions): () => void {
+export function connectStageView({ bus, store, canvas, drawing, background }: StageViewOptions): () => void {
   let pendingFrame = 0;
   const renderer = createStageRenderer(canvas, { onContextRestored: scheduleDraw });
 
@@ -34,7 +37,6 @@ export function connectStageView({ bus, store, canvas, drawing }: StageViewOptio
     pendingFrame = 0;
     const { project, session } = store.state;
     const active = activeFrame(store.state);
-    const background = solidColor(project.present.environment.background);
     const layers = buildSceneLayers({
       project: project.present,
       frame: active?.frame ?? null,
@@ -45,7 +47,9 @@ export function connectStageView({ bus, store, canvas, drawing }: StageViewOptio
       palette: { stickman: readColor(COLOR_TOKENS.stickman), accent: readColor(COLOR_TOKENS.accent) },
     });
     renderer.draw(layers, {
-      background: background ? parseHexColor(background) : null,
+      // Hors du cadre : la couleur de la scène (thème) ; dans le cadre : l'arrière-plan composé.
+      background: null,
+      backdrop: background.image() ? { canvas: background.canvas, bounds: background.bounds, version: background.version } : null,
       drawing,
       worldHeight: stageWorldHeight(canvas, project.present.format),
     });
@@ -68,10 +72,18 @@ export function connectStageView({ bus, store, canvas, drawing }: StageViewOptio
   const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
   colorScheme.addEventListener('change', scheduleDraw);
   const stopWatchingDrawing = drawing.onChange(scheduleDraw);
+  const stopWatchingBackground = background.onChange(scheduleDraw);
+  const syncBackground = (): void => {
+    const { environment, format } = store.state.project.present;
+    void background.sync(environment.background, format);
+  };
+  syncBackground();
 
   const unsubscribers = [
     store.watch((s) => s.project.present, scheduleDraw),
     store.watch((s) => s.project.present.environment.drawing.tiles, (tiles) => void drawing.sync(tiles)),
+    store.watch((s) => s.project.present.environment.background, syncBackground),
+    store.watch((s) => s.project.present.format, syncBackground),
     store.watch((s) => s.session.activeFrameId, scheduleDraw),
     store.watch((s) => s.session.selectedCharacterId, scheduleDraw),
     store.watch((s) => s.session.selectedNodeId, scheduleDraw),
@@ -86,8 +98,8 @@ export function connectStageView({ bus, store, canvas, drawing }: StageViewOptio
     bus.on('stage:pointer:down', (pointer) => {
       if (!store.state.session.eyedropper) return;
       const pixel = renderer.readPixel((pointer.x * canvas.width) / pointer.width, (pointer.y * canvas.height) / pointer.height);
-      const background = solidColor(store.state.project.present.environment.background);
-      const [r, g, b] = pixel && pixel[3] > 0 ? pixel : background ? parseHexColor(background) : readColor(COLOR_TOKENS.canvas);
+      const solid = solidColor(store.state.project.present.environment.background);
+      const [r, g, b] = pixel && pixel[3] > 0 ? pixel : solid ? parseHexColor(solid) : readColor(COLOR_TOKENS.canvas);
       bus.emit('eyedropper:pick', { color: rgbToHex(r * 255, g * 255, b * 255) });
     }),
   ];
@@ -96,6 +108,7 @@ export function connectStageView({ bus, store, canvas, drawing }: StageViewOptio
     cancelAnimationFrame(pendingFrame);
     colorScheme.removeEventListener('change', scheduleDraw);
     stopWatchingDrawing();
+    stopWatchingBackground();
     unsubscribers.forEach((unsubscribe) => unsubscribe());
     renderer.destroy();
   };

@@ -3,11 +3,10 @@
 // pour rester lisibles en petit.
 
 import type { Project } from '../core/types';
-import { solidColor } from '../model/background';
 import { deriveSequence, type SequenceFrame } from '../model/sequence';
 import { aspectRatio, type VideoFormat } from '../core/formats';
 import { fitWorldHeight } from './camera';
-import { paintScene, type DrawingImage } from './canvas2d';
+import { paintScene, paintWorldImage, type DrawingImage } from './canvas2d';
 import { EXPORT_COLORS, parseHexColor, type Rgba } from './color';
 import type { StickmanStyle } from './scene';
 import { buildSceneLayers, type SceneLayer } from './scene-layers';
@@ -36,6 +35,7 @@ export function paintThumbnail(
   frame: SequenceFrame,
   stickman: string,
   drawing: DrawingImage | null,
+  backdrop: DrawingImage | null = null,
 ): void {
   const ratio = window.devicePixelRatio || 1;
   const width = Math.round(canvas.clientWidth * ratio);
@@ -46,13 +46,9 @@ export function paintThumbnail(
   if (canvas.height !== height) canvas.height = height;
 
   context.clearRect(0, 0, width, height);
-  const background = solidColor(project.environment.background);
-  if (background) {
-    context.fillStyle = background;
-    context.fillRect(0, 0, width, height);
-  }
-  // Tout le cadre du format tient dans la vignette.
+  // Tout le cadre du format tient dans la vignette ; l'arrière-plan le remplit.
   const worldHeight = fitWorldHeight({ width, height }, aspectRatio(project.format));
+  if (backdrop) paintWorldImage(context, { width, height, worldHeight }, backdrop);
   paintScene(context, { width, height, worldHeight }, thumbnailLayers(project, frame, parseHexColor(stickman)), drawing);
 }
 
@@ -69,13 +65,13 @@ export function thumbnailSize(format: VideoFormat, max = PROJECT_THUMBNAIL_SIZE)
  * Vignette d'un projet (accueil, index des projets) : sa première frame, aux couleurs de l'export,
  * en PNG (data URL). `null` si le navigateur ne sait pas dessiner.
  */
-export function projectThumbnail(project: Project, drawing: DrawingImage | null): string | null {
+export function projectThumbnail(project: Project, drawing: DrawingImage | null, backdrop: DrawingImage | null = null): string | null {
   const frame = deriveSequence(project)[0];
   const canvas = document.createElement('canvas');
   const { width, height } = thumbnailSize(project.format);
   canvas.width = width;
   canvas.height = height;
-  if (!frame || !paintProjectFrame(canvas, project, frame, drawing)) return null;
+  if (!frame || !paintProjectFrame(canvas, project, frame, drawing, backdrop)) return null;
   return canvas.toDataURL('image/png');
 }
 
@@ -83,13 +79,20 @@ export function projectThumbnail(project: Project, drawing: DrawingImage | null)
  * Dessine une frame d'un projet dans tout le canvas (à sa taille en pixels), aux couleurs de
  * l'export : vignettes enregistrées et aperçu animé des cartes de l'accueil. `false` sans Canvas 2D.
  */
-export function paintProjectFrame(canvas: HTMLCanvasElement, project: Project, frame: SequenceFrame, drawing: DrawingImage | null): boolean {
+export function paintProjectFrame(
+  canvas: HTMLCanvasElement,
+  project: Project,
+  frame: SequenceFrame,
+  drawing: DrawingImage | null,
+  backdrop: DrawingImage | null = null,
+): boolean {
   const context = canvas.getContext('2d');
   const { width, height } = canvas;
   if (!context || width === 0 || height === 0) return false;
-  context.fillStyle = solidColor(project.environment.background) ?? EXPORT_COLORS.background;
+  context.fillStyle = EXPORT_COLORS.background;
   context.fillRect(0, 0, width, height);
-  const layers = thumbnailLayers(project, frame, parseHexColor(EXPORT_COLORS.stickman));
-  paintScene(context, { width, height, worldHeight: fitWorldHeight({ width, height }, aspectRatio(project.format)) }, layers, drawing);
+  const viewport = { width, height, worldHeight: fitWorldHeight({ width, height }, aspectRatio(project.format)) };
+  if (backdrop) paintWorldImage(context, viewport, backdrop);
+  paintScene(context, viewport, thumbnailLayers(project, frame, parseHexColor(EXPORT_COLORS.stickman)), drawing);
   return true;
 }

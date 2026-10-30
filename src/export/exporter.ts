@@ -7,7 +7,8 @@ import type { Session } from '../core/session';
 import type { Store } from '../core/store';
 import type { ExportFormat, Project } from '../core/types';
 import type { DrawingSurface } from '../drawing/surface';
-import { solidColor } from '../model/background';
+import type { AssetImages } from '../environment/asset-images';
+import { composeBackground } from '../environment/background-surface';
 import { deriveSequence, type SequenceFrame } from '../model/sequence';
 import { aspectRatio } from '../core/formats';
 import { fitWorldHeight } from '../render/camera';
@@ -29,6 +30,8 @@ export interface ExporterOptions {
   download: (blob: Blob, filename: string) => void;
   /** Calque de dessin du décor. */
   drawing: DrawingSurface;
+  /** Images de l'arrière-plan (v2.1), recomposé à la résolution de l'export. */
+  images: AssetImages;
   /** Après un export réussi (pour conserver la vidéo dans l'app). */
   onExported?: (result: ExportResult, project: Project) => void;
 }
@@ -52,17 +55,19 @@ export interface ExportResult {
 export async function exportProject(
   project: Project,
   format: ExportFormat,
-  { drawing, onProgress }: { drawing: DrawingSurface; onProgress: (progress: number) => void },
+  { drawing, images, onProgress }: { drawing: DrawingSurface; images: AssetImages; onProgress: (progress: number) => void },
 ): Promise<ExportResult> {
   const plan = planExport(project, deriveSequence(project), format);
   // Le calque de dessin doit être entièrement décodé avant la première image.
   await drawing.sync(project.environment.drawing.tiles);
-  const paint: Painter = (context, frame, background) => drawFrame(context, project, frame, background, drawing);
+  // L'arrière-plan est composé une fois, à la résolution de l'export (pas à chaque image).
+  const backdrop = await composeBackground(project.environment.background, project.format, images);
+  const paint: Painter = (context, frame, background) => drawFrame(context, project, frame, background, drawing, backdrop);
   const { blob, extension } = await encoders[format](paint, plan, onProgress);
   return { blob, extension, filename: exportFileName(project.name, extension), duration: planDuration(plan) };
 }
 
-export function connectExporter({ bus, store, download, drawing, onExported }: ExporterOptions): () => void {
+export function connectExporter({ bus, store, download, drawing, images, onExported }: ExporterOptions): () => void {
   const setSession = (patch: Partial<Session>): void =>
     store.update((s) => ({ session: { ...s.session, ...patch } }));
 
@@ -71,7 +76,7 @@ export function connectExporter({ bus, store, download, drawing, onExported }: E
     const project = store.state.project.present;
     setSession({ exportProgress: 0, notice: null });
     try {
-      const result = await exportProject(project, format, { drawing, onProgress: (progress) => setSession({ exportProgress: progress }) });
+      const result = await exportProject(project, format, { drawing, images, onProgress: (progress) => setSession({ exportProgress: progress }) });
       download(result.blob, result.filename);
       onExported?.(result, project);
       setSession({ notice: { kind: 'success', code: 'exported', detail: result.filename } });
@@ -176,19 +181,22 @@ function createCanvas(size: { width: number; height: number }, attributes?: Canv
   return { canvas, context };
 }
 
-/** L'arrière-plan du décor, s'il en a un, remplace le fond par défaut. */
+/** L'arrière-plan du décor, s'il en a un, remplace le fond par défaut (même en PNG transparent). */
 function drawFrame(
   context: CanvasRenderingContext2D,
   project: Project,
   frame: SequenceFrame,
   defaultBackground: string | null,
   drawing: DrawingSurface,
+  backdrop: HTMLCanvasElement | null,
 ): void {
   const { width, height } = context.canvas;
   context.clearRect(0, 0, width, height);
-  const background = solidColor(project.environment.background) ?? defaultBackground;
-  if (background) {
-    context.fillStyle = background;
+  // Le canvas d'export est exactement le cadre : l'arrière-plan le couvre entièrement.
+  if (backdrop) {
+    context.drawImage(backdrop, 0, 0, width, height);
+  } else if (defaultBackground) {
+    context.fillStyle = defaultBackground;
     context.fillRect(0, 0, width, height);
   }
   const layers = buildSceneLayers({

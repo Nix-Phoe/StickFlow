@@ -20,6 +20,16 @@ export interface DrawingImage {
   bounds: { x: number; y: number; width: number; height: number };
 }
 
+/** Dessine une image posée sur un rectangle du monde (calque de dessin, arrière-plan composé). */
+export function paintWorldImage(context: CanvasRenderingContext2D, viewport: PaintViewport, world: DrawingImage, opacity = 1): void {
+  const scale = viewport.height / worldHeightOf(viewport);
+  const { x, y, width, height } = world.bounds;
+  const topLeft = worldToScreen({ x, y: y + height }, viewport, worldHeightOf(viewport));
+  context.globalAlpha = opacity;
+  context.drawImage(world.image, topLeft.x, topLeft.y, width * scale, height * scale);
+  context.globalAlpha = 1;
+}
+
 /** Dessine les couches de la scène dans `context`, sur une zone de `viewport` pixels. */
 export function paintScene(
   context: CanvasRenderingContext2D,
@@ -27,15 +37,9 @@ export function paintScene(
   layers: readonly SceneLayer[],
   drawing: DrawingImage | null,
 ): void {
-  const scale = viewport.height / worldHeightOf(viewport);
   for (const layer of layers) {
     if (layer.kind === 'drawing') {
-      if (!drawing || layer.opacity <= 0) continue;
-      const { x, y, width, height } = drawing.bounds;
-      const topLeft = worldToScreen({ x, y: y + height }, viewport, worldHeightOf(viewport));
-      context.globalAlpha = layer.opacity;
-      context.drawImage(drawing.image, topLeft.x, topLeft.y, width * scale, height * scale);
-      context.globalAlpha = 1;
+      if (drawing && layer.opacity > 0) paintWorldImage(context, viewport, drawing, layer.opacity);
     } else if (layer.kind === 'shapes') {
       layer.shapes.forEach((shape) => paintShape(context, viewport, shape));
     } else {

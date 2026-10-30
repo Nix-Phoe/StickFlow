@@ -1,5 +1,6 @@
 import '../styles/components/environment-tab.css';
 
+import { aspectRatio } from '../../core/formats';
 import { DRAWING_TOOLS, LIMITS, SHAPE_TOOLS, type Shape, type ToolId, type ToolSettings } from '../../core/types';
 import type { Component, ComponentContext } from '../component';
 import { createColorPicker } from '../controls/color-picker';
@@ -9,17 +10,49 @@ import { createSlider } from '../controls/slider';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { strings } from '../strings';
+import { backgroundKind, createBackgroundPage } from './background/background-page';
+import { paintPreview, type BackgroundPreviewSource } from './background/context';
 
 const t = strings.environment;
 type Style = 'outline' | 'filled';
 
+/** Arrière-plan de la scène (v2.1) : aperçu composé et disponibilité de la recherche d'images. */
+export interface EnvironmentTabOptions {
+  preview: BackgroundPreviewSource;
+  stockConfigured: boolean;
+}
+
 /**
- * Onglet « Environnement » du panneau flottant : grille des outils (formes, dessin), puis les
- * réglages de l'outil actif — couleur, épaisseur, opacité, contour / rempli. Quand une forme est
- * sélectionnée, les réglages s'appliquent aussi à elle.
+ * Onglet « Environnement » du panneau flottant : ligne « Arrière-plan » (v2.1, ouvre sa sous-page
+ * en glissant, comme une navigation iOS), grille des outils (formes, dessin), puis les réglages de
+ * l'outil actif — couleur, épaisseur, opacité, contour / rempli. Quand une forme est sélectionnée,
+ * les réglages s'appliquent aussi à elle.
  */
-export function createEnvironmentTab({ bus, store }: ComponentContext): Component {
+export function createEnvironmentTab({ bus, store }: ComponentContext, options: EnvironmentTabOptions): Component {
   const cleanups: Array<() => void> = [];
+
+  // ---------- Arrière-plan ----------
+  const rowThumb = h('canvas', { class: 'background-row__thumb', 'aria-hidden': 'true' });
+  const rowKind = h('span', { class: 'background-row__kind' });
+  const backgroundRow = h('button', { type: 'button', class: 'background-row', 'data-action': 'background:open', 'aria-label': strings.background.open }, [
+    h('span', { class: 'background-row__frame' }, [rowThumb]),
+    h('span', { class: 'background-row__text' }, [h('span', { class: 'background-row__label' }, [strings.background.row]), rowKind]),
+    icon('forward', 'icon background-row__chevron'),
+  ]);
+  backgroundRow.addEventListener('click', () => bus.emit('background:open', { open: true }));
+  const backgroundSection = h('section', { class: 'environment-tab__background', 'aria-labelledby': 'environment-background' }, [
+    h('h3', { class: 'editor-panel__section-title', id: 'environment-background' }, [strings.background.section]),
+    backgroundRow,
+  ]);
+  const paintRow = (): void => {
+    rowThumb.parentElement?.style.setProperty('--preview-ratio', String(aspectRatio(store.state.project.present.format)));
+    paintPreview(rowThumb, options.preview);
+  };
+  // Le panneau peut être fermé au montage (vignette de taille nulle) : on repeint à l'affichage.
+  const rowObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(paintRow) : null;
+  rowObserver?.observe(rowThumb);
+  cleanups.push(() => rowObserver?.disconnect());
+  const backgroundPage = createBackgroundPage({ bus, store, ...options });
   const selectedShape = (): Shape | undefined =>
     store.state.project.present.environment.shapes.find((s) => s.id === store.state.session.selectedShapeId);
 
@@ -173,8 +206,34 @@ export function createEnvironmentTab({ bus, store }: ComponentContext): Componen
     settings.querySelector('.group')?.toggleAttribute('hidden', tool === 'select' && !shape);
   }
 
-  const root = h('div', { class: 'environment-tab' }, [tools, settings]);
+  // Pile de pages : la page principale, et la sous-page « Arrière-plan » qui glisse par-dessus.
+  const mainPage = h('div', { class: 'panel-stack__page' }, [backgroundSection, tools, settings]);
+  const subPage = h('div', { class: 'panel-stack__page panel-stack__page--sub' });
+  backgroundPage.mount(subPage);
+  const root = h('div', { class: 'environment-tab panel-stack' }, [mainPage, subPage]);
+
+  function showPage(open: boolean, moveFocus: boolean): void {
+    root.dataset.page = open ? 'background' : 'main';
+    mainPage.inert = open;
+    subPage.inert = !open;
+    if (!moveFocus) return;
+    if (open) subPage.querySelector<HTMLElement>('.background-page__back')?.focus();
+    else backgroundRow.focus();
+  }
+  showPage(store.state.session.backgroundPage.open, false);
+
   cleanups.push(
+    () => backgroundPage.destroy(),
+    options.preview.onChange(paintRow),
+    store.watch((s) => s.session.backgroundPage.open, (open) => showPage(open, true)),
+    store.watch(
+      (s) => s.project.present.environment.background,
+      (background) => {
+        rowKind.textContent = backgroundKind(background);
+        backgroundRow.setAttribute('aria-label', `${strings.background.open} (${backgroundKind(background)})`);
+      },
+    ),
+    store.watch((s) => s.project.present.format, paintRow),
     () => picker.destroy(),
     store.watch((s) => s.session.tool, render),
     store.watch((s) => s.session.toolSettings, render),
@@ -186,6 +245,7 @@ export function createEnvironmentTab({ bus, store }: ComponentContext): Componen
   return {
     mount(parent) {
       parent.append(root);
+      paintRow();
     },
     destroy() {
       cleanups.forEach((cleanup) => cleanup());

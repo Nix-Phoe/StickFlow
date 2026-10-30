@@ -1,0 +1,303 @@
+/* Sous-page « Arrière-plan » (v2.1) : en-tête Retour, aperçu, réglages de l'image et sources. */
+
+.background-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.background-page [hidden] {
+  display: none;
+}
+
+.background-page__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+}
+
+.background-page__back {
+  position: absolute;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-half);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-1) 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.background-page__title {
+  font-size: var(--font-size-headline);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Aperçu aux proportions du format ; sans arrière-plan, la couleur de la scène se voit. */
+.background-page__preview {
+  align-self: center;
+  width: min(100%, calc(var(--background-preview-max-height) * var(--preview-ratio, 1.78)));
+  aspect-ratio: var(--preview-ratio, 16 / 9);
+  overflow: hidden;
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-md);
+  background: var(--color-canvas);
+  touch-action: none;
+}
+
+.background-page__preview.is-movable {
+  cursor: grab;
+}
+
+.background-page__preview.is-movable:active {
+  cursor: grabbing;
+}
+
+.background-page__preview:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.background-page__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.background-page__credit,
+.background-page__status {
+  margin: 0;
+  color: var(--color-label-tertiary);
+  font-size: var(--font-size-caption);
+  text-align: center;
+}
+
+.background-page__credit a,
+.background-pane__provider,
+.background-photo__credit a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.background-page__error {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-fill);
+  color: var(--color-destructive);
+  font-size: var(--font-size-footnote);
+}
+
+.background-page__remove {
+  align-self: center;
+}
+
+.background-page__tabs {
+  margin-top: var(--space-1);
+}
+
+.background-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* ---------- Onglets des sources ---------- */
+.background-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.background-pane__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.background-pane__hint,
+.background-pane__notice {
+  margin: 0;
+  color: var(--color-label-tertiary);
+  font-size: var(--font-size-caption);
+}
+
+.background-pane__notice {
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-label-secondary);
+  font-size: var(--font-size-footnote);
+}
+
+.background-pane__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: 0 var(--space-1);
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-label);
+  font: inherit;
+}
+
+.background-pane__search .background-pane__input {
+  border: 0;
+  background: transparent;
+}
+
+.background-pane__url {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.background-pane__more {
+  align-self: center;
+}
+
+.background-pane__sentinel {
+  height: var(--border-hairline);
+}
+
+/* Zone de dépôt de l'onglet Appareil. */
+.background-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: var(--border-strong) dashed var(--color-separator);
+  border-radius: var(--radius-md);
+  text-align: center;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.background-drop.is-dragging {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+/* ---------- Grilles arrondies (intégrés, récents, photos) ---------- */
+.background-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--background-tile-min), 1fr));
+  gap: var(--space-1);
+}
+
+.background-grid--photos {
+  grid-template-columns: repeat(auto-fill, minmax(var(--background-photo-min), 1fr));
+}
+
+.background-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  min-height: var(--touch-target);
+  padding: var(--space-half);
+  border: var(--focus-ring-width) solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-label);
+  font: inherit;
+  cursor: pointer;
+}
+
+.background-tile[aria-pressed="true"] {
+  border-color: var(--color-accent);
+}
+
+.background-tile__preview,
+.background-tile__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+.background-tile--recent {
+  display: grid;
+  place-items: center;
+}
+
+.background-tile__label {
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-tight);
+  text-align: center;
+}
+
+.background-photo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  min-width: 0;
+  margin: 0;
+}
+
+.background-photo__button {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-sm);
+  /* Couleur moyenne de la photo (donnée Pexels), pendant le chargement. */
+  background: var(--photo-color, var(--color-fill));
+  cursor: pointer;
+}
+
+.background-photo__button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.background-photo__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.background-photo__credit {
+  overflow: hidden;
+  font-size: var(--font-size-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Pastilles de couleur du voile. */
+.background-swatches {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.background-swatch {
+  width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+}
+
+.background-swatch::before {
+  content: "";
+  display: block;
+  width: var(--swatch-size);
+  height: var(--swatch-size);
+  margin: auto;
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-pill);
+  background: var(--swatch-color);
+}
+
+.background-swatch[aria-checked="true"]::before {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}

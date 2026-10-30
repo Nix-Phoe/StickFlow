@@ -67,3 +67,9 @@
     border-radius: var(--radius-md);
   }
 }
+
+/* Image glissée au-dessus de la scène (v2.1) : elle deviendra l'arrière-plan. */
+.canvas-area.is-dropping {
+  outline: var(--focus-ring-width) dashed var(--color-accent);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}

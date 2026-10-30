@@ -4,7 +4,18 @@ import type { FormatPreset } from '../core/formats';
 import type { ProjectSort, ProjectView, ThemePreference, VideoFileType } from '../core/home-state';
 import type { HomeSection } from '../core/router';
 import type { TemplateId } from '../templates';
-import type { ColorHarmony, EditorMode, ExportFormat, NoticeCode, SmoothingCurve, ToolId } from '../core/types';
+import type { BackgroundTab } from '../core/session';
+import type {
+  AssetErrorCode,
+  BuiltinBackgroundId,
+  ColorHarmony,
+  EditorMode,
+  ExportFormat,
+  ImageFit,
+  NoticeCode,
+  SmoothingCurve,
+  ToolId,
+} from '../core/types';
 
 const plural = (n: number, singular: string, pluralForm: string): string =>
   `${n} ${n > 1 ? pluralForm : singular}`;
@@ -181,6 +192,93 @@ export const strings = {
     selectHint: 'Touchez une forme pour la sélectionner, la déplacer ou la redimensionner.',
     units: (n: number): string => `${n} px`,
     percent: (n: number): string => `${n} %`,
+  },
+
+  /** Arrière-plan de la scène (v2.1) : ligne de l'onglet Environnement et sa sous-page. */
+  background: {
+    section: 'Arrière-plan',
+    row: 'Arrière-plan',
+    open: 'Changer l’arrière-plan',
+    back: 'Retour',
+    title: 'Arrière-plan',
+    kinds: {
+      none: 'Par défaut',
+      color: 'Couleur',
+      gradient: 'Dégradé',
+      builtin: 'Intégré',
+      image: 'Image',
+    },
+    tabs: { color: 'Couleur', builtin: 'Intégrés', device: 'Appareil', internet: 'Internet' } satisfies Record<BackgroundTab, string>,
+    tabsLabel: 'Source de l’arrière-plan',
+    preview: 'Aperçu de l’arrière-plan',
+    previewHint: 'Glissez l’aperçu (ou utilisez les flèches) pour déplacer l’image.',
+    remove: 'Retirer l’arrière-plan',
+    credit: (author: string, provider: string): string => `Photo : ${author} — ${provider}`,
+    // Couleur et dégradé
+    fill: 'Remplissage',
+    solid: 'Uni',
+    gradient: 'Dégradé',
+    gradientFrom: 'Début',
+    gradientTo: 'Fin',
+    gradientStop: 'Couleur modifiée',
+    angle: 'Angle',
+    degrees: (n: number): string => `${n}°`,
+    // Intégrés
+    builtins: {
+      'day-sky': 'Ciel de jour',
+      sunset: 'Coucher de soleil',
+      'starry-night': 'Nuit étoilée',
+      horizon: 'Sol et horizon',
+      'studio-grid': 'Quadrillage de studio',
+      room: 'Salle simple',
+    } satisfies Record<BuiltinBackgroundId, string>,
+    builtinsLabel: 'Arrière-plans intégrés',
+    // Appareil
+    choose: 'Choisir une image',
+    dropHint: 'Ou glissez-déposez une image ici (ou sur la scène), ou collez-la avec Ctrl+V (⌘+V sur Mac).',
+    formatsHint: 'PNG, JPEG ou WebP, 20 Mo au plus.',
+    importing: 'Import de l’image…',
+    recents: 'Récents',
+    recent: (n: number): string => `Image récente ${n}`,
+    noRecents: 'Les images utilisées apparaîtront ici.',
+    // Internet
+    search: 'Rechercher des photos libres',
+    searchPlaceholder: 'Ex. forêt, ville la nuit',
+    poweredBy: 'Photos fournies par Pexels',
+    results: 'Résultats',
+    photoBy: (author: string): string => `Photo de ${author}`,
+    searching: 'Recherche…',
+    noResults: (query: string): string => `Aucune photo pour « ${query} ».`,
+    loadMore: 'Afficher plus de photos',
+    urlLabel: 'Adresse de l’image (URL)',
+    urlPlaceholder: 'https://…',
+    import: 'Importer',
+    rightsNote: 'Utilisez uniquement des images que vous avez le droit d’utiliser.',
+    unconfigured: 'La recherche d’images n’est pas configurée : le proxy d’images (server/image-proxy) n’a pas d’adresse ou pas de clé d’API.',
+    offline: 'Vous êtes hors ligne. La recherche et l’import par adresse reviendront avec la connexion.',
+    // Réglages de l'image
+    fit: 'Ajustement',
+    fits: { cover: 'Remplir', contain: 'Ajuster', stretch: 'Étirer', tile: 'Mosaïque' } satisfies Record<ImageFit, string>,
+    zoom: 'Zoom',
+    effects: 'Effets',
+    blur: 'Flou',
+    brightness: 'Luminosité',
+    imageOpacity: 'Opacité',
+    tint: 'Voile de couleur',
+    tintColor: 'Couleur du voile',
+    tintAmount: 'Force du voile',
+    tintColors: { '#000000': 'Noir', '#ffffff': 'Blanc', '#1b2a4a': 'Bleu nuit', '#704214': 'Sépia' } as Record<string, string>,
+    errors: {
+      unsupported: 'Ce fichier n’est pas une image PNG, JPEG ou WebP.',
+      svg: 'Les images SVG ne sont pas acceptées (elles peuvent contenir des scripts).',
+      'too-large': 'Cette image dépasse 20 Mo.',
+      unreadable: 'Cette image est illisible ou abîmée.',
+      'invalid-url': 'Cette adresse n’est pas une adresse web (https://…).',
+      unconfigured: 'Le proxy d’images n’est pas configuré.',
+      offline: 'Vous êtes hors ligne.',
+      'rate-limited': 'Trop de recherches pour le moment : réessayez dans quelques minutes.',
+      failed: 'Le chargement a échoué. Réessayez plus tard.',
+    } satisfies Record<AssetErrorCode, string>,
   },
 
   formats: {

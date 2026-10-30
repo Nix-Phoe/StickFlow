@@ -30,6 +30,10 @@ import {
   EyeOff,
   FolderOpen,
   Gauge,
+  Globe,
+  Image as ImageIcon,
+  ImageUp,
+  Link,
   Highlighter,
   Infinity as InfinityIcon,
   Layers,
@@ -127,6 +131,11 @@ const registry = {
   eraser: Eraser,
   nib: PenTool,
   airbrush: SprayCan,
+  // Arrière-plan (v2.1)
+  image: ImageIcon,
+  upload: ImageUp,
+  globe: Globe,
+  link: Link,
 } satisfies Record<string, IconNode>;
 
 export type IconName = keyof typeof registry;

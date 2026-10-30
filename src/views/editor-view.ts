@@ -12,7 +12,11 @@ import type { Project } from '../core/types';
 import { connectDrawingTool } from '../drawing/drawing-tool';
 import { createDrawingSurface } from '../drawing/surface';
 import { createAssetImages } from '../environment/asset-images';
+import { connectAssetImporter } from '../environment/asset-importer';
 import { createBackgroundSurface } from '../environment/background-surface';
+import { processImageOffThread } from '../environment/image-import';
+import { createStockClient } from '../environment/stock-client';
+import { connectStockSearch } from '../environment/stock-search';
 import { connectExporter } from '../export';
 import { connectCharacterManipulation, connectShapeManipulation } from '../interaction';
 import { connectStageView } from '../render';
@@ -82,9 +86,15 @@ export function createEditorView({ projectId, library, videos, assets, navigate 
     const thumbnail = (project: Project): string | null => projectThumbnail(project, drawingImage(), background.image());
     // La vignette de l'accueil est régénérée à chaque sauvegarde, à partir de la première frame.
     storage = connectProjectStorage({ bus, store: editorStore, library, thumbnail });
+    // Recherche d'images : l'adresse du proxy vient de l'environnement de build (.env.local).
+    const stockClient = createStockClient({ baseUrl: import.meta.env.VITE_IMAGE_PROXY_URL ?? null });
+    const importer = connectAssetImporter({ bus, store: editorStore, assets, process: processImageOffThread });
+    const stockSearch = connectStockSearch({ bus, store: editorStore, client: stockClient });
     cleanups.push(
       () => background.destroy(),
       () => images.destroy(),
+      importer.disconnect,
+      stockSearch.disconnect,
       connectIntents(bus, editorStore),
       connectCharacterManipulation(context),
       connectShapeManipulation(context),
@@ -149,7 +159,7 @@ export function createEditorView({ projectId, library, videos, assets, navigate 
     // Les onglets du panneau flottant se montent dans les emplacements qu'il a créés.
     const tabs: Array<[Component, string]> = [
       [createCharactersTab(context), ids.charactersTab],
-      [createEnvironmentTab(context), ids.environmentTab],
+      [createEnvironmentTab(context, { preview: background, stockConfigured: stockClient.configured }), ids.environmentTab],
     ];
     for (const [component, slotId] of tabs) {
       const slot = root.querySelector<HTMLElement>(`#${slotId}`);

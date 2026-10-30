@@ -66,3 +66,116 @@
   color: var(--color-label-tertiary);
   font-size: var(--font-size-caption);
 }
+
+/* ---------- Pile de pages (v2.1) : la sous-page « Arrière-plan » glisse de droite à gauche ---------- */
+.panel-stack {
+  position: relative;
+  overflow-x: clip;
+}
+
+.panel-stack__page {
+  transition:
+    transform var(--duration-base) var(--ease-standard),
+    opacity var(--duration-base) var(--ease-standard),
+    visibility 0s linear 0s;
+}
+
+/* La sous-page arrive par-dessus, sur le fond du panneau (comme une page iOS). */
+.panel-stack__page--sub {
+  background: var(--material-fallback);
+}
+
+/* La page inactive sort du flux : le panneau prend la hauteur de la page affichée seulement. */
+.panel-stack[data-page="main"] .panel-stack__page--sub,
+.panel-stack[data-page="background"] .panel-stack__page:not(.panel-stack__page--sub) {
+  position: absolute;
+  inset: 0 0 auto;
+  visibility: hidden;
+  transition:
+    transform var(--duration-base) var(--ease-standard),
+    opacity var(--duration-base) var(--ease-standard),
+    visibility 0s linear var(--duration-base);
+}
+
+.panel-stack[data-page="main"] .panel-stack__page--sub {
+  transform: translateX(100%);
+}
+
+/* Comme sur iOS, la page quittée glisse un peu à gauche (parallaxe). */
+.panel-stack[data-page="background"] .panel-stack__page:not(.panel-stack__page--sub) {
+  opacity: 0;
+  transform: translateX(var(--page-slide-parallax));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-stack__page,
+  .panel-stack[data-page] .panel-stack__page {
+    transition: none;
+  }
+}
+
+/* ---------- Ligne « Arrière-plan » ---------- */
+.environment-tab__background {
+  margin-bottom: var(--space-2);
+}
+
+.background-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-label);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .background-row:hover {
+    background: var(--color-fill-hover);
+  }
+}
+
+.background-row__frame {
+  flex: none;
+  width: var(--background-row-thumb-width);
+  aspect-ratio: var(--preview-ratio, 16 / 9);
+  max-height: var(--background-row-thumb-width);
+  overflow: hidden;
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-xs);
+  background: var(--color-canvas);
+}
+
+.background-row__thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.background-row__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.background-row__label {
+  font-size: var(--font-size-body);
+}
+
+.background-row__kind {
+  color: var(--color-label-tertiary);
+  font-size: var(--font-size-footnote);
+}
+
+.background-row__chevron {
+  flex: none;
+  color: var(--color-label-tertiary);
+}

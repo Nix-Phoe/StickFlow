@@ -7,6 +7,7 @@ import { frameScreenRect, stageWorldHeight } from '../../render/camera';
 import type { Component, ComponentContext } from '../component';
 import { h, ids } from '../dom';
 import { strings } from '../strings';
+import { imageFileOf } from '../transfer';
 
 /**
  * Zone centrale : un `<canvas id="stage">` qui suit la taille de son conteneur
@@ -144,6 +145,30 @@ export function createCanvasArea({ bus, store }: ComponentContext): Component {
     const pixelRatio = window.devicePixelRatio || 1;
     if (box) applySize(Math.round(box.inlineSize * pixelRatio), Math.round(box.blockSize * pixelRatio));
   }
+
+  // Arrière-plan (v2.1) : une image déposée sur la scène, ou collée (Ctrl/⌘+V), devient l'arrière-plan.
+  root.addEventListener('dragover', (event) => {
+    if (!event.dataTransfer?.types.includes('Files')) return;
+    event.preventDefault();
+    root.classList.add('is-dropping');
+  });
+  root.addEventListener('dragleave', () => root.classList.remove('is-dropping'));
+  root.addEventListener('drop', (event) => {
+    event.preventDefault();
+    root.classList.remove('is-dropping');
+    const file = imageFileOf(event.dataTransfer);
+    if (file) bus.emit('asset:import', { file, source: 'device' });
+  });
+  const onPaste = (event: ClipboardEvent): void => {
+    // Un collage dans un champ de saisie reste un collage de texte.
+    if (event.target instanceof HTMLElement && event.target.closest('input, textarea, [contenteditable="true"]')) return;
+    const file = imageFileOf(event.clipboardData);
+    if (!file) return;
+    event.preventDefault();
+    bus.emit('asset:import', { file, source: 'device' });
+  };
+  document.addEventListener('paste', onPaste);
+  stopWatching.push(() => document.removeEventListener('paste', onPaste));
 
   /** Suit les changements de `devicePixelRatio` (zoom, changement d'écran). */
   function watchPixelRatio(): () => void {

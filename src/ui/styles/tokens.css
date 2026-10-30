@@ -170,6 +170,12 @@
   --badge-size: 20px;
   --grid-size: 24px;
   --grid-major-size: 96px;
+  /* Arrière-plan (v2.1) : ligne de l'onglet Environnement, sous-page, grilles. */
+  --background-row-thumb-width: 64px;
+  --background-tile-min: 96px;
+  --background-photo-min: 104px;
+  --background-preview-max-height: 220px;
+  --page-slide-parallax: -30%;
   --opacity-disabled: 0.4;
   --opacity-muted: 0.5;
 

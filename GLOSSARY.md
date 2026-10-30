@@ -120,6 +120,18 @@ _Avoid_ : FPS, cadence
 Le décor de la scène : arrière-plan, formes et calque de dessin. En version 1.0, il est le même dans toutes les frames.
 _Avoid_ : scène (pour désigner le décor seul), fond
 
+**Arrière-plan** :
+Ce qui remplit le cadre du format, sous tout le reste du décor : une couleur, un dégradé, un arrière-plan intégré (dessiné par l'app) ou une image (cadrée, avec ses effets). Sans arrière-plan, la scène garde la couleur du thème, et l'export est blanc. Il fait partie du Projet : le changer s'annule.
+_Avoid_ : fond d'écran, background, décor (qui désigne tout l'Environnement)
+
+**Image d'arrière-plan** :
+Une image importée (de l'appareil, d'une banque d'images libres ou d'une adresse web), réduite et compressée, puis gardée à part dans le magasin d'assets ; le Projet n'en garde que l'identifiant. Une copie de Projet partage la même image, supprimée avec le dernier Projet qui l'utilise.
+_Avoid_ : asset (dans l'interface), pièce jointe, fichier
+
+**Crédit** :
+Le nom du photographe et le lien de la photo d'une banque d'images (« Photo : Nom — Pexels »), affichés sur chaque résultat et sous l'arrière-plan appliqué.
+_Avoid_ : copyright, source
+
 **Forme** :
 Un objet vectoriel du décor (carré, cercle, rectangle, triangle, ligne) que l'on sélectionne, déplace, redimensionne et fait pivoter.
 _Avoid_ : figure, dessin

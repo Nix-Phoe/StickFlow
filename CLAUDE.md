@@ -68,6 +68,16 @@ Règles communes aux fonctionnalités IA :
 - **Réglages** : thème Automatique / Clair / Sombre, format et IPS par défaut, effacer les vidéos stockées.
 - **Version 2.0.1** : la création de projet n'est plus en double. Le panneau « Nouveau projet » de la barre latérale est retiré ; chaque point d'entrée a un rôle (voir 5.2, « Création de projet ») ; les noms des formats sont harmonisés.
 
+### 2.6 Version 2.1 (réalisée) : arrière-plan personnalisé
+- Dans l'onglet **Environnement**, une section « Arrière-plan » (au-dessus de « Formes ») : une ligne (vignette, « Arrière-plan », type actuel, chevron) ouvre une **sous-page** qui glisse de droite à gauche, avec **‹ Retour** (navigation iOS ; même chose dans la feuille du bas sur mobile).
+- Sous-page : aperçu aux proportions du format, crédit d'une photo, réglages d'une image, « Retirer l'arrière-plan », puis un contrôle segmenté `Couleur | Intégrés | Appareil | Internet`.
+  - **Couleur** : couleur unie (`ColorPicker`) ou **dégradé** (deux couleurs, angle).
+  - **Intégrés** : Ciel de jour, Coucher de soleil, Nuit étoilée, Sol et horizon, Quadrillage de studio, Salle simple — dessinés par le code (`src/environment/backgrounds/`), hors ligne, sans droits à gérer.
+  - **Appareil** : « Choisir une image » (galerie et appareil photo sur mobile), glisser-déposer sur l'onglet ou sur la scène, collage (Ctrl/⌘+V) ; PNG, JPEG, WebP (première image d'un GIF), 20 Mo au plus, **jamais de SVG** ; 8 images récentes.
+  - **Internet** : recherche de photos libres **Pexels** (défilement infini, crédit du photographe) et import par adresse, toujours via le **proxy d'images** (Cloudflare Worker, `server/image-proxy`) ; message clair si le proxy n'est pas configuré ou hors ligne.
+- Réglages d'une image : ajustement (Remplir, Ajuster, Étirer, Mosaïque), point focal (glisser l'aperçu ou flèches), zoom 100 à 300 %, flou 0 à 20 px, luminosité, opacité, voile de couleur facultatif.
+- L'arrière-plan suit le cadre du format, apparaît dans la scène, les vignettes, l'aperçu des cartes et tous les exports ; il est le même dans toutes les frames et chaque changement s'annule.
+
 ---
 
 ## 3. Interface (UI)
@@ -95,7 +105,7 @@ Règles communes aux fonctionnalités IA :
 
 - **Panneau gauche** : en-tête (bouton retour vers l'accueil — chevron + logo —, nom du projet, indicateur « Mode : Personnages / Environnement », sauvegarder), section « Améliorations IA » (Fluidité, Répétition), section « Animation » (IPS), section « Format de la vidéo » (v2.0), puis bouton **Exporter** avec choix du format en bas. Il n'a plus de sélecteur de mode (v1.0).
 - **Barre supérieure** : bouton à libellé « Personnages & Environnement · Ajouter ou modifier » placé juste à gauche du module de lecture (ouvre le panneau flottant ; titre sur deux lignes puis icônes seules quand la barre rétrécit, requêtes de conteneur), puis le module : annuler, rétablir, Lecture / Pause (un seul bouton), Stop, vitesses x1 / x2 / x5 / x10.
-- **Panneau flottant** (v1.0) : popover ancré sous son bouton, onglets `Personnages | Environnement` ; feuille du bas sous 600 px de large.
+- **Panneau flottant** (v1.0) : popover ancré sous son bouton, onglets `Personnages | Environnement` ; feuille du bas sous 600 px de large. L'onglet Environnement est une **pile de pages** (v2.1) : la page principale (ligne « Arrière-plan », formes, outils de dessin, réglages) et la sous-page « Arrière-plan » qui glisse par-dessus (Retour ou Échap pour revenir).
 - **Zone centrale** : canvas de dessin.
 - **Barre inférieure** : timeline des frames + bouton « + ».
 
@@ -148,7 +158,8 @@ Référence : https://developer.apple.com/design/human-interface-guidelines
 | Rendu | **WebGL 2** (GLSL `#version 300 es`) |
 | Maths | **gl-matrix** |
 | Icônes | **Lucide** |
-| Stockage | **IndexedDB** via `idb-keyval`, projets au format **JSON** versionné |
+| Stockage | **IndexedDB** via `idb-keyval`, projets au format **JSON** versionné ; images d'arrière-plan en Blob (magasin d'assets, v2.1) |
+| Images en ligne (v2.1) | API **Pexels** derrière un **Cloudflare Worker** sans dépendance (`server/image-proxy`, clé en secret) |
 | Export | **gifenc** (GIF ; remplace gif.js, non maintenu et qui exige un fichier worker), **MediaRecorder** (vidéo MP4, ou WebM si le navigateur n'enregistre pas le MP4), `canvas.toBlob` + **fflate** (séquence PNG en archive ZIP) |
 | IA (V2) | Entraînement **PyTorch** → inférence **ONNX Runtime Web** |
 | Web | **PWA** (`vite-plugin-pwa`), hébergement Cloudflare Pages / Netlify |
@@ -310,6 +321,31 @@ src/ui/components/home/                 # sidebar (logo, navigation, Réglages),
 src/ui/styles/components/home/          # Un fichier CSS par composant de l'accueil
 docs/adr/0004-vues-et-index-des-projets.md
 ```
+
+Fichiers ajoutés en version 2.1 (arrière-plan) :
+```
+src/model/background.ts                 # imageBackground, normalizeBackground (bornes), mergeBackground (réglages), backgroundAssetIds
+src/storage/asset-store.ts              # Magasin d'assets (Blob, vignette, récents, removeUnused) ; base « stickflow-assets »
+src/environment/background-layout.ts    # Ligne d'un dégradé (CSS), place d'une image (ajustement, point focal, zoom), mosaïque
+src/environment/backgrounds/            # Arrière-plans intégrés : une fonction de dessin par fichier, index.ts (BUILTIN_BACKGROUNDS)
+src/environment/paint-background.ts     # Composition Canvas 2D de l'arrière-plan dans le cadre (effets par ctx.filter, voile)
+src/environment/background-surface.ts   # Canvas composé de l'éditeur (version, onChange) ; composeBackground (export)
+src/environment/asset-images.ts         # Images décodées des assets (cache de 4)
+src/environment/image-import.ts         # checkImageFile, importSize, processImage (WebP / JPEG, vignette), processImageOffThread
+src/environment/image-worker.ts         # Worker de traitement des images importées
+src/environment/asset-importer.ts       # asset:import / asset:apply → magasin d'assets → background:set (sans DOM)
+src/environment/stock-client.ts         # Client du proxy : search, download, StockError
+src/environment/stock-search.ts         # stock:search (pages), stock:import, url:import (sans DOM)
+src/ui/components/background/           # background-page (sous-page), color-pane, builtin-pane, device-pane, internet-pane,
+                                        # image-settings, context (aperçu, jeton de geste, grilles au clavier)
+src/ui/transfer.ts                      # imageFileOf : image d'un glisser-déposer ou du presse-papiers
+src/ui/styles/components/background-page.css
+src/test/recording-context.ts           # Faux contexte Canvas 2D qui note les appels (tests de dessin)
+server/image-proxy/                     # Cloudflare Worker : /search (Pexels), /image (CORS) ; wrangler.toml, README.md
+.env.example                            # VITE_IMAGE_PROXY_URL
+docs/adr/0005-arriere-plan-compose-et-assets.md
+```
+`render/renderer.ts` gagne une texture d'arrière-plan (`DrawOptions.backdrop`, renvoyée seulement quand sa `version` change) ; `render/canvas2d.ts` gagne `paintWorldImage` ; `thumbnail.ts` et l'export dessinent l'arrière-plan composé ; `CanvasArea` accepte le dépôt et le collage d'une image.
 `storage/library.ts` gagne l'index des projets (second magasin, `stickflow-index`), `rename`, `duplicate`, `setThumbnail` ; `render/camera.ts` gagne `fitWorldHeight`, `stageWorldHeight`, `frameScreenRect` ; `render/thumbnail.ts` gagne `projectThumbnail` / `paintProjectFrame` ; `export/exporter.ts` expose `exportProject` (utilisé par l'éditeur et l'accueil). Noms de fichiers en kebab-case, comme le reste du projet (le prompt v2.0 proposait `HomeView.ts`…).
 
 Il n’y a pas de `core/history.ts` : l’historique est interne au module Projet (`src/model/project/`), par instantanés (voir `docs/adr/0001-historique-par-instantanes.md`).
@@ -347,6 +383,10 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
   Les identifiants de préréglage n'ont pas changé depuis la v2.0 : les projets enregistrés gardent leur format sans migration (un identifiant inconnu devient une taille libre, `normalizeFormat`).
 - **Index et vignettes (v2.0)** : la bibliothèque écrit le projet (`project:<id>`, avec `createdAt` / `updatedAt`) **et** son résumé dans l'index ; l'accueil ne lit que l'index (50 projets : ~10 ms). Les projets de la v1.0 sont indexés à la première lecture, sans vignette. Vignette : première frame, 320 px de côté long, PNG, aux couleurs de l'export (`EXPORT_COLORS`), régénérée à chaque sauvegarde.
 - **Vidéos conservées (v2.0)** : un export GIF, MP4 ou WebM (pas la séquence PNG), depuis l'éditeur ou une carte, est téléchargé **et** gardé en Blob (`stickflow-videos`). « Mes vidéos » montre l'espace utilisé (`navigator.storage.estimate()`) ; au-delà de 80 %, il propose de supprimer les plus anciennes jusqu'à revenir à 70 %. Lecteur : `<video>` (ou `<img>` pour un GIF) par URL d'objet, libérée à la fermeture ; Partager n'apparaît que si `navigator.canShare` accepte un fichier.
+- **Arrière-plan (v2.1, ADR 0005)** : `environment.background` vaut `null` (celui du thème, blanc à l'export) ou un `Background` : couleur, dégradé, intégré, image. Changements nommés `setBackground` / `updateBackground` (réglages de l'arrière-plan actuel, sans changer son type ni son image) ; un même jeton `gesture` (glisser de slider, de la roue, de l'aperçu) forme une seule étape d'annulation. Le module Projet borne tout (`normalizeBackground` : angle 0 à 359°, zoom 1 à 3, flou 0 à 20, luminosité 0,5 à 1,5, opacité et voile 0 à 1).
+- **Composition de l'arrière-plan** : `paintBackground` (Canvas 2D) dessine l'arrière-plan dans le cadre du format ; `BackgroundSurface` le recompose seulement quand l'arrière-plan ou le format change (long côté 2048 px dans l'éditeur), et la scène le dessine comme un rectangle texturé sous toutes les couches, dans le cadre (hors du cadre : la couleur du thème). Vignettes et aperçus dessinent le même canvas ; l'export le recompose une fois à sa résolution. Flou et luminosité en `ctx.filter`, en pixels du format ; un bord flouté est agrandi pour ne pas s'estomper. Sous une image transparente : le blanc de l'export.
+- **Images d'arrière-plan** : jamais dans le JSON du Projet. `asset-importer` vérifie le fichier par son contenu (`checkImageFile` : PNG, JPEG, WebP, GIF ; SVG et plus de 20 Mo refusés), le traite dans un Worker (`createImageBitmap`, long côté ≤ 2 × celui du format et ≤ 3840 px, WebP sinon JPEG, vignette de 160 px), le garde dans le magasin d'assets, puis émet `background:set`. Erreurs : `session.assetImport` (lues par `aria-live`). Supprimer un projet supprime les images qu'aucun autre projet n'utilise (`ProjectSummary.assetIds`) ; une copie partage l'image.
+- **Proxy d'images** : l'app ne connaît que `VITE_IMAGE_PROXY_URL` (`.env.local`), jamais de clé. `GET /search` (Pexels, 24 par page, `hasMore`) et `GET /image?url=` (PNG, JPEG, WebP, GIF ≤ 20 Mo, CORS ; SVG, adresses privées et origines non autorisées refusés). Codes : 503 non configuré, 429 limite atteinte, 415 type refusé, 413 trop lourd. Crédit « Photo : Nom — Pexels » sur chaque résultat et sous l'arrière-plan, lien « Photos fournies par Pexels ». Pas de recherche générale (droits inconnus).
 - **Thème (v2.0)** : Automatique (système), Clair ou Sombre imposé par `data-theme` sur `<html>`. Les couleurs sombres sont déclarées deux fois dans `tokens.css` (automatique et imposé), gardées identiques par `tokens.test.ts`.
 - **Rendu** : `EditorView` passe le canvas `#stage` et le calque de dessin à `connectStageView`. Le rendu lit la taille au moment de dessiner (`canvas.width`/`height`), redessine tout de suite sur `canvas:resize` (évite un clignotement) et à la demande sinon. Les couleurs lues par WebGL viennent des tokens CSS et doivent rester en **hexadécimal** (ex. `--color-stickman`).
 - **Manipulation** : `CanvasArea` émet le pointeur brut (`stage:pointer:*`, en pixels CSS avec la taille du canvas, plus `pointerType`, `shiftKey`, `pressure`) et les touches (`node:cycle`, `node:nudge`, `node:select`) ; `interaction/character-manipulation.ts` fait la sélection et le glisser, et émet `frame:pose:change` (frame désignée par son **id**). Zone de saisie d'une poignée : 22 px CSS de rayon (cible de 44 px). Pas de manipulation pendant la lecture ; les poignées ne s'affichent qu'en mode Personnage.
@@ -354,13 +394,13 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 - **Lecture** : parcourt la séquence au rythme IPS × vitesse, autant de fois que la Répétition l'indique (coupée : une fois puis arrêt sur la dernière frame ; « Infini » : en boucle ; sinon N passages). Lancée depuis la dernière frame, elle repart du début ; un saut de plus de 250 ms (onglet masqué) est plafonné. Pause garde la frame courante ; **Stop** revient à la frame active au lancement. Espace bascule lecture / pause (y compris sur les boutons de lecture, pas sur les autres boutons ni dans un champ). La lecture ne touche jamais au Projet (`playback:frame` met à jour la Session).
 - **Frames** : « + » insère une copie de la frame active juste après elle (c'est aussi « dupliquer ») ; Supprimer (bouton ou Suppr sur une vignette) retire l'image clé active, jamais la dernière, et ne s'applique pas à une frame générée ; Copier / Coller la pose passe par la Session, et coller est annulable. Vignettes : conservées par id de frame, seule celle qui change est repeinte. Une vignette montre la frame **comme la scène** (rendu final de `buildSceneLayers` : couleurs des parties, zones de couleur, taille, formes, calque de dessin, arrière-plan), avec des membres plus épais (`THUMBNAIL_STYLE`) ; les frames générées se distinguent par leur cadre (plus petites, teintées, bord pointillé, badge), plus par la couleur du personnage. Toutes les vignettes sont repeintes quand les personnages ou le décor changent (calque : 150 ms après le dernier tampon).
 - **Pelure d'oignon** : frame précédente en transparence sous la frame active, réglable dans la section Animation, masquée pendant la lecture.
-- **Sauvegarde** : le fichier (`stickflow-project`, **version 3** depuis la v2.0) contient nom, IPS, format de la vidéo, personnages, images clés, environnement, couleurs récentes et réglages IA ; un fichier ancien passe d'abord par `migrateProject` (version 1 → un seul personnage « Personnage 1 » ; version 2 → format YouTube 16:9). À la lecture, la structure est vérifiée (`ProjectFileError`, version plus récente refusée), puis `createHistory` applique les bornes. La bibliothèque passe par le port `KeyValueStore` (deux adaptateurs : IndexedDB, mémoire). La Session retient `documentId` et `savedProject` ; `saveStatus` vaut « jamais enregistré », « enregistré » ou « modifié » (comparaison par référence du Projet). Ouvrir remplace le Projet et repart d'un historique vierge. « Enregistrer sous » renomme en « <nom> (copie) » et enregistre sous un nouvel id. Le nom du projet se modifie dans l'en-tête (changement nommé `rename`, annulable, frappes regroupées). Raccourcis : Ctrl/⌘+S enregistrer, Ctrl/⌘+O ouvrir. Les erreurs et confirmations passent par `session.notice`, affichée sous le bouton Exporter.
-- **Export** : à la résolution du format de la vidéo (v2.0 ; 1280 × 720 avant), mêmes couleurs quel que soit le thème (fond de l'environnement, blanc par défaut, stickman foncé ; PNG sur fond transparent). Il dessine le décor (calque de dessin, formes) et tous les personnages visibles, sans aide d'édition. Répétition coupée : une lecture ; infinie : GIF en boucle, vidéo et PNG d'un passage ; N répétitions : compteur de boucle du GIF, N passages dans la vidéo, un passage en PNG. La vidéo est enregistrée en temps réel (une image par frame, au rythme de l'IPS) ; une vidéo vide est signalée comme un échec. `session.exportProgress` (0 à 1) désactive le bouton et affiche l'avancement.
+- **Sauvegarde** : le fichier (`stickflow-project`, **version 4** depuis la v2.1 ; un arrière-plan de version 3, une couleur HEX, devient `{ type: 'color', color }`) contient nom, IPS, format de la vidéo, personnages, images clés, environnement, couleurs récentes et réglages IA ; un fichier ancien passe d'abord par `migrateProject` (version 1 → un seul personnage « Personnage 1 » ; version 2 → format YouTube 16:9). À la lecture, la structure est vérifiée (`ProjectFileError`, version plus récente refusée), puis `createHistory` applique les bornes. La bibliothèque passe par le port `KeyValueStore` (deux adaptateurs : IndexedDB, mémoire). La Session retient `documentId` et `savedProject` ; `saveStatus` vaut « jamais enregistré », « enregistré » ou « modifié » (comparaison par référence du Projet). Ouvrir remplace le Projet et repart d'un historique vierge. « Enregistrer sous » renomme en « <nom> (copie) » et enregistre sous un nouvel id. Le nom du projet se modifie dans l'en-tête (changement nommé `rename`, annulable, frappes regroupées). Raccourcis : Ctrl/⌘+S enregistrer, Ctrl/⌘+O ouvrir. Les erreurs et confirmations passent par `session.notice`, affichée sous le bouton Exporter.
+- **Export** : à la résolution du format de la vidéo (v2.0 ; 1280 × 720 avant), mêmes couleurs quel que soit le thème (arrière-plan composé à la résolution de l'export, blanc par défaut, stickman foncé ; PNG sur fond transparent sans arrière-plan). Il dessine le décor (calque de dessin, formes) et tous les personnages visibles, sans aide d'édition. Répétition coupée : une lecture ; infinie : GIF en boucle, vidéo et PNG d'un passage ; N répétitions : compteur de boucle du GIF, N passages dans la vidéo, un passage en PNG. La vidéo est enregistrée en temps réel (une image par frame, au rythme de l'IPS) ; une vidéo vide est signalée comme un échec. `session.exportProgress` (0 à 1) désactive le bouton et affiche l'avancement.
 - **Modes d'édition (v1.0)** : `session.editorMode` vaut `'characters'` ou `'environment'` ; seul le contexte actif réagit au pointeur, l'autre est atténué (`DIMMED_OPACITY`). Changer de mode vide la sélection de l'autre contexte. Raccourcis : C Personnages, E Environnement, Tab bascule (seulement quand aucun élément n'a le focus, pour garder la navigation au clavier).
 - **Sélection (v1.0)** : test de toucher poignée du personnage sélectionné > partie (distance point-segment, du personnage le plus au-dessus) > cadre du personnage ; tolérance plus large au toucher (poignée 22 px, partie 14 px) qu'à la souris (12 / 6 px). Maj + clic ajoute ou retire une partie. Un personnage masqué ou verrouillé n'est jamais sélectionnable. Clic dans le vide : tout désélectionner. Suppr supprime (confirmation pour un personnage), Ctrl/⌘+D duplique, Échap ferme le panneau. La liste de l'onglet Personnages et la scène partagent `session.selectedCharacterId`.
 - **Formes (v1.0)** : outil `select` (ajouté à la grille) pour choisir, déplacer, redimensionner (4 coins, ou les 2 bouts d'une ligne) et pivoter (poignée au-dessus, pas de 15° avec Maj) ; un outil de forme trace par glisser (Maj : proportions contraintes) au-delà de 3 px. Un geste sur la scène = une étape d'annulation (jeton `gesture` sur `shape:create` / `shape:update`). Remplir sur une forme lui donne la couleur de remplissage, ailleurs émet `drawing:fill`.
 - **Calque de dessin (v1.0, ADR 0003)** : 2048 × 768 pixels de taille fixe dans le monde, en tuiles de 256 ; le trait est peint en direct sur `drawing/surface.ts`, et seules les tuiles touchées sont encodées en PNG au relâchement (`drawing:stroke` → `paintDrawing`, une étape d'annulation). L'opacité s'applique au trait entier ; l'Aérographe s'accumule ; la Gomme efface (tuile vide retirée). Tracé lissé par moyenne mobile, tampons ronds espacés.
-- **Ordre de rendu (v1.0)** : arrière-plan → calque de dessin → formes → pelure d'oignon → surlignage des parties → personnages → cadre de sélection → poignées. La pelure d'oignon est sous les personnages (pour ne pas les cacher). Lecture et export n'ont aucune aide d'édition (mode `null` de `buildSceneLayers`).
+- **Ordre de rendu (v1.0)** : arrière-plan (couleur, dégradé, intégré ou image : une seule texture composée, v2.1) → calque de dessin → formes → pelure d'oignon → surlignage des parties → personnages → cadre de sélection → poignées. La pelure d'oignon est sous les personnages (pour ne pas les cacher). Lecture et export n'ont aucune aide d'édition (mode `null` de `buildSceneLayers`).
 - **Couleurs (v1.0)** : `ColorPicker` est dans `ui/controls/` (primitive réutilisée par les deux onglets, qui ne s'importent pas entre eux). Il n'émet pas de `color:change` générique : il rappelle `onChange` / `onCommit`, et chaque onglet émet son intention (`appearance:color`, `tool:settings`) ; `color:commit` ajoute la couleur aux couleurs récentes, qui sont dans le Projet mais **hors historique** (appliquées à tous les instantanés). Pipette : API `EyeDropper` si elle existe, sinon `eyedropper:start` et lecture d'un pixel du canvas WebGL au prochain appui.
 - **Coloration partielle** : une zone de couleur est une capsule de plus, dessinée juste après sa partie et **découpée** le long de l'axe de la partie (pour la tête : du cou au sommet) ; la découpe est nette et perpendiculaire à l'axe, et une zone qui touche un bout garde son arrondi. Le shader des capsules reçoit pour cela l'axe et la tranche (15 flottants par capsule) ; le Canvas 2D (export, vignettes) découpe par un rectangle. La pelure d'oignon ignore les zones. La fenêtre agit sur les parties choisies (`session.selectedParts`, partagées avec la scène et les pastilles de l'inspecteur) et, avec la symétrie, sur leurs jumelles (`mirrorPart`). Elle est à droite de la scène au-delà de 1100 px de large ; en dessous, elle prend la place du panneau flottant (`STACKED_MEDIA_QUERY`), et devient une feuille du bas sur téléphone. Échap la ferme avant le panneau. Recolorer tout le personnage garde ses zones (les vêtements restent). Les vignettes de la liste des personnages montrent leurs vraies couleurs et leurs zones.
 - **Lecture / Pause (v1.0)** : un seul bouton (`playback:toggle`, `aria-label` « Lire » / « Mettre en pause », `aria-pressed`) ; `playback:play` et `playback:pause` restent pour le clavier et les autres modules. Stop garde son comportement (retour à la frame active au lancement).
@@ -434,6 +474,16 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 | `shape:select` | `{ shapeId \| null }` |
 | `drawing:stroke` | `{ tiles }` (tuiles repeintes, PNG en data URL, `null` = vide) |
 | `drawing:fill` | `{ point }` (point du monde) |
+| `background:open` | `{ open, tab? }` (sous-page « Arrière-plan », onglet `color` \| `builtin` \| `device` \| `internet`, Session, v2.1) |
+| `background:set` | `{ background, gesture? }` (remplace l'arrière-plan, annulable) |
+| `background:update` | `{ changes, gesture? }` (angle, ajustement, point focal, zoom, effets, voile) |
+| `background:remove` | — (retour à l'arrière-plan du thème) |
+| `asset:import` | `{ file, source: 'device' \| 'stock' \| 'url', credit? }` (vérifier, traiter, garder, appliquer) |
+| `asset:apply` | `{ assetId }` (image récente) |
+| `asset:error` | `{ code }` (import ou recherche impossible) |
+| `stock:search` | `{ query, page }` (page > 1 : défilement infini) |
+| `stock:import` | `{ photoId }` (photo des résultats, avec son crédit) |
+| `url:import` | `{ url }` (image d'une adresse, par le proxy) |
 
 La vitesse de prévisualisation comprend **x1** (vitesse normale) en plus de x2 / x5 / x10, pour qu'une valeur soit toujours sélectionnée.
 
@@ -486,10 +536,28 @@ interface Shape {
 }
 
 interface Environment {            // statique en v1.0 (même décor dans toutes les frames)
-  background: string | null;       // null = fond du thème (blanc à l'export)
+  background: Background | null;   // v2.1 ; null = fond du thème (blanc à l'export)
   shapes: Shape[];                 // ordre = ordre d'affichage
   drawing: { tiles: Record<string, string> }; // « colonne,ligne » → PNG en data URL (ADR 0003)
 }
+
+// v2.1 : fichier version 4 (un arrière-plan v3 était une couleur HEX)
+type Background =
+  | { type: 'color'; color: string }
+  | { type: 'gradient'; from: string; to: string; angle: number }   // degrés, convention CSS
+  | { type: 'builtin'; id: 'day-sky' | 'sunset' | 'starry-night' | 'horizon' | 'studio-grid' | 'room' }
+  | {
+      type: 'image';
+      assetId: string;                                  // magasin d'assets, jamais de data URL
+      fit: 'cover' | 'contain' | 'stretch' | 'tile';
+      focus: { x: number; y: number };                  // 0 à 1
+      zoom: number;                                     // 1 à 3
+      blur: number;                                     // 0 à 20 px (pixels du format)
+      brightness: number;                               // 0,5 à 1,5
+      opacity: number;                                  // 0 à 1, sur le blanc de l'export
+      tint: { color: string; amount: number } | null;
+      credit?: { author: string; url: string; provider: string };
+    };
 
 interface VideoFormat {             // v2.0
   preset: 'youtube' | 'vertical' | 'square' | 'portrait' | 'custom';
@@ -519,6 +587,14 @@ interface ProjectSummary {
   frameCount: number;             // images de la séquence (images clés et frames générées)
   createdAt: number; updatedAt: number;   // ms depuis l'époque Unix
   thumbnail: string | null;       // première frame, PNG en data URL
+  assetIds: string[];             // v2.1 : images d'arrière-plan utilisées (suppression du dernier projet)
+}
+
+interface AssetSummary {          // v2.1, + blob: Blob dans le magasin d'assets (« stickflow-assets »)
+  id: string; width: number; height: number; mimeType: string;
+  source: 'device' | 'stock' | 'url'; credit?: ImageCredit;
+  thumbnail: string | null;       // 160 px, JPEG en data URL (images récentes)
+  createdAt: number; usedAt: number;
 }
 
 interface VideoSummary {          // + blob: Blob dans le magasin des vidéos
@@ -526,6 +602,8 @@ interface VideoSummary {          // + blob: Blob dans le magasin des vidéos
   type: 'mp4' | 'webm' | 'gif'; duration: number; size: number; createdAt: number; thumbnail: string | null;
 }
 ```
+
+Écarts assumés par rapport au prompt v2.1 (ADR 0005) : le magasin s'appelle `asset-store.ts` (kebab-case) ; l'arrière-plan peut aussi valoir `null` (celui du thème) ; les effets sont précalculés en Canvas 2D dans une texture (pas dans un shader) ; sous une image transparente on voit le blanc de l'export.
 
 Écarts assumés par rapport au prompt v2.0 : `createdAt`, `updatedAt` et `thumbnail` sont dans le résumé du projet, pas dans le Projet (annuler ne doit pas toucher aux dates, et `saveStatus` compare le Projet par référence) ; le fichier de projet reste sans dates.
 
@@ -565,6 +643,7 @@ Module Projet (revue d'architecture, candidat 1, **réalisé**) — `src/model/p
    - **Version 1.0** (amélioration intermédiaire, voir 2.4) : plusieurs personnages, apparence (couleurs par partie, taille), grande palette, environnement (formes, calque de dessin), panneau « Personnages & Environnement », sélection optimisée, bouton Lecture / Pause unique, modèle v2 + migration, export du décor. ✅
    - **Version 2.0** (voir 2.5) : routeur et vues (accueil / éditeur), formats de vidéo et cadre, modèle v3 + migration, index des projets et vignettes, page d'accueil (barre latérale, bannière, modèles, projets, vidéos, création), vidéos conservées et lecteur, réglages et thème, barre d'onglets mobile. ✅
    - **Version 2.0.1** : création de projet simplifiée (barre latérale sans « Nouveau projet », « Libre » et « + » ouvrent la feuille complète, bouton flottant caché sous la bannière sur ordinateur), noms des formats harmonisés. ✅
+   - **Version 2.1** (voir 2.6) : arrière-plan personnalisé — couleur, dégradé, intégrés, image de l'appareil (fichier, glisser-déposer, collage) ou d'Internet (Pexels, adresse) ; réglages d'image ; magasin d'assets ; modèle v4 + migration ; proxy Cloudflare Worker. ✅
 7. **Phase 7 — PWA et Android** : `vite-plugin-pwa`, Capacitor, test fermé Google Play.
 8. **Phase 8 — IA avancée** : modèle de *motion in-betweening*, effets prédéfinis, prompt.
 

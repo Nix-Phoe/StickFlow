@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_FORMAT, presetFormat } from '../core/formats';
+import { DEFAULT_FORMAT, FORMAT_PRESETS, presetFormat } from '../core/formats';
 import type { Project } from '../core/types';
 import { testCharacter, testFrame, testProject, testShape } from '../test/fixtures';
 import { fromProjectFile, PROJECT_FILE_FORMAT, PROJECT_FILE_VERSION, ProjectFileError, toProjectFile } from './project-file';
@@ -123,6 +123,13 @@ describe('fromProjectFile', () => {
     file.version = 2;
     delete file.project.format;
     expect(fromProjectFile(file).format).toEqual(DEFAULT_FORMAT);
+  });
+
+  it('reads back every preset with its own format', () => {
+    for (const { id } of FORMAT_PRESETS) {
+      const saved = { ...project, format: presetFormat(id) };
+      expect(fromProjectFile(reread(toProjectFile(saved))).format).toEqual(saved.format);
+    }
   });
 
   it('reads back a custom format and rejects a damaged one', () => {

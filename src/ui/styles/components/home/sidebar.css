@@ -83,38 +83,6 @@
   display: none;
 }
 
-/* ---------- Nouveau projet ---------- */
-.home-sidebar__new {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-1);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-panel);
-}
-
-.home-sidebar__heading {
-  font-size: var(--font-size-headline);
-  font-weight: var(--font-weight-semibold);
-}
-
-.home-sidebar__label {
-  color: var(--color-label-secondary);
-  font-size: var(--font-size-footnote);
-}
-
-.home-sidebar__fps {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-1);
-}
-
-.home-sidebar__create {
-  width: 100%;
-}
-
 .home-sidebar__settings {
   display: flex;
   align-items: center;
@@ -156,7 +124,6 @@
   }
 
   .home-sidebar__brand,
-  .home-sidebar__new,
   .home-sidebar__settings {
     display: none;
   }

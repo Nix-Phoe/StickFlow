@@ -132,6 +132,14 @@ describe('connectHomeIntents: recherche, tri, vue et réglages', () => {
     bus.emit('home:sheet', { sheet: null });
     expect(state().sheet).toBeNull();
   });
+
+  it('follows whether the banner is on screen', async () => {
+    const { bus, state } = await setup();
+    bus.emit('home:hero:visibility', { visible: false });
+    expect(state().heroVisible).toBe(false);
+    bus.emit('home:hero:visibility', { visible: true });
+    expect(state().heroVisible).toBe(true);
+  });
 });
 
 describe('connectHomeIntents: vidéos', () => {

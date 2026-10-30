@@ -60,12 +60,13 @@ Règles communes aux fonctionnalités IA :
 
 ### 2.5 Version 2.0 (réalisée) : page d'accueil
 - L'app s'ouvre sur l'**Accueil** ; l'éditeur est une page (`#/editor/:id`) avec un bouton retour qui enregistre le projet.
-- **Formats de vidéo** : YouTube 16:9 (1920 × 1080), Shorts / TikTok / Reels 9:16 (1080 × 1920), Instagram carré 1:1 (1080 × 1080) et portrait 4:5 (1080 × 1350), ou taille libre (256 à 3840 px). Enregistré dans le Projet, modifiable dans l'éditeur (section « Format de la vidéo », avertissement si des éléments sortent du cadre) ; la scène montre le cadre, l'extérieur assombri ; l'export est à la résolution du format.
-- **Accueil** : barre latérale (navigation, « Nouveau projet » avec format et IPS, Réglages), bannière (recherche en direct, raccourcis ronds par format : création en un clic), carrousel « Commencer avec un modèle », « Mes projets » (8 plus récents, « Voir tout »), « Mes vidéos », bouton flottant « + » et feuille de création.
+- **Formats de vidéo** : YouTube 16:9 (1920 × 1080), Vertical 9:16 (1080 × 1920), Carré 1:1 (1080 × 1080), Portrait 4:5 (1080 × 1350), ou Personnalisé (256 à 3840 px). Mêmes noms partout (v2.0.1, voir 5.2). Enregistré dans le Projet, modifiable dans l'éditeur (section « Format de la vidéo », avertissement si des éléments sortent du cadre) ; la scène montre le cadre, l'extérieur assombri ; l'export est à la résolution du format.
+- **Accueil** : barre latérale (logo, navigation, Réglages), bannière (recherche en direct, raccourcis ronds par format : création en un clic, « Libre » ouvre la feuille de création), carrousel « Commencer avec un modèle », « Mes projets » (8 plus récents, « Voir tout »), « Mes vidéos », bouton flottant « + » et feuille de création complète.
 - **Cartes de projet** : vignette (aperçu animé au survol), badge du format, IPS, nombre d'images, date relative, menu « ⋮ » (Ouvrir, Renommer, Dupliquer, Exporter, Supprimer) ; tri (Modifié, Créé, A-Z, Z-A) et vue (grille ou liste) mémorisés ; état vide illustré.
 - **Modèles de départ** : Marche, Course, Saut, Coup de poing, Salut de la main, Vide (fichiers JSON).
 - **Mes vidéos** : les exports GIF et vidéo sont aussi conservés dans l'app ; lecteur (lecture, plein écran, télécharger, partager, supprimer), espace de stockage utilisé.
 - **Réglages** : thème Automatique / Clair / Sombre, format et IPS par défaut, effacer les vidéos stockées.
+- **Version 2.0.1** : la création de projet n'est plus en double. Le panneau « Nouveau projet » de la barre latérale est retiré ; chaque point d'entrée a un rôle (voir 5.2, « Création de projet ») ; les noms des formats sont harmonisés.
 
 ---
 
@@ -103,18 +104,18 @@ Accueil (v2.0) :
 ┌──────────────┬──────────────────────────────────────────────────────┐
 │ [logo]       │  BANNIÈRE : « Que voulez-vous animer aujourd'hui ? » │
 │ StickFlow    │  [ 🔍 Rechercher un projet ou un modèle ]            │
-│ ⌂ Accueil    │  (YouTube) (Vertical) (Carré) (Portrait) (Libre)     │
+│ ⌂ Accueil    │  (YouTube) (Vertical) (Carré) (Portrait) (+ Libre)   │
 │ ▢ Projets    ├──────────────────────────────────────────────────────┤
 │ ✦ Modèles    │  Commencer avec un modèle      [‹] [›]  Voir tout    │
 │ ▶ Vidéos     ├──────────────────────────────────────────────────────┤
-│ NOUVEAU      │  Mes projets      [Trier ▾] [▦|☰]       Voir tout    │
-│ PROJET       │  [carte] [carte] [carte] [carte]                     │
-│ format, IPS  ├──────────────────────────────────────────────────────┤
-│ [Créer]      │  Mes vidéos                             Voir tout    │
-│ ⚙ Réglages   │                                              ( + )   │
+│              │  Mes projets      [Trier ▾] [▦|☰]       Voir tout    │
+│              │  [carte] [carte] [carte] [carte]                     │
+│              ├──────────────────────────────────────────────────────┤
+│              │  Mes vidéos                             Voir tout    │
+│ ⚙ Réglages   │                    ( + ) quand la bannière est cachée│
 └──────────────┴──────────────────────────────────────────────────────┘
 ```
-Sous 900 px : la navigation devient une **barre d'onglets** en bas (Accueil, Projets, Modèles, Vidéos), une barre du haut porte le logo et les Réglages, et « Nouveau projet » passe dans la feuille de création (bouton « + », au-dessus de la barre d'onglets).
+Sous 900 px : la navigation devient une **barre d'onglets** en bas (Accueil, Projets, Modèles, Vidéos), une barre du haut porte le logo et les Réglages, et le bouton « + » est toujours visible, au-dessus de la barre d'onglets.
 
 ### 3.2 Style : inspiré des Human Interface Guidelines d'Apple
 Référence : https://developer.apple.com/design/human-interface-guidelines
@@ -300,10 +301,10 @@ src/views/home-view.ts                  # L'accueil : son bus, son store (Store<
 src/views/project-previewer.ts          # Aperçu animé d'une carte (un seul à la fois), vignettes manquantes
 src/ui/assets/logo.svg, ui/logo.ts      # Logo (stickman en course sur sa courbe de mouvement), en currentColor
 src/ui/theme.ts                         # applyTheme : data-theme sur <html> (Automatique / Clair / Sombre)
-src/ui/format.ts, ui/relative-time.ts   # Durées, tailles de fichiers, dates relatives (« il y a 2 h »)
+src/ui/format.ts, ui/relative-time.ts   # Durées, tailles de fichiers, noms des formats (v2.0.1), dates relatives (« il y a 2 h »)
 src/ui/controls/format-picker.ts        # Choix du format (liste ou vignettes, aperçu aux proportions, taille libre)
 src/ui/controls/menu.ts, sheet.ts       # Menu « ⋮ » au clavier ; feuille modale iOS (<dialog>)
-src/ui/components/home/                 # sidebar, top-bar, hero-banner, format-shortcuts, template-carousel, project-grid, project-card,
+src/ui/components/home/                 # sidebar (logo, navigation, Réglages), top-bar, hero-banner, format-shortcuts, template-carousel, project-grid, project-card,
                                         # video-grid, video-player-sheet, create-project-sheet, export-sheet, settings-sheet,
                                         # floating-add-button, home-notice, context (HomeContext)
 src/ui/styles/components/home/          # Un fichier CSS par composant de l'accueil
@@ -327,6 +328,23 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 - **Routeur et vues (v2.0, ADR 0004)** : `main.ts` ouvre la bibliothèque, l'index, les vidéos et les préférences, applique le thème, puis le routeur (hash) affiche la vue de la route via `view-host.ts`. Chaque vue crée **son propre bus et son propre store** au montage et libère tout à la destruction (écouteurs, boucle de rendu, contexte WebGL rendu par `WEBGL_lose_context`). L'accueil garde sa vue d'une section à l'autre (`update`, qui relit les listes) ; l'éditeur ne garde que son projet (« Enregistrer sous » / « Ouvrir » remplacent l'adresse sans recharger). Quitter l'éditeur (bouton retour ou retour du navigateur) attend `leave()` : sauvegarde si le Projet a changé (`saveIfModified`), avec une vignette neuve. Une route dépassée par une plus récente pendant une sortie est ignorée. Un projet introuvable ramène à l'accueil.
 - **Format et cadre (v2.0)** : le cadre de la vidéo mesure toujours `FRAME_WORLD_HEIGHT` (400 unités) de haut dans le monde ; sa largeur suit le rapport du format. L'éditeur montre le cadre centré avec 5 % de marge (`stageWorldHeight`), partagé par le rendu, la manipulation, le dessin et le cadre assombri de `CanvasArea` (`frameScreenRect`, ombre portée `--color-letterbox`). L'export et les vignettes montrent exactement le cadre (`fitWorldHeight` sans marge). Une taille libre est ramenée à un nombre pair de pixels (encodeurs vidéo). Changer de format est annulable ; la section « Format de la vidéo » avertit si des personnages visibles ou des formes sortent du cadre (`outOfFrame`).
 - **Accueil (v2.0)** : `core/home-intents.ts` est l'aiguillage de l'accueil (sans DOM ; bibliothèque, préférences, modèles, vignettes, export et vidéos injectés). Créer un projet = format, IPS (celui du modèle s'il n'est pas choisi) et nom libre (« Projet sans titre 2 »), enregistrement avec sa vignette, puis ouverture dans l'éditeur. Les cartes sont gardées par id ; un résumé changé reconstruit sa carte ; une vignette manquante est générée quand la carte devient visible (`IntersectionObserver`). L'aperçu au survol (souris seulement, après 250 ms, pas en mouvement réduit) charge le projet et le joue à son IPS dans un canvas ; un seul à la fois. La recherche filtre projets et modèles (sans casse ni accents) et n'est pas mémorisée ; tri, vue, thème, format et IPS par défaut le sont (`localStorage`, `normalizePreferences`). Supprimer demande confirmation.
+- **Création de projet (v2.0.1)** : un rôle par point d'entrée, plus aucun formulaire dans la barre latérale.
+  - **Raccourcis de la bannière** (moyen principal) : un clic crée le projet au format choisi, avec le nom libre suivant et les IPS par défaut des Réglages, puis ouvre l'éditeur (`project:create`).
+  - **« Libre » (+)**, dernier raccourci, et **bouton flottant « + »** ouvrent la même **feuille de création complète** (`home:sheet` `{ kind: 'create', templateId: null }`) : nom, format (`FormatPicker` en liste, avec aperçu des proportions et largeur × hauteur pour « Personnalisé »), IPS (prérempli avec les Réglages), modèle de départ facultatif, « Créer ».
+  - **Modèles** (carrousel) : ouvrent la feuille avec le modèle choisi. **État vide** : « Créer mon premier projet » ouvre la feuille.
+  - **Bouton flottant** : sur ordinateur, caché tant que la bannière est à l'écran (`IntersectionObserver` de la bannière → `home:hero:visibility` → `heroVisible`, sélecteur `floatingButtonTucked`), puis affiché en fondu (sans transition en mouvement réduit) ; toujours visible sous 900 px et dans les sections sans bannière.
+  - **IPS par défaut** : réglés dans les Réglages, modifiables dans la feuille de création et dans l'éditeur.
+- **Noms des formats (v2.0.1)** : `core/formats.ts` est la seule liste des préréglages (`FORMAT_PRESETS`) ; leurs libellés sont une seule table dans `strings.formats` (`names`, `subtitles`), lue par `ui/format.ts` (`formatName`, `formatSubtitle`, `formatBadge` : « Vertical · 9:16 »). Bannière, feuille de création, Réglages, section « Format de la vidéo » de l'éditeur et badges des cartes utilisent les mêmes noms. Seul le raccourci « Libre » garde son propre libellé : il ouvre la feuille, où l'on choisit « Personnalisé ».
+
+  | Préréglage | Nom | Sous-titre | Rapport | Résolution |
+  |---|---|---|---|---|
+  | `youtube` | YouTube | Vidéo horizontale | 16:9 | 1920 × 1080 |
+  | `vertical` | Vertical | Shorts · TikTok · Reels | 9:16 | 1080 × 1920 |
+  | `square` | Carré | Publication Instagram | 1:1 | 1080 × 1080 |
+  | `portrait` | Portrait | Publication Instagram | 4:5 | 1080 × 1350 |
+  | `custom` | Personnalisé | Largeur et hauteur au choix | libre | saisie (256 à 3840 px, paire) |
+
+  Les identifiants de préréglage n'ont pas changé depuis la v2.0 : les projets enregistrés gardent leur format sans migration (un identifiant inconnu devient une taille libre, `normalizeFormat`).
 - **Index et vignettes (v2.0)** : la bibliothèque écrit le projet (`project:<id>`, avec `createdAt` / `updatedAt`) **et** son résumé dans l'index ; l'accueil ne lit que l'index (50 projets : ~10 ms). Les projets de la v1.0 sont indexés à la première lecture, sans vignette. Vignette : première frame, 320 px de côté long, PNG, aux couleurs de l'export (`EXPORT_COLORS`), régénérée à chaque sauvegarde.
 - **Vidéos conservées (v2.0)** : un export GIF, MP4 ou WebM (pas la séquence PNG), depuis l'éditeur ou une carte, est téléchargé **et** gardé en Blob (`stickflow-videos`). « Mes vidéos » montre l'espace utilisé (`navigator.storage.estimate()`) ; au-delà de 80 %, il propose de supprimer les plus anciennes jusqu'à revenir à 70 %. Lecteur : `<video>` (ou `<img>` pour un GIF) par URL d'objet, libérée à la fermeture ; Partager n'apparaît que si `navigator.canShare` accepte un fichier.
 - **Thème (v2.0)** : Automatique (système), Clair ou Sombre imposé par `data-theme` sur `<html>`. Les couleurs sombres sont déclarées deux fois dans `tokens.css` (automatique et imposé), gardées identiques par `tokens.test.ts`.
@@ -366,6 +384,7 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 | `home:search` | `{ query }` |
 | `home:sort` / `home:view` | `{ sort: 'modified' \| 'created' \| 'az' \| 'za' }` / `{ view: 'grid' \| 'list' }` |
 | `home:sheet` | `{ sheet }` : `{ kind: 'create', templateId }`, `{ kind: 'export', projectId }`, `{ kind: 'settings' }`, `{ kind: 'video', videoId }` ou `null` |
+| `home:hero:visibility` | `{ visible }` (v2.0.1 : la bannière entre à l'écran ou en sort ; bouton flottant « + ») |
 | `settings:change` | `Partial<Preferences>` (thème, format et IPS par défaut, tri, vue) |
 | `video:delete` | `{ videoId }` |
 | `videos:prune`, `videos:clear` | — (supprimer les plus anciennes / toutes) |
@@ -545,6 +564,7 @@ Module Projet (revue d'architecture, candidat 1, **réalisé**) — `src/model/p
 6. **Phase 6 — Sauvegarde et export** : IndexedDB, GIF / PNG / MP4. ✅
    - **Version 1.0** (amélioration intermédiaire, voir 2.4) : plusieurs personnages, apparence (couleurs par partie, taille), grande palette, environnement (formes, calque de dessin), panneau « Personnages & Environnement », sélection optimisée, bouton Lecture / Pause unique, modèle v2 + migration, export du décor. ✅
    - **Version 2.0** (voir 2.5) : routeur et vues (accueil / éditeur), formats de vidéo et cadre, modèle v3 + migration, index des projets et vignettes, page d'accueil (barre latérale, bannière, modèles, projets, vidéos, création), vidéos conservées et lecteur, réglages et thème, barre d'onglets mobile. ✅
+   - **Version 2.0.1** : création de projet simplifiée (barre latérale sans « Nouveau projet », « Libre » et « + » ouvrent la feuille complète, bouton flottant caché sous la bannière sur ordinateur), noms des formats harmonisés. ✅
 7. **Phase 7 — PWA et Android** : `vite-plugin-pwa`, Capacitor, test fermé Google Play.
 8. **Phase 8 — IA avancée** : modèle de *motion in-betweening*, effets prédéfinis, prompt.
 

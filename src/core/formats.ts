@@ -1,5 +1,6 @@
-// Formats de la vidéo : préréglages (YouTube, Shorts / TikTok, Instagram…) ou taille libre.
+// Formats de la vidéo : préréglages (YouTube, Vertical, Carré, Portrait) ou taille libre (Personnalisé).
 // Le format est enregistré dans le Projet ; il fixe le cadre de la scène et la résolution de l'export.
+// Ce module est la seule liste des formats ; leurs noms et sous-titres sont dans `strings.formats`.
 
 export type FormatPreset = 'youtube' | 'vertical' | 'square' | 'portrait' | 'custom';
 

@@ -23,11 +23,24 @@ export function createHeroBanner(context: HomeContext): Component {
     search.element,
     createFormatShortcuts({ ...context, bus, store }),
   ]);
+
+  // Le bouton flottant « + » ne s'affiche (sur ordinateur) qu'une fois la bannière sortie de l'écran.
+  const observer =
+    typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver((entries) => {
+          const entry = entries[entries.length - 1];
+          if (entry && entry.isIntersecting !== store.state.heroVisible) bus.emit('home:hero:visibility', { visible: entry.isIntersecting });
+        })
+      : null;
+
   return {
     mount(parent) {
       parent.append(root);
+      if (observer) observer.observe(root);
+      else bus.emit('home:hero:visibility', { visible: false });
     },
     destroy() {
+      observer?.disconnect();
       search.destroy();
       root.remove();
     },

@@ -80,10 +80,31 @@ export interface HomeState {
   /** Espace utilisé et disponible pour l'app, en octets (`navigator.storage.estimate()`). */
   storage: { usage: number; quota: number } | null;
   notice: HomeNotice | null;
+  /** La bannière de l'accueil est à l'écran (suivie par un `IntersectionObserver`). */
+  heroVisible: boolean;
 }
 
 export function createHomeState(section: HomeSection, preferences: Preferences): HomeState {
-  return { section, projects: null, videos: null, query: '', preferences, sheet: null, exporting: null, storage: null, notice: null };
+  return {
+    section,
+    projects: null,
+    videos: null,
+    query: '',
+    preferences,
+    sheet: null,
+    exporting: null,
+    storage: null,
+    notice: null,
+    heroVisible: true,
+  };
+}
+
+/**
+ * Le bouton flottant « + » s'efface (sur ordinateur) tant que la bannière, qui a déjà ses
+ * raccourcis de création, est à l'écran. Sous 900 px, la feuille de style le garde toujours visible.
+ */
+export function floatingButtonTucked(state: HomeState): boolean {
+  return state.section === 'home' && state.heroVisible;
 }
 
 const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });

@@ -176,6 +176,7 @@ export function connectHomeIntents(options: HomeIntentOptions): HomeIntents {
     bus.on('home:sort', ({ sort }) => setPreferences({ sort })),
     bus.on('home:view', ({ view }) => setPreferences({ view })),
     bus.on('home:sheet', ({ sheet }) => store.update({ sheet })),
+    bus.on('home:hero:visibility', ({ visible }) => store.update({ heroVisible: visible })),
     bus.on('settings:change', (changes) => setPreferences(changes)),
   ];
 

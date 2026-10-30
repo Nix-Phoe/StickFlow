@@ -185,21 +185,24 @@ export const strings = {
 
   formats: {
     label: 'Format de la vidéo',
+    /** Seuls noms des formats (v2.0.1) : bannière, feuille de création, cartes, éditeur, réglages. */
     names: {
-      youtube: 'YouTube',
-      vertical: 'Shorts / TikTok / Reels',
-      square: 'Instagram (carré)',
-      portrait: 'Instagram (portrait)',
-      custom: 'Personnalisé',
-    } satisfies Record<FormatPreset, string>,
-    shortNames: {
       youtube: 'YouTube',
       vertical: 'Vertical',
       square: 'Carré',
       portrait: 'Portrait',
-      custom: 'Libre',
+      custom: 'Personnalisé',
     } satisfies Record<FormatPreset, string>,
-    customDetail: 'Largeur et hauteur au choix',
+    subtitles: {
+      youtube: 'Vidéo horizontale',
+      vertical: 'Shorts · TikTok · Reels',
+      square: 'Publication Instagram',
+      portrait: 'Publication Instagram',
+      custom: 'Largeur et hauteur au choix',
+    } satisfies Record<FormatPreset, string>,
+    /** Rapport d'une taille libre, avant la saisie. */
+    freeRatio: 'libre',
+    badge: (name: string, ratio: string): string => `${name} · ${ratio}`,
     size: (width: number, height: number): string => `${width} × ${height}`,
     width: 'Largeur, en pixels',
     height: 'Hauteur, en pixels',
@@ -233,8 +236,6 @@ export const strings = {
       templates: 'Modèles',
       videos: 'Vidéos',
     } satisfies Record<HomeSection, string>,
-    newProject: 'Nouveau projet',
-    create: 'Créer le projet',
     fps: 'Images par seconde',
     settings: 'Réglages',
     hero: {
@@ -242,6 +243,9 @@ export const strings = {
       search: 'Rechercher un projet ou un modèle',
       shortcuts: 'Créer un projet au format',
       shortcut: (name: string): string => `Nouveau projet ${name}`,
+      /** Dernier raccourci : ouvre la feuille de création complète (format Personnalisé, IPS, modèle). */
+      free: 'Libre',
+      freeLabel: 'Nouveau projet : choisir le format, les IPS et le modèle',
     },
     seeAll: 'Voir tout',
     seeAllLabel: (section: string): string => `Voir tout : ${section}`,

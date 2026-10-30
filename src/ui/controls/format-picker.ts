@@ -57,14 +57,19 @@ export function createFormatPicker(options: FormatPickerOptions): FormatPickerCo
     const frame = h('span', { class: 'format-option__frame', 'aria-hidden': 'true' });
     sizeFrame(frame, format);
     if (preset.id === 'custom') customFrame = frame;
-    const detail = preset.id === 'custom' ? t.customDetail : `${ratioLabel(format)} · ${t.size(format.width, format.height)}`;
-    return h('label', { class: 'format-option', title: t.names[preset.id] }, [
+    const ratio = preset.id === 'custom' ? t.freeRatio : ratioLabel(format);
+    const text =
+      layout === 'tiles'
+        ? [h('span', { class: 'format-option__name' }, [t.names[preset.id]]), h('span', { class: 'format-option__detail' }, [ratio])]
+        : [
+            h('span', { class: 'format-option__name' }, [t.names[preset.id]]),
+            h('span', { class: 'format-option__subtitle' }, [t.subtitles[preset.id]]),
+            h('span', { class: 'format-option__detail' }, [preset.id === 'custom' ? ratio : `${ratio} · ${t.size(format.width, format.height)}`]),
+          ];
+    return h('label', { class: 'format-option', title: `${t.names[preset.id]} · ${t.subtitles[preset.id]}` }, [
       radio,
       h('span', { class: 'format-option__preview' }, [frame]),
-      h('span', { class: 'format-option__text' }, [
-        h('span', { class: 'format-option__name' }, [layout === 'tiles' ? t.shortNames[preset.id] : t.names[preset.id]]),
-        h('span', { class: 'format-option__detail' }, [layout === 'tiles' ? (preset.id === 'custom' ? '' : ratioLabel(format)) : detail]),
-      ]),
+      h('span', { class: 'format-option__text' }, text),
     ]);
   });
 

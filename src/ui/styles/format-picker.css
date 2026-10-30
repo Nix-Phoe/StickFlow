@@ -85,17 +85,21 @@
   white-space: nowrap;
 }
 
+.format-option__subtitle {
+  overflow: hidden;
+  color: var(--color-label-secondary);
+  font-size: var(--font-size-footnote);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .format-option__detail {
   color: var(--color-label-secondary);
   font-size: var(--font-size-caption);
   font-variant-numeric: tabular-nums;
 }
 
-.format-option__detail:empty {
-  display: none;
-}
-
-/* Vignettes : une rangée de 5 cases, l'aperçu au-dessus du nom court. */
+/* Vignettes : une rangée de 5 cases, l'aperçu au-dessus du nom et du rapport. */
 .format-picker--tiles .format-picker__options {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -114,6 +118,7 @@
 }
 
 .format-picker--tiles .format-option__name {
+  max-width: 100%;
   font-size: var(--font-size-caption);
 }
 

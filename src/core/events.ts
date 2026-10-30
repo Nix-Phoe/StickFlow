@@ -92,6 +92,8 @@ export interface AppEvents {
   'home:view': { view: ProjectView };
   /** Ouvre une feuille (création, réglages, lecteur vidéo) ; `null` la ferme. */
   'home:sheet': { sheet: HomeSheet | null };
+  /** La bannière de l'accueil entre à l'écran ou en sort (bouton flottant « + »). */
+  'home:hero:visibility': { visible: boolean };
   'settings:change': Partial<Preferences>;
   'project:save': void;
   /** Enregistre une copie sous ce nom, qui devient le document courant. */

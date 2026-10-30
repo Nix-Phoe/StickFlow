@@ -9,8 +9,9 @@ import type { HomeContext } from './context';
 const t = strings.formats;
 
 /**
- * Raccourcis ronds par format : un clic crée tout de suite un projet dans ce format et ouvre
- * l'éditeur. « Personnalisé » ouvre la feuille de création pour saisir la taille.
+ * Raccourcis ronds par format : un clic crée tout de suite un projet dans ce format (nom et IPS par
+ * défaut) et ouvre l'éditeur. Le dernier, « Libre » (+), ouvre la feuille de création complète, où
+ * l'on choisit « Personnalisé » et sa taille.
  */
 export function createFormatShortcuts({ bus, store }: HomeContext): HTMLUListElement {
   const items = FORMAT_PRESETS.map((preset) => {
@@ -25,12 +26,12 @@ export function createFormatShortcuts({ bus, store }: HomeContext): HTMLUListEle
       {
         type: 'button',
         class: 'format-shortcut',
-        'aria-label': strings.home.hero.shortcut(t.names[preset.id]),
+        'aria-label': custom ? strings.home.hero.freeLabel : strings.home.hero.shortcut(t.names[preset.id]),
         'data-action': custom ? 'home:sheet' : 'project:create',
       },
       [
         h('span', { class: 'format-shortcut__disc' }, [custom ? icon('plus') : h('span', { class: 'format-shortcut__box' }, [frame])]),
-        h('span', { class: 'format-shortcut__label' }, [t.shortNames[preset.id]]),
+        h('span', { class: 'format-shortcut__label' }, [custom ? strings.home.hero.free : t.names[preset.id]]),
         h('span', { class: 'format-shortcut__ratio' }, [custom ? '' : ratioLabel(format)]),
       ],
     );

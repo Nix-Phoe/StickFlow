@@ -17,7 +17,7 @@ Ce que l'Accueil montre d'un Projet enregistré sans le charger : nom, format, I
 _Avoid_ : métadonnées, entrée, fiche
 
 **Format de la vidéo** :
-La forme et la résolution de l'animation exportée : un préréglage (YouTube 16:9, Shorts / TikTok / Reels 9:16, Instagram carré 1:1 ou portrait 4:5) ou une taille libre. Il fixe le **cadre** de la scène : la zone exportée, toujours aussi haute dans le monde, dont l'extérieur est assombri dans l'éditeur.
+La forme et la résolution de l'animation exportée : un préréglage (YouTube 16:9, Vertical 9:16, Carré 1:1 ou Portrait 4:5) ou une taille libre (Personnalisé). Il fixe le **cadre** de la scène : la zone exportée, toujours aussi haute dans le monde, dont l'extérieur est assombri dans l'éditeur.
 _Avoid_ : ratio, résolution (seuls), format d'export (c'est GIF / PNG / vidéo)
 
 **Modèle de départ** :

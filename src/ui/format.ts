@@ -1,4 +1,21 @@
-// Durées et tailles de fichiers, à la française.
+// Durées, tailles de fichiers et noms des formats de vidéo, à la française.
+
+import { ratioLabel, type VideoFormat } from '../core/formats';
+import { strings } from './strings';
+
+/** Nom du format (le même partout dans l'app). */
+export function formatName(format: VideoFormat): string {
+  return strings.formats.names[format.preset];
+}
+
+export function formatSubtitle(format: VideoFormat): string {
+  return strings.formats.subtitles[format.preset];
+}
+
+/** Badge d'une carte de projet : « Vertical · 9:16 » (une taille libre montre son rapport réel). */
+export function formatBadge(format: VideoFormat): string {
+  return strings.formats.badge(formatName(format), ratioLabel(format));
+}
 
 /** « 1:16 » : minutes et secondes, la dernière seconde entamée comptant. */
 export function formatDuration(seconds: number): string {

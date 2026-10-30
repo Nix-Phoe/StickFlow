@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_FORMAT, presetFormat } from './formats';
 import {
+  createHomeState,
   DEFAULT_PREFERENCES,
+  floatingButtonTucked,
   matchesQuery,
   normalizePreferences,
   RECENT_PROJECTS,
@@ -107,5 +109,21 @@ describe('stockage des vidéos', () => {
 
   it('recognises the files kept in « Mes vidéos »', () => {
     expect(['mp4', 'webm', 'gif', 'zip'].filter(isVideoType)).toEqual(['mp4', 'webm', 'gif']);
+  });
+});
+
+describe('floatingButtonTucked', () => {
+  // Sur ordinateur, le bouton « + » se cache tant que la bannière (et ses raccourcis) est à l'écran.
+  it('tucks the button away while the home banner is on screen', () => {
+    const home = createHomeState('home', DEFAULT_PREFERENCES);
+    expect(home.heroVisible).toBe(true);
+    expect(floatingButtonTucked(home)).toBe(true);
+    expect(floatingButtonTucked({ ...home, heroVisible: false })).toBe(false);
+  });
+
+  it('shows the button in the sections without a banner', () => {
+    const projects = createHomeState('projects', DEFAULT_PREFERENCES);
+    expect(floatingButtonTucked(projects)).toBe(false);
+    expect(floatingButtonTucked({ ...projects, heroVisible: true })).toBe(false);
   });
 });

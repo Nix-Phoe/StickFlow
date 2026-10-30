@@ -15,8 +15,21 @@
   box-shadow: var(--shadow-fab);
   color: var(--color-on-accent);
   transition:
+    opacity var(--duration-base) var(--ease-standard),
     transform var(--duration-fast) var(--ease-standard),
-    background-color var(--duration-fast) var(--ease-standard);
+    background-color var(--duration-fast) var(--ease-standard),
+    visibility var(--duration-base) var(--ease-standard);
+}
+
+/* Sur ordinateur : caché tant que la bannière (et ses raccourcis) est à l'écran. visibility le
+   retire aussi du clavier et de l'arbre d'accessibilité ; le fondu se joue avant qu'il disparaisse. */
+@media (min-width: 900px) {
+  .fab--tucked {
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.8);
+    pointer-events: none;
+  }
 }
 
 .fab__icon {

@@ -1,9 +1,9 @@
 import '../../styles/components/home/project-card.css';
 
-import { ratioLabel } from '../../../core/formats';
 import { LIMITS, type ProjectSummary } from '../../../core/types';
 import { createMenu } from '../../controls/menu';
 import { h, prefersReducedMotion } from '../../dom';
+import { formatBadge } from '../../format';
 import { logo } from '../../logo';
 import { relativeTime } from '../../relative-time';
 import { strings } from '../../strings';
@@ -37,7 +37,7 @@ export function createProjectCard(context: HomeContext, summary: ProjectSummary)
   const media = h('div', { class: 'project-card__media' }, [
     thumb,
     preview,
-    h('span', { class: 'badge project-card__badge' }, [ratioLabel(summary.format)]),
+    h('span', { class: 'badge project-card__badge' }, [formatBadge(summary.format)]),
   ]);
   media.style.setProperty('--card-ratio', String(summary.format.width / summary.format.height));
 

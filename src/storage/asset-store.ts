@@ -3,13 +3,11 @@
 // Un asset est partagé par un projet et ses copies ; il est supprimé avec le dernier projet qui l'utilise.
 
 import { createId } from '../core/id';
-import type { ImageCredit } from '../core/types';
+import type { AssetSource, AssetSummary, ImageCredit } from '../core/types';
 import type { KeyValueStore } from './library';
 
 /** Images récentes proposées dans la sous-page « Arrière-plan ». */
 export const RECENT_ASSETS = 8;
-
-export type AssetSource = 'device' | 'stock' | 'url';
 
 export interface NewAsset {
   blob: Blob;
@@ -18,15 +16,11 @@ export interface NewAsset {
   mimeType: string;
   source: AssetSource;
   credit?: ImageCredit;
+  /** Petite vignette (JPEG en data URL) des images récentes. */
+  thumbnail: string | null;
 }
 
-/** Description d'un asset, sans son fichier. */
-export interface AssetSummary extends Omit<NewAsset, 'blob'> {
-  id: string;
-  createdAt: number;
-  /** Dernière fois qu'il a été appliqué (images récentes). */
-  usedAt: number;
-}
+export type { AssetSource, AssetSummary };
 
 export interface Asset extends AssetSummary {
   blob: Blob;

@@ -3,6 +3,8 @@
 import { normalizeHex } from '../model/color';
 import {
   clamp,
+  type AssetErrorCode,
+  type AssetSummary,
   type EditorMode,
   type ExportFormat,
   type FramePose,
@@ -10,6 +12,7 @@ import {
   type Notice,
   type PlaybackSpeed,
   type Project,
+  type StockPhoto,
   type ToolId,
   type ToolSettings,
 } from './types';
@@ -24,6 +27,29 @@ export interface PartialPaintSettings {
 }
 
 export const DEFAULT_PARTIAL_PAINT: PartialPaintSettings = { open: false, symmetric: true, color: '#9b1b30' };
+
+/** Onglets de la sous-page « Arrière-plan » (v2.1). */
+export const BACKGROUND_TABS = ['color', 'builtin', 'device', 'internet'] as const;
+export type BackgroundTab = (typeof BACKGROUND_TABS)[number];
+
+/** Import d'une image en cours, ou son erreur (annoncée aux lecteurs d'écran). */
+export interface AssetImportState {
+  status: 'idle' | 'busy' | 'error';
+  error: AssetErrorCode | null;
+}
+
+/** Recherche dans la banque d'images (onglet Internet). */
+export interface StockState {
+  query: string;
+  photos: StockPhoto[];
+  /** Dernière page chargée (défilement infini). */
+  page: number;
+  hasMore: boolean;
+  status: 'idle' | 'loading' | 'done' | 'error';
+  error: AssetErrorCode | null;
+}
+
+export const EMPTY_STOCK: StockState = { query: '', photos: [], page: 0, hasMore: false, status: 'idle', error: null };
 
 export interface Session {
   /** Frame active de la séquence, désignée par son id (stable) ; `null` avant la première. */
@@ -63,6 +89,12 @@ export interface Session {
   notice: Notice | null;
   /** Avancement de l'export en cours (0 à 1), `null` sans export. */
   exportProgress: number | null;
+  /** Sous-page « Arrière-plan » du panneau Environnement (v2.1). */
+  backgroundPage: { open: boolean; tab: BackgroundTab };
+  assetImport: AssetImportState;
+  /** Images récemment appliquées (magasin d'assets), les plus récentes d'abord. */
+  recentAssets: AssetSummary[];
+  stock: StockState;
 }
 
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = { color: '#1c1c1e', strokeWidth: 4, opacity: 1, filled: false };
@@ -91,6 +123,10 @@ export function createSession(): Session {
     library: null,
     notice: null,
     exportProgress: null,
+    backgroundPage: { open: false, tab: 'color' },
+    assetImport: { status: 'idle', error: null },
+    recentAssets: [],
+    stock: EMPTY_STOCK,
   };
 }
 

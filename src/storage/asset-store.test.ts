@@ -9,6 +9,7 @@ const asset = (changes: Partial<NewAsset> = {}): NewAsset => ({
   height: 1080,
   mimeType: 'image/webp',
   source: 'device',
+  thumbnail: 'data:image/jpeg;base64,AA',
   ...changes,
 });
 
@@ -24,7 +25,17 @@ describe('createAssetStore', () => {
     const { assets } = setup();
     const credit = { author: 'Ana', url: 'https://www.pexels.com/photo/1', provider: 'Pexels' };
     const saved = await assets.add(asset({ source: 'stock', credit }));
-    expect(saved).toEqual({ id: 'a1', width: 1920, height: 1080, mimeType: 'image/webp', source: 'stock', credit, createdAt: 1000, usedAt: 1000 });
+    expect(saved).toEqual({
+      id: 'a1',
+      width: 1920,
+      height: 1080,
+      mimeType: 'image/webp',
+      source: 'stock',
+      credit,
+      thumbnail: 'data:image/jpeg;base64,AA',
+      createdAt: 1000,
+      usedAt: 1000,
+    });
     expect((await assets.get('a1'))?.blob.size).toBe(10);
     expect(await assets.get('missing')).toBeNull();
   });

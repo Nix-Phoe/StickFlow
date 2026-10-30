@@ -104,7 +104,7 @@ describe('connectHomeIntents: projets', () => {
 
   it('shares the background image between a project and its copy, and deletes it with the last one (v2.1)', async () => {
     const assets = createAssetStore(createMemoryStore(), { newId: () => 'a1' });
-    await assets.add({ blob: new Blob(['x']), width: 10, height: 10, mimeType: 'image/webp', source: 'device' });
+    await assets.add({ blob: new Blob(['x']), width: 10, height: 10, mimeType: 'image/webp', source: 'device', thumbnail: null });
     const library = createProjectLibrary(createMemoryStore(), { newId: (() => { let n = 0; return () => `p${++n}`; })() });
     const base = testProject({ name: 'Forêt' });
     await library.save({ ...base, environment: { ...base.environment, background: imageBackground('a1') } });

@@ -2,10 +2,16 @@ import type { VideoFormat } from './formats';
 import type { HomeSheet, Preferences, ProjectSort, ProjectView } from './home-state';
 import type { Route } from './router';
 import type { PartialPaintSettings } from './session';
+import type { BackgroundPatch } from '../model/background';
+import type { BackgroundTab } from './session';
 import type {
+  AssetErrorCode,
+  AssetSource,
+  Background,
   ColorBand,
   EditorMode,
   ExportFormat,
+  ImageCredit,
   LoopSettings,
   PlaybackSpeed,
   Shape,
@@ -148,6 +154,28 @@ export interface AppEvents {
   'drawing:stroke': { tiles: Record<string, string | null> };
   /** Outil Remplir hors d'une forme : remplissage par diffusion du calque de dessin en ce point du monde. */
   'drawing:fill': { point: Vec2 };
+
+  // ---------- Arrière-plan (v2.1) ----------
+  /** Ouvre (sur un onglet) ou ferme la sous-page « Arrière-plan » du panneau Environnement. */
+  'background:open': { open: boolean; tab?: BackgroundTab };
+  /** Remplace l'arrière-plan ; `gesture` : un glisser forme une seule étape d'annulation. */
+  'background:set': { background: Background; gesture?: string };
+  /** Règle l'arrière-plan actuel (angle du dégradé, ajustement, point focal, zoom, effets). */
+  'background:update': { changes: BackgroundPatch; gesture?: string };
+  /** Revient à l'arrière-plan par défaut (celui du thème, blanc à l'export). */
+  'background:remove': void;
+  /** Image à vérifier, réduire, compresser, garder dans le magasin d'assets, puis appliquer. */
+  'asset:import': { file: Blob; source: AssetSource; credit?: ImageCredit };
+  /** Réapplique une image récente. */
+  'asset:apply': { assetId: string };
+  /** Import ou recherche impossible (lu par les lecteurs d'écran). */
+  'asset:error': { code: AssetErrorCode };
+  /** Recherche dans la banque d'images ; `page` > 1 ajoute les résultats suivants. */
+  'stock:search': { query: string; page: number };
+  /** Importe une photo des résultats, avec son crédit. */
+  'stock:import': { photoId: string };
+  /** Importe l'image d'une adresse (par le proxy). */
+  'url:import': { url: string };
 
   'ai:smoothing:change': Partial<SmoothingSettings>;
   'ai:loop:change': Partial<LoopSettings>;

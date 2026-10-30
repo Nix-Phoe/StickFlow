@@ -157,6 +157,55 @@ export interface ImageBackground {
 
 export type Background = ColorBackground | GradientBackground | BuiltinBackground | ImageBackground;
 
+/** Origine d'une image du magasin d'assets. */
+export type AssetSource = 'device' | 'stock' | 'url';
+
+/** Description d'une image du magasin d'assets, sans son fichier. */
+export interface AssetSummary {
+  id: string;
+  width: number;
+  height: number;
+  mimeType: string;
+  source: AssetSource;
+  credit?: ImageCredit;
+  /** Petite vignette (JPEG en data URL) pour les images récentes ; `null` si elle n'a pas pu être faite. */
+  thumbnail: string | null;
+  createdAt: number;
+  /** Dernière fois qu'elle a été appliquée (images récentes). */
+  usedAt: number;
+}
+
+/** Photo d'une banque d'images libres (Pexels), telle que la renvoie le proxy. */
+export interface StockPhoto {
+  id: string;
+  width: number;
+  height: number;
+  /** Description de la photo (texte alternatif). */
+  alt: string;
+  /** Couleur moyenne, affichée pendant le chargement de la vignette. */
+  color: string;
+  thumbnail: string;
+  /** Image à importer (taille raisonnable, pas l'originale). */
+  image: string;
+  author: string;
+  authorUrl: string;
+  /** Page de la photo chez le fournisseur. */
+  url: string;
+  provider: string;
+}
+
+/** Pourquoi une image n'a pas pu être importée, ou une recherche aboutir. */
+export type AssetErrorCode =
+  | 'unsupported'
+  | 'svg'
+  | 'too-large'
+  | 'unreadable'
+  | 'invalid-url'
+  | 'unconfigured'
+  | 'offline'
+  | 'rate-limited'
+  | 'failed';
+
 /**
  * Décor : statique en version 1.0 (le même dans toutes les frames). Les formes ont des ids
  * stables pour qu'une image clé puisse un jour les animer.

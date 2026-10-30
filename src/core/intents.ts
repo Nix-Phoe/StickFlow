@@ -136,6 +136,10 @@ export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now 
       change({ type: 'addShape', shape }, { selectedShapeId: shape.id });
     }),
     bus.on('drawing:stroke', ({ tiles }) => change({ type: 'paintDrawing', tiles })),
+    // Arrière-plan (v2.1) : changements du Projet, donc annulables.
+    bus.on('background:set', ({ background, gesture }) => change({ type: 'setBackground', background, gesture })),
+    bus.on('background:update', ({ changes, gesture }) => change({ type: 'updateBackground', changes, gesture })),
+    bus.on('background:remove', () => change({ type: 'setBackground', background: null })),
 
     // ---------- Session ----------
     bus.on('frame:select', ({ index }) => setSession({ activeFrameId: frameAt(index)?.id ?? null })),
@@ -174,6 +178,15 @@ export function connectIntents(bus: AppEventBus, store: Store, { now = Date.now 
       ),
     ),
     bus.on('panel:toggle', ({ open }) => setSession({ panelOpen: open })),
+    // Quitter la sous-page « Arrière-plan » efface une erreur d'import restée affichée.
+    bus.on('background:open', ({ open, tab }) =>
+      setSession((s) => ({
+        ...s,
+        backgroundPage: { open, tab: tab ?? s.backgroundPage.tab },
+        assetImport: open ? s.assetImport : { status: 'idle', error: null },
+      })),
+    ),
+    bus.on('asset:error', ({ code }) => setSession({ assetImport: { status: 'error', error: code } })),
     bus.on('tool:select', ({ tool }) => setSession({ tool })),
     bus.on('tool:settings', (settings) => setSession((s) => ({ ...s, toolSettings: { ...s.toolSettings, ...settings } }))),
     bus.on('eyedropper:start', () => setSession({ eyedropper: true })),

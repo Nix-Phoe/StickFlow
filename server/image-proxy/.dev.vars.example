@@ -1,0 +1,3 @@
+# Copier en .dev.vars (ignoré par git) pour `npx wrangler dev`.
+# Clé gratuite : https://www.pexels.com/api/ (compte Pexels, puis « Your API Key »).
+PEXELS_API_KEY=

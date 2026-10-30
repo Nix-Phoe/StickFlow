@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { imageBackground } from '../model/background';
 import { canRedo, canUndo } from '../model/project';
 import { DEFAULT_FORMAT, presetFormat } from './formats';
 import { createDefaultSkeleton, sortSkeleton } from '../model/skeleton';
@@ -395,5 +396,36 @@ describe('connectIntents: environment', () => {
     expect(session().eyedropper).toBe(true);
     bus.emit('eyedropper:pick', { color: '#123456' });
     expect(session().eyedropper).toBe(false);
+  });
+});
+
+describe('connectIntents: arrière-plan (v2.1)', () => {
+  it('opens the background page on a tab, and goes back', () => {
+    const { bus, session } = setup();
+    expect(session().backgroundPage).toEqual({ open: false, tab: 'color' });
+    bus.emit('background:open', { open: true, tab: 'builtin' });
+    expect(session().backgroundPage).toEqual({ open: true, tab: 'builtin' });
+    bus.emit('background:open', { open: false });
+    expect(session().backgroundPage).toEqual({ open: false, tab: 'builtin' });
+  });
+
+  it('sets, adjusts and removes the background, undoably', () => {
+    const { bus, store, project } = setup();
+    bus.emit('background:set', { background: imageBackground('a1') });
+    bus.emit('background:update', { changes: { fit: 'contain' } });
+    expect(project().environment.background).toMatchObject({ type: 'image', fit: 'contain' });
+    bus.emit('background:remove');
+    expect(project().environment.background).toBeNull();
+    expect(canUndo(store.state.project)).toBe(true);
+    bus.emit('history:undo');
+    expect(project().environment.background).toMatchObject({ fit: 'contain' });
+  });
+
+  it('shows and clears an import error', () => {
+    const { bus, session } = setup();
+    bus.emit('asset:error', { code: 'svg' });
+    expect(session().assetImport).toEqual({ status: 'error', error: 'svg' });
+    bus.emit('background:open', { open: false });
+    expect(session().assetImport).toEqual({ status: 'idle', error: null });
   });
 });

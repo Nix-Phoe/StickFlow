@@ -21,6 +21,7 @@ import { createCreateProjectSheet } from '../ui/components/home/create-project-s
 import { createExportSheet } from '../ui/components/home/export-sheet';
 import { createFloatingAddButton } from '../ui/components/home/floating-add-button';
 import { createHeroBanner } from '../ui/components/home/hero-banner';
+import { createHomeFooter } from '../ui/components/home/home-footer';
 import { createHomeNotice } from '../ui/components/home/home-notice';
 import { createInstallInvite } from '../ui/components/home/install-invite';
 import { createProjectGrid } from '../ui/components/home/project-grid';
@@ -62,6 +63,7 @@ const SECTIONS: Record<HomeSection, (context: HomeContext) => Component[]> = {
     createTemplateCarousel(context, { variant: 'carousel' }),
     createProjectGrid(context, { variant: 'recent' }),
     createVideoGrid(context, { variant: 'recent' }),
+    createHomeFooter(),
   ],
   projects: (context) => [createProjectGrid(context, { variant: 'all' })],
   templates: (context) => [createTemplateCarousel(context, { variant: 'all' })],

@@ -15,7 +15,7 @@ import type { HomeContext } from './context';
 const t = strings.home.settingsSheet;
 
 /** Pages publiques (v2.2), servies à côté de l'app. */
-export const PUBLIC_PAGES = { privacy: '/confidentialite.html', about: '/a-propos.html' } as const;
+export const PUBLIC_PAGES = { privacy: '/confidentialite', about: '/a-propos' } as const;
 
 /**
  * Réglages : thème, format et IPS par défaut des nouveaux projets, vidéos stockées ; protection du

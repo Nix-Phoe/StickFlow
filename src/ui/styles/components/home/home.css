@@ -198,3 +198,22 @@
   width: var(--icon-size-sm);
   height: var(--icon-size-sm);
 }
+
+/* ---------- Pied de page de l'accueil (v2.2) ---------- */
+.home-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 var(--space-2);
+  padding: var(--space-2) 0;
+  font-size: var(--font-size-footnote);
+  color: var(--color-label-tertiary);
+}
+
+.home-footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  color: var(--color-accent);
+}

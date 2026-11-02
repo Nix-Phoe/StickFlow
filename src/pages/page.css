@@ -1,0 +1,156 @@
+/* Pages publiques : un article lisible, aux couleurs et à la typographie de l'app. */
+
+body {
+  overflow: auto;
+  height: auto;
+  min-height: 100%;
+}
+
+.page {
+  width: min(100%, var(--page-width));
+  margin: 0 auto;
+  padding: max(var(--space-3), env(safe-area-inset-top)) var(--space-2) max(var(--space-5), env(safe-area-inset-bottom));
+}
+
+.page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.page__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-headline);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-label);
+  text-decoration: none;
+}
+
+.page__brand img {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.page__back {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-fill);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+
+.page__back:hover {
+  background: var(--color-fill-hover);
+}
+
+.page h1 {
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-large-title);
+  line-height: var(--line-height-tight);
+}
+
+.page h2 {
+  margin: var(--space-4) 0 var(--space-1);
+  font-size: var(--font-size-title);
+}
+
+.page p,
+.page ul {
+  margin-bottom: var(--space-2);
+  color: var(--color-label-secondary);
+}
+
+.page ul {
+  padding-left: var(--space-3);
+}
+
+.page li + li {
+  margin-top: var(--space-half);
+}
+
+.page a {
+  color: var(--color-accent);
+}
+
+.page strong {
+  color: var(--color-label);
+}
+
+.page__updated {
+  font-size: var(--font-size-footnote);
+}
+
+.page__card {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.page__footer {
+  margin-top: var(--space-5);
+  font-size: var(--font-size-footnote);
+  color: var(--color-label-tertiary);
+}
+
+/* Liste des licences (À propos) */
+.licenses {
+  list-style: none;
+  padding: 0;
+}
+
+.page .licenses {
+  padding-left: 0;
+}
+
+.license {
+  padding: var(--space-1) 0;
+  border-bottom: var(--border-hairline) solid var(--color-separator);
+}
+
+.license__name {
+  margin-bottom: 0;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-label);
+}
+
+.license__version,
+.license__meta {
+  font-size: var(--font-size-footnote);
+  font-weight: var(--font-weight-regular);
+}
+
+.page .license__meta {
+  margin-bottom: 0;
+}
+
+.license__details summary {
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--color-accent);
+}
+
+.license__text {
+  max-height: calc(var(--space-6) * 5);
+  overflow: auto;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-fill);
+  font-size: var(--font-size-caption);
+  white-space: pre-wrap;
+}
+
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}

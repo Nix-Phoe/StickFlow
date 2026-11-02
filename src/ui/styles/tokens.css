@@ -146,6 +146,7 @@
   --player-max-height: 60dvh;
   --player-action-width: 72px;
   --search-width: 560px;
+  --page-width: 720px;                       /* pages publiques (v2.2) : ligne de lecture */
   --list-thumb-width: 128px;
   /* Rapport des vignettes de cartes (un format différent y tient entier, centré). */
   --card-media-ratio: 16 / 9;

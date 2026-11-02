@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/app-icon.svg" sizes="any" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <title>À propos et crédits · StickFlow</title>
+    <meta name="description" content="StickFlow, animateur de stickman assisté par IA : version, bibliothèques utilisées et leurs licences, crédits." />
+    <script type="module" src="/src/pages/about.ts"></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="page__header">
+        <a class="page__brand" href="/"><img src="/app-icon.svg" alt="" width="32" height="32" />StickFlow</a>
+        <a class="page__back" href="/">Retour à l’app</a>
+      </header>
+
+      <main>
+        <h1>À propos de StickFlow</h1>
+        <p>Version <strong data-version></strong></p>
+        <p>
+          StickFlow est un animateur de stickman par nœuds. L’IA assiste, vous décidez : elle ajoute des images intermédiaires entre vos images clés (Fluidité)
+          et rend une animation répétable (Répétition), toujours de façon visible, réglable et annulable.
+          L’application fonctionne hors ligne, et vos projets restent sur votre appareil.
+        </p>
+        <p><a href="/confidentialite">Politique de confidentialité</a></p>
+
+        <h2>Crédits</h2>
+        <ul>
+          <li>Photos de la recherche d’images fournies par <a href="https://www.pexels.com/" rel="noopener">Pexels</a> ; chaque photo est créditée à son photographe dans l’application.</li>
+          <li>Icônes <a href="https://lucide.dev/" rel="noopener">Lucide</a> (licence ISC).</li>
+          <li>Interface inspirée des Human Interface Guidelines d’Apple ; police du système de votre appareil.</li>
+        </ul>
+
+        <h2>Bibliothèques et licences</h2>
+        <p>StickFlow est construit avec ces bibliothèques libres, livrées avec l’application :</p>
+        <ul class="licenses" id="licenses">
+          <li>La liste s’affiche avec JavaScript.</li>
+        </ul>
+      </main>
+
+      <footer class="page__footer">
+        <p>StickFlow <span data-version></span></p>
+      </footer>
+    </div>
+  </body>
+</html>

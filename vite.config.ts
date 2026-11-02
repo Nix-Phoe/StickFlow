@@ -1,7 +1,11 @@
 // Configuration de Vite : build de l'app (PWA, pages publiques) et serveur de développement.
 import { readFileSync } from 'node:fs';
-import { defineConfig } from 'vite';
+import { fileURLToPath } from 'node:url';
+import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+import { licensesPlugin } from './scripts/licenses.ts';
+import { siteFilesPlugin } from './scripts/site-files.ts';
 
 const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 
@@ -9,16 +13,33 @@ const { version } = JSON.parse(readFileSync(new URL('./package.json', import.met
 const THEME_COLOR = '#f2f2f7';
 const BACKGROUND_COLOR = '#f2f2f7';
 
-export default defineConfig({
+/** Adresse d'une page telle que la sert Cloudflare : « index.html » → « / », « a-propos.html » → « a-propos ». */
+const cleanUrl = (url: string): string => (url === 'index.html' ? '/' : url.replace(/\.html$/, ''));
+
+export default defineConfig(({ mode }) => ({
   define: {
     // Numéro de version affiché dans les Réglages et la page « À propos ».
     __APP_VERSION__: JSON.stringify(version),
+  },
+  build: {
+    rolldownOptions: {
+      // L'app et les pages publiques (servies telles quelles, sans le code de l'app).
+      input: {
+        app: 'index.html',
+        privacy: 'confidentialite.html',
+        about: 'a-propos.html',
+        notFound: '404.html',
+      },
+    },
   },
   server: {
     // En développement, `/api/*` (proxy d'images) est servi par `wrangler dev` (npm run dev:api).
     proxy: { '/api': 'http://localhost:8787' },
   },
   plugins: [
+    licensesPlugin(fileURLToPath(new URL('.', import.meta.url))),
+    // Adresse publique du site (balises de partage, sitemap) : SITE_URL dans l'environnement ou .env.*.
+    siteFilesPlugin(loadEnv(mode, process.cwd(), '').SITE_URL || null),
     VitePWA({
       // Une nouvelle version attend l'accord de l'utilisateur (bannière), jamais de rechargement imposé.
       registerType: 'prompt',
@@ -56,7 +77,15 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
         // Les captures du manifeste et l'image de partage ne servent pas hors ligne.
         globIgnores: ['screenshots/**', 'og-image.png'],
-        navigateFallback: 'index.html',
+        // Cloudflare sert les pages sans « .html » (/confidentialite) et redirige les autres adresses :
+        // on pré-cache directement les adresses finales, sans redirection.
+        manifestTransforms: [
+          (entries) => ({
+            manifest: entries.map((entry) => (entry.url.endsWith('.html') ? { ...entry, url: cleanUrl(entry.url) } : entry)),
+            warnings: [],
+          }),
+        ],
+        navigateFallback: '/',
         // Le proxy d'images n'est jamais remplacé par l'app ; les pages publiques sont pré-cachées.
         navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
@@ -80,4 +109,4 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));

@@ -72,7 +72,7 @@ export function createInternetPane({ bus, store, stockConfigured }: BackgroundCo
   function photoItem(photo: StockPhoto): HTMLElement {
     const label = photo.alt || t.photoBy(photo.author);
     const button = h('button', { type: 'button', class: 'background-photo__button', 'data-action': 'stock:import', title: label }, [
-      h('img', { class: 'background-photo__image', src: photo.thumbnail, alt: label, loading: 'lazy', decoding: 'async' }),
+      h('img', { class: 'background-photo__image', src: photo.thumbnail, alt: label, loading: 'lazy', decoding: 'async', crossorigin: 'anonymous' }),
     ]);
     // Couleur moyenne de la photo (donnée de Pexels), visible pendant le chargement de la vignette.
     button.style.setProperty('--photo-color', photo.color);

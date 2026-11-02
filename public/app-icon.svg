@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Icône de l'app : le logo de src/ui/assets/logo.svg (stickman en course sur sa courbe de
+       mouvement), en blanc sur la couleur d'accent (token color-accent-fill). Source des icônes PWA
+       générées par `npm run icons` (pwa-assets.config.ts). -->
+  <rect width="512" height="512" rx="112" fill="#0066cc"/>
+  <g transform="translate(64 64) scale(12)" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.5 27.5C9 30 20 28 27 14" stroke-width="2" opacity="0.55"/>
+    <circle cx="19.5" cy="6" r="3.2" fill="#ffffff" stroke="none"/>
+    <path d="M18.5 11 15.5 18.5" stroke-width="2.6"/>
+    <path d="M17.8 12.8 22.8 15.6M17.8 12.8 12.6 13.2" stroke-width="2.4"/>
+    <path d="M15.5 18.5 20 22.5 19 26.5M15.5 18.5 11.5 22.8 7.5 22" stroke-width="2.4"/>
+  </g>
+</svg>

@@ -1,0 +1,32 @@
+/* Invitation à installer l'app (v2.2) : une ligne sobre, refusable. */
+
+.install-invite {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  border-radius: var(--radius-lg);
+  background: var(--color-accent-soft);
+}
+
+.install-invite[hidden] {
+  display: none;
+}
+
+.install-invite__icon {
+  display: grid;
+  place-items: center;
+  color: var(--color-accent);
+}
+
+.install-invite__text {
+  flex: 1 1 var(--search-width);
+  min-width: 0;
+  font-size: var(--font-size-subhead);
+  color: var(--color-label);
+}
+
+.install-invite__dismiss {
+  margin-left: auto;
+}

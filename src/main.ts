@@ -7,7 +7,11 @@ import './ui/styles/controls.css';
 import './ui/styles/sheet.css';
 import './ui/styles/components/app.css';
 
+import { registerSW } from 'virtual:pwa-register';
+
 import { isReportableError, type GlobalErrorInfo } from './app/errors';
+import { createInstaller } from './app/install';
+import { createUpdateController } from './app/pwa-update';
 import { browserHashPort, createRouter } from './core/router';
 import { normalizePreferences } from './core/home-state';
 import { supportsWebGL2 } from './render/webgl-support';
@@ -18,6 +22,7 @@ import { createStorageProtection, protectOnSave } from './storage/storage-protec
 import { createVideoLibrary } from './storage/video-store';
 import { createErrorDialog } from './ui/components/app/error-dialog';
 import { showUnsupportedScreen } from './ui/components/app/unsupported-screen';
+import { mountUpdateBanner } from './ui/components/app/update-banner';
 import { applyTheme } from './ui/theme';
 import { createHomeView } from './views/home-view';
 import { createViewHost } from './views/view-host';
@@ -50,13 +55,16 @@ function start(root: HTMLElement): void {
   // Images d'arrière-plan (v2.1), elles aussi en Blob dans leur propre base.
   const assets = createAssetStore(persistent ? createIdbStore('stickflow-assets', 'assets') : createMemoryStore());
 
+  // `beforeinstallprompt` peut arriver avant l'affichage de l'accueil : l'installeur l'attend dès maintenant.
+  const installer = createInstaller(window);
+
   const router = createRouter(browserHashPort(), (route) => void host.show(route));
   const navigate = router.navigate;
   // L'éditeur (rendu WebGL, dessin, export) n'est chargé qu'à son ouverture : l'accueil s'affiche plus vite.
   const host = createViewHost(root, async (route) =>
     route.name === 'editor'
       ? (await import('./views/editor-view')).createEditorView({ projectId: route.projectId, library, videos, assets, navigate })
-      : createHomeView({ section: route.name, library, preferences, videos, assets, protection, navigate }),
+      : createHomeView({ section: route.name, library, preferences, videos, assets, protection, installer, navigate }),
   );
 
   // Erreur imprévue : proposer de recharger, après avoir enregistré le projet ouvert.
@@ -68,6 +76,11 @@ function start(root: HTMLElement): void {
   };
   window.addEventListener('error', (event) => report({ message: event.message, filename: event.filename }, event.error ?? event.message));
   window.addEventListener('unhandledrejection', (event) => report({ reason: event.reason }, event.reason));
+
+  // Nouvelle version (service worker en attente) : bannière, puis enregistrement avant de recharger.
+  if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    mountUpdateBanner(document.body, createUpdateController({ register: registerSW, save: () => host.save() }));
+  }
 
   router.start();
 }

@@ -4,9 +4,10 @@
 
 import type { Project } from './types';
 import type { Asset, AssetStore } from '../storage/asset-store';
-import { ArchiveError, archiveFileName, backupFileName, type ArchivedProject, type ProjectArchive } from '../storage/project-archive';
+import { ArchiveError, archiveFileName, backupFileName, type ArchivedProject, type ProjectArchive } from '../storage/archive-file';
 import { collectProjects, importProjects } from '../storage/project-transfer';
 import type { StorageProtection } from '../storage/storage-protection';
+import type { Installer } from '../app/install';
 import type { ProjectLibrary } from '../storage/library';
 import type { PreferencesStore } from '../storage/preferences';
 import type { VideoLibrary } from '../storage/video-store';
@@ -54,6 +55,8 @@ export interface HomeIntentOptions {
   };
   /** Stockage protégé (`navigator.storage.persist()`, v2.2). */
   protection?: StorageProtection;
+  /** Installation de la PWA (v2.2). */
+  installer?: Pick<Installer, 'mode' | 'subscribe' | 'prompt'>;
   now?: () => number;
   /** Espace utilisé et disponible (`navigator.storage.estimate()`), s'il est connu. */
   estimateStorage?: () => Promise<{ usage: number; quota: number } | null>;
@@ -249,6 +252,12 @@ export function connectHomeIntents(options: HomeIntentOptions): HomeIntents {
         'import-failed',
       ),
     ),
+    options.installer?.subscribe((install) => store.update({ install })) ?? (() => undefined),
+    bus.on('app:install', () =>
+      run(async () => {
+        await options.installer?.prompt();
+      }),
+    ),
     bus.on('storage:protect', () =>
       run(async () => {
         await options.protection?.request({ force: true });
@@ -271,6 +280,7 @@ export function connectHomeIntents(options: HomeIntentOptions): HomeIntents {
     bus.on('settings:change', (changes) => setPreferences(changes)),
   ];
 
+  if (options.installer) store.update({ install: options.installer.mode() });
   run(refresh);
 
   return {

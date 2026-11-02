@@ -77,3 +77,59 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* Bannière de mise à jour : au-dessus de tout, au bas de l'écran (au-dessus de la barre d'onglets). */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--space-2) + env(safe-area-inset-bottom) + var(--update-banner-offset));
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  width: min(calc(100vw - 2 * var(--space-2)), var(--dialog-width));
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  border: var(--border-hairline) solid var(--color-separator);
+  border-radius: var(--radius-lg);
+  background: var(--material-thick);
+  box-shadow: var(--shadow-raised);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+  transform: translateX(-50%);
+  animation: update-banner-in var(--duration-base) var(--ease-emphasized);
+}
+
+.update-banner[hidden] {
+  display: none;
+}
+
+.update-banner__text {
+  flex: 1 1 auto;
+  font-weight: var(--font-weight-semibold);
+}
+
+.update-banner__actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+@keyframes update-banner-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, var(--space-2));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-banner {
+    animation: none;
+  }
+}
+
+/* Sous 900 px, la barre d'onglets de l'accueil occupe le bas de l'écran. */
+@media (max-width: 899px) {
+  .update-banner {
+    --update-banner-offset: var(--tab-bar-height);
+  }
+}

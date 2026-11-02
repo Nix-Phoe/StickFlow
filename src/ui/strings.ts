@@ -40,6 +40,21 @@ export const strings = {
       dismiss: 'Continuer',
       detail: 'Détail technique',
     },
+    update: {
+      text: 'Nouvelle version disponible',
+      action: 'Mettre à jour',
+      later: 'Plus tard',
+      updating: 'Mise à jour…',
+    },
+    install: {
+      section: 'Application',
+      invite: 'Installez StickFlow pour l’ouvrir comme une app, même hors ligne.',
+      action: 'Installer l’app',
+      ios: 'Sur iPhone ou iPad : touchez Partager, puis « Sur l’écran d’accueil ».',
+      dismiss: 'Ne plus proposer',
+      installed: 'StickFlow est installée sur cet appareil.',
+      unavailable: 'Pour installer StickFlow, ouvrez le menu de votre navigateur : « Installer l’application » ou « Ajouter à l’écran d’accueil ».',
+    },
   },
 
   modes: {

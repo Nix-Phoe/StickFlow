@@ -7,7 +7,7 @@ import { uniqueName } from '../model/new-project';
 import { backgroundAssetIds } from '../model/background';
 import type { Asset, AssetStore } from './asset-store';
 import type { ProjectLibrary } from './library';
-import type { ArchivedProject, ProjectArchive } from './project-archive';
+import type { ArchivedProject, ProjectArchive } from './archive-file';
 
 export interface TransferStores {
   library: ProjectLibrary;

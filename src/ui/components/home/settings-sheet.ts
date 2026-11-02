@@ -73,6 +73,12 @@ export function createSettingsSheet({ bus, store }: HomeContext): Component {
     h('p', { class: 'settings__hint' }, [t.backupHint]),
   ]);
 
+  // ---------- Application : installation de la PWA (v2.2) ----------
+  const installText = h('p', { class: 'settings__hint' });
+  const install = h('button', { type: 'button', class: 'button-primary settings__action', 'data-action': 'app:install' }, [icon('install'), strings.app.install.action]);
+  install.addEventListener('click', () => bus.emit('app:install'));
+  const appSection = h('div', { class: 'sheet__field' }, [h('span', { class: 'sheet__label' }, [strings.app.install.section]), install, installText]);
+
   const links = h('nav', { class: 'settings__links', 'aria-label': t.links }, [
     h('a', { href: PUBLIC_PAGES.privacy, class: 'settings__link' }, [icon('document'), t.privacy]),
     h('a', { href: PUBLIC_PAGES.about, class: 'settings__link' }, [icon('info'), t.about]),
@@ -91,6 +97,7 @@ export function createSettingsSheet({ bus, store }: HomeContext): Component {
       h('div', { class: 'sheet__row' }, [h('label', { class: 'sheet__label', for: 'settings-fps' }, [t.defaultFps]), fps.element]),
       h('div', { class: 'sheet__field' }, [h('span', { class: 'sheet__label' }, [t.videos]), videosInfo, clearVideos]),
       dataSection,
+      appSection,
       links,
       h('p', { class: 'settings__version' }, [t.version(__APP_VERSION__)]),
     ],
@@ -118,6 +125,15 @@ export function createSettingsSheet({ bus, store }: HomeContext): Component {
         protectionIcon.replaceChildren(icon(iconName));
         protectionIcon.dataset.state = String(state);
         protect.hidden = state !== false;
+      },
+    ),
+    store.watch(
+      (s) => s.install,
+      (mode) => {
+        const texts = { prompt: '', ios: strings.app.install.ios, installed: strings.app.install.installed, unavailable: strings.app.install.unavailable };
+        install.hidden = mode !== 'prompt';
+        installText.textContent = texts[mode];
+        installText.hidden = mode === 'prompt';
       },
     ),
     store.watch(

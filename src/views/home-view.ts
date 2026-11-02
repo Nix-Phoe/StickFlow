@@ -22,6 +22,7 @@ import { createExportSheet } from '../ui/components/home/export-sheet';
 import { createFloatingAddButton } from '../ui/components/home/floating-add-button';
 import { createHeroBanner } from '../ui/components/home/hero-banner';
 import { createHomeNotice } from '../ui/components/home/home-notice';
+import { createInstallInvite } from '../ui/components/home/install-invite';
 import { createProjectGrid } from '../ui/components/home/project-grid';
 import { createSettingsSheet } from '../ui/components/home/settings-sheet';
 import { createSidebar } from '../ui/components/home/sidebar';
@@ -34,6 +35,7 @@ import { downloadBlob } from '../ui/download';
 import { strings } from '../ui/strings';
 import type { AssetStore } from '../storage/asset-store';
 import type { StorageProtection } from '../storage/storage-protection';
+import type { Installer } from '../app/install';
 import { applyTheme } from '../ui/theme';
 import { createProjectPreviewer } from './project-previewer';
 import type { View } from './view-host';
@@ -47,6 +49,8 @@ export interface HomeViewOptions {
   assets: AssetStore;
   /** Stockage protégé (v2.2), montré dans les Réglages. */
   protection: StorageProtection;
+  /** Installation de la PWA (v2.2), créée au démarrage pour ne pas manquer `beforeinstallprompt`. */
+  installer: Installer;
   navigate: (route: Route) => void;
 }
 
@@ -54,6 +58,7 @@ export interface HomeViewOptions {
 const SECTIONS: Record<HomeSection, (context: HomeContext) => Component[]> = {
   home: (context) => [
     createHeroBanner(context),
+    createInstallInvite(context),
     createTemplateCarousel(context, { variant: 'carousel' }),
     createProjectGrid(context, { variant: 'recent' }),
     createVideoGrid(context, { variant: 'recent' }),
@@ -63,7 +68,7 @@ const SECTIONS: Record<HomeSection, (context: HomeContext) => Component[]> = {
   videos: (context) => [createVideoGrid(context, { variant: 'all' })],
 };
 
-export function createHomeView({ section, library, preferences, videos, assets, protection, navigate }: HomeViewOptions): View {
+export function createHomeView({ section, library, preferences, videos, assets, protection, installer, navigate }: HomeViewOptions): View {
   const bus = createEventBus();
   const store = new Store<HomeState>(createHomeState(section, normalizePreferences(preferences.load())));
   const images = createAssetImages(assets);
@@ -90,6 +95,7 @@ export function createHomeView({ section, library, preferences, videos, assets, 
     videos,
     assets,
     protection,
+    installer,
     // Fichiers « .stickflow » (v2.2) : fflate n'est chargé qu'au premier export ou import.
     archive: {
       write: async ({ projects, assets: images }) => {

@@ -94,6 +94,8 @@ export interface AppEvents {
   'library:import': { file: Blob };
   /** Redemande au navigateur de protéger le stockage (bouton des Réglages, v2.2). */
   'storage:protect': void;
+  /** Ouvre la fenêtre d'installation de la PWA du navigateur (Réglages, invitation de l'accueil). */
+  'app:install': void;
   /** Recherche des projets et des modèles par nom (en direct). */
   /** Vidéos conservées (« Mes vidéos ») : en supprimer une, les plus anciennes (espace presque plein), ou toutes. */
   'video:delete': { videoId: string };

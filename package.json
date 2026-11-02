@@ -8,7 +8,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "icons": "pwa-assets-generator",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "fflate": "^0.8.3",
@@ -21,6 +23,7 @@
     "@biomejs/biome": "^2.6.4",
     "@cloudflare/workers-types": "^5.20261102.1",
     "@vite-pwa/assets-generator": "^2.0.0",
+    "puppeteer-core": "^25.16.0",
     "rollup-plugin-visualizer": "^7.1.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",

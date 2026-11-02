@@ -8,6 +8,8 @@ import {
   matchesQuery,
   normalizePreferences,
   RECENT_PROJECTS,
+  showInstallInvite,
+  type HomeState,
   shownProjects,
   sortProjects,
   isVideoType,
@@ -73,13 +75,17 @@ describe('normalizePreferences', () => {
   it('starts from the defaults', () => {
     expect(normalizePreferences(undefined)).toEqual(DEFAULT_PREFERENCES);
     expect(normalizePreferences('n’importe quoi')).toEqual(DEFAULT_PREFERENCES);
-    expect(DEFAULT_PREFERENCES).toEqual({ sort: 'modified', view: 'grid', theme: 'auto', defaultFormat: DEFAULT_FORMAT, defaultFps: 12 });
+    expect(DEFAULT_PREFERENCES).toEqual({ sort: 'modified', view: 'grid', theme: 'auto', defaultFormat: DEFAULT_FORMAT, defaultFps: 12, installInviteDismissed: false });
   });
 
   it('keeps the valid choices and replaces the others', () => {
     expect(
-      normalizePreferences({ sort: 'za', view: 'list', theme: 'neon', defaultFormat: { preset: 'square', width: 1, height: 1 }, defaultFps: 500 }),
-    ).toEqual({ sort: 'za', view: 'list', theme: 'auto', defaultFormat: presetFormat('square'), defaultFps: 60 });
+      normalizePreferences({ sort: 'za', view: 'list', theme: 'neon', defaultFormat: { preset: 'square', width: 1, height: 1 }, defaultFps: 500, installInviteDismissed: 'oui' }),
+    ).toEqual({ sort: 'za', view: 'list', theme: 'auto', defaultFormat: presetFormat('square'), defaultFps: 60, installInviteDismissed: false });
+  });
+
+  it('remembers that the install invitation was refused for good (v2.2)', () => {
+    expect(normalizePreferences({ installInviteDismissed: true }).installInviteDismissed).toBe(true);
   });
 });
 
@@ -126,5 +132,21 @@ describe('floatingButtonTucked', () => {
     const projects = createHomeState('projects', DEFAULT_PREFERENCES);
     expect(floatingButtonTucked(projects)).toBe(false);
     expect(floatingButtonTucked({ ...projects, heroVisible: true })).toBe(false);
+  });
+});
+
+describe('showInstallInvite', () => {
+  const state = (changes: Partial<HomeState> = {}): HomeState => ({ ...createHomeState('home', DEFAULT_PREFERENCES), install: 'prompt', ...changes });
+
+  it('invites to install on the home page, when the browser can install or on iOS', () => {
+    expect(showInstallInvite(state())).toBe(true);
+    expect(showInstallInvite(state({ install: 'ios' }))).toBe(true);
+  });
+
+  it('stays quiet once installed, without a way to install, elsewhere than the home page, or once refused', () => {
+    expect(showInstallInvite(state({ install: 'installed' }))).toBe(false);
+    expect(showInstallInvite(state({ install: 'unavailable' }))).toBe(false);
+    expect(showInstallInvite(state({ section: 'projects' }))).toBe(false);
+    expect(showInstallInvite(state({ preferences: { ...DEFAULT_PREFERENCES, installInviteDismissed: true } }))).toBe(false);
   });
 });

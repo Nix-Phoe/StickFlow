@@ -186,6 +186,8 @@
   --z-drawer: 100;
   --z-menu: 200;
   --z-fab: 300;
+  --z-toast: 400;                            /* bannière de mise à jour (v2.2) */
+  --update-banner-offset: 0px;               /* relevée au-dessus de la barre d'onglets */
 
   /* ---------- Animations d'interface ---------- */
   --duration-fast: 150ms;

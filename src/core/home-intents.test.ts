@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { imageBackground } from '../model/background';
 import { createAssetStore } from '../storage/asset-store';
 import { ArchiveError, type ProjectArchive } from '../storage/project-archive';
+import type { InstallMode } from '../app/install';
 import { createMemoryStore } from '../storage/memory-store';
 import { createProjectLibrary } from '../storage/library';
 import { createMemoryPreferences } from '../storage/preferences';
@@ -141,7 +142,7 @@ describe('connectHomeIntents: recherche, tri, vue et réglages', () => {
     bus.emit('home:sort', { sort: 'az' });
     bus.emit('home:view', { view: 'list' });
     bus.emit('settings:change', { theme: 'dark', defaultFps: 999, defaultFormat: presetFormat('portrait') });
-    expect(state().preferences).toEqual({ sort: 'az', view: 'list', theme: 'dark', defaultFps: 60, defaultFormat: presetFormat('portrait') });
+    expect(state().preferences).toEqual({ sort: 'az', view: 'list', theme: 'dark', defaultFps: 60, defaultFormat: presetFormat('portrait'), installInviteDismissed: false });
     expect(preferences.load()).toEqual(state().preferences);
   });
 
@@ -314,5 +315,32 @@ describe('connectHomeIntents: fichiers .stickflow et stockage protégé (v2.2)',
     bus.emit('storage:protect');
     await home.settled();
     expect(state().storageProtected).toBe(true);
+  });
+});
+
+describe('connectHomeIntents: installation de l’app (v2.2)', () => {
+  it('follows what the browser allows, and opens its install prompt on demand', async () => {
+    let mode: InstallMode = 'unavailable';
+    const listeners: Array<(next: InstallMode) => void> = [];
+    let prompts = 0;
+    const installer = {
+      mode: () => mode,
+      subscribe: (listener: (next: InstallMode) => void) => {
+        listeners.push(listener);
+        return () => undefined;
+      },
+      prompt: async () => {
+        prompts += 1;
+        return true;
+      },
+    };
+    const { bus, home, state } = await setup({ installer });
+    expect(state().install).toBe('unavailable');
+    mode = 'prompt';
+    listeners.forEach((listener) => listener(mode));
+    expect(state().install).toBe('prompt');
+    bus.emit('app:install');
+    await home.settled();
+    expect(prompts).toBe(1);
   });
 });

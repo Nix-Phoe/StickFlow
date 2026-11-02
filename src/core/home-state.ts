@@ -2,6 +2,7 @@
 // ouvertes. Fonctions pures de tri, de filtre et de validation des préférences.
 
 import { DEFAULT_FORMAT, normalizeFormat, type VideoFormat } from './formats';
+import type { InstallMode } from '../app/install';
 import type { HomeSection } from './router';
 import { clamp, LIMITS, type ProjectSummary } from './types';
 
@@ -24,6 +25,8 @@ export interface Preferences {
   /** Format et IPS proposés pour un nouveau projet. */
   defaultFormat: VideoFormat;
   defaultFps: number;
+  /** L'invitation à installer l'app a été refusée pour de bon (v2.2). */
+  installInviteDismissed: boolean;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -32,6 +35,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   theme: 'auto',
   defaultFormat: DEFAULT_FORMAT,
   defaultFps: 12,
+  installInviteDismissed: false,
 };
 
 /** Vidéo exportée conservée dans l'app (sans son contenu, lu à la demande). */
@@ -101,6 +105,8 @@ export interface HomeState {
   /** Le navigateur protège-t-il le stockage (v2.2) ? `null` : il ne le dit pas. */
   storageProtected: boolean | null;
   transfer: HomeTransfer | null;
+  /** Installation de la PWA possible ici, et comment (v2.2). */
+  install: InstallMode;
 }
 
 export function createHomeState(section: HomeSection, preferences: Preferences): HomeState {
@@ -117,7 +123,13 @@ export function createHomeState(section: HomeSection, preferences: Preferences):
     heroVisible: true,
     storageProtected: null,
     transfer: null,
+    install: 'unavailable',
   };
+}
+
+/** Petite invitation à installer l'app, sur l'accueil seulement, tant qu'elle n'est pas refusée (v2.2). */
+export function showInstallInvite(state: HomeState): boolean {
+  return state.section === 'home' && (state.install === 'prompt' || state.install === 'ios') && !state.preferences.installInviteDismissed;
 }
 
 /**
@@ -187,6 +199,7 @@ export function normalizePreferences(value: unknown): Preferences {
       typeof raw.defaultFps === 'number' && Number.isFinite(raw.defaultFps)
         ? clamp(Math.round(raw.defaultFps), LIMITS.fps.min, LIMITS.fps.max)
         : DEFAULT_PREFERENCES.defaultFps,
+    installInviteDismissed: raw.installInviteDismissed === true,
   };
 }
 

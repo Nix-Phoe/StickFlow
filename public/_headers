@@ -1,0 +1,26 @@
+# En-têtes des fichiers du site (Cloudflare Workers, static assets). Les réponses de /api/* sont
+# faites par le Worker et posent leurs propres en-têtes (server/image-proxy.ts).
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data: https://images.pexels.com; media-src 'self' blob:; connect-src 'self'; worker-src 'self'; font-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), autoplay=(self), bluetooth=(), browsing-topics=(), camera=(), display-capture=(), fullscreen=(self), geolocation=(), gyroscope=(), hid=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(), serial=(), usb=(), web-share=(self), xr-spatial-tracking=()
+  Cross-Origin-Opener-Policy: same-origin
+
+# Fichiers avec empreinte (noms changés à chaque version) : gardés un an sans revalidation.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Toujours revalidés : la page, le service worker et le manifeste annoncent les nouvelles versions.
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+/workbox-*.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
+  Content-Type: application/manifest+json

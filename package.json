@@ -10,7 +10,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "icons": "pwa-assets-generator",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "dev:api": "wrangler dev --port 8787",
+    "preview:worker": "npm run build && wrangler dev --port 8787",
+    "deploy": "npm run build && wrangler deploy",
+    "typecheck": "wrangler types server/worker-configuration.d.ts && tsc && tsc -p server"
   },
   "dependencies": {
     "fflate": "^0.8.3",

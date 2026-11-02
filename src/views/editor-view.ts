@@ -87,7 +87,7 @@ export function createEditorView({ projectId, library, videos, assets, navigate 
     // La vignette de l'accueil est régénérée à chaque sauvegarde, à partir de la première frame.
     storage = connectProjectStorage({ bus, store: editorStore, library, thumbnail });
     // Recherche d'images : l'adresse du proxy vient de l'environnement de build (.env.local).
-    const stockClient = createStockClient({ baseUrl: import.meta.env.VITE_IMAGE_PROXY_URL ?? null });
+    const stockClient = createStockClient({ baseUrl: import.meta.env.VITE_IMAGE_PROXY_URL || '/api' });
     const importer = connectAssetImporter({ bus, store: editorStore, assets, process: processImageOffThread });
     const stockSearch = connectStockSearch({ bus, store: editorStore, client: stockClient });
     cleanups.push(

@@ -1,0 +1,24 @@
+// Worker de StickFlow : le site (dist/, static assets) et le proxy d'images (/api/*).
+// Commandes : npm run preview:worker (local, comme en production), npm run deploy. Voir DEPLOY.md.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "stickflow",
+  "main": "server/worker.ts",
+  "compatibility_date": "2026-11-02",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // Routeur par hash (#/editor/…) : pas de repli SPA ; une adresse inconnue reçoit dist/404.html.
+    "not_found_handling": "404-page",
+    // Seul le proxy d'images passe par le code du Worker ; tout le reste est servi tel quel.
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    // Origines autorisées en plus du site lui-même (séparées par des virgules). En local, .dev.vars
+    // ajoute http://localhost:5173 (Vite). La clé Pexels est un secret : `npx wrangler secret put PEXELS_API_KEY`.
+    "ALLOWED_ORIGINS": ""
+  },
+  "observability": {
+    "enabled": true
+  }
+}

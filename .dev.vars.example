@@ -1,0 +1,8 @@
+# Copier en .dev.vars (ignoré par git) pour `npm run preview:worker` et `npm run dev:api`.
+# En production, ces valeurs sont des secrets : `npx wrangler secret put PEXELS_API_KEY`.
+
+# Clé gratuite : https://www.pexels.com/api/ (compte Pexels, puis « Your API Key »).
+PEXELS_API_KEY=
+
+# Serveur de développement Vite, qui envoie /api/* à `wrangler dev` (port 8787).
+ALLOWED_ORIGINS=http://localhost:5173

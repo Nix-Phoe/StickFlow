@@ -1,6 +1,7 @@
 // Client du proxy d'images (v2.1, server/image-proxy) : recherche dans la banque d'images libres
 // (Pexels) et téléchargement d'images avec les en-têtes CORS qu'exigent WebGL et l'export.
-// La clé d'API reste dans le proxy : le client ne connaît que son adresse (VITE_IMAGE_PROXY_URL).
+// La clé d'API reste dans le proxy : le client ne connaît que son adresse, `/api` sur le même domaine
+// depuis la v2.2 (VITE_IMAGE_PROXY_URL pour un autre proxy).
 
 import type { AssetErrorCode, StockPhoto } from '../core/types';
 

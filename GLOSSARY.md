@@ -12,6 +12,14 @@ _Avoid_ : document, fichier, animation (pour désigner l'ensemble)
 L'ensemble des Projets enregistrés sur l'appareil, que l'on retrouve sur l'Accueil ou depuis « Ouvrir ».
 _Avoid_ : galerie, historique, fichiers récents
 
+**Fichier de projet (.stickflow)** :
+Un ou plusieurs Projets et leurs images d'arrière-plan réunis dans un seul fichier, pour les garder hors de l'app, les passer à un autre appareil ou les réimporter. Exporter un Projet en donne un ; une **sauvegarde** réunit toute la Bibliothèque, et la **restaurer** ajoute ses Projets à ceux de l'app.
+_Avoid_ : export (qui désigne le GIF, la vidéo ou les PNG), archive, backup
+
+**Stockage protégé** :
+L'accord du navigateur pour ne pas effacer les données de l'app (Projets, images, vidéos) quand l'appareil manque de place. Il est demandé après la première sauvegarde d'un Projet.
+_Avoid_ : stockage persistant, sauvegarde
+
 **Résumé de projet** :
 Ce que l'Accueil montre d'un Projet enregistré sans le charger : nom, format, IPS, nombre d'images, dates de création et de modification, vignette. Les résumés forment l'**index des projets**, mis à jour à chaque sauvegarde ; ils ne font pas partie du Projet.
 _Avoid_ : métadonnées, entrée, fiche
@@ -33,7 +41,7 @@ La page d'ouverture de l'app : rechercher, créer (raccourcis de format, modèle
 _Avoid_ : tableau de bord, galerie, menu principal
 
 **Préférences** :
-Les choix mémorisés sur l'appareil, hors de tout Projet : thème, tri et vue de « Mes projets », format et IPS proposés pour un nouveau Projet.
+Les choix mémorisés sur l'appareil, hors de tout Projet : thème, tri et vue de « Mes projets », format et IPS proposés pour un nouveau Projet, invitation à installer l'app refusée.
 _Avoid_ : réglages du projet, Session
 
 **Session** :

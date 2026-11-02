@@ -1,4 +1,4 @@
-// Invitation à installer l'app (v2.2) : une ligne discrète sous la bannière de l'accueil, refusable
+// Invitation à installer l'app (v2.2) : une ligne discrète au bas de l'accueil, refusable
 // pour de bon. Avec la fenêtre du navigateur : « Installer l'app » ; sur iPhone et iPad : la marche à suivre.
 
 import '../../styles/components/home/install-invite.css';

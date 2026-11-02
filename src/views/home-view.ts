@@ -59,10 +59,11 @@ export interface HomeViewOptions {
 const SECTIONS: Record<HomeSection, (context: HomeContext) => Component[]> = {
   home: (context) => [
     createHeroBanner(context),
-    createInstallInvite(context),
     createTemplateCarousel(context, { variant: 'carousel' }),
     createProjectGrid(context, { variant: 'recent' }),
     createVideoGrid(context, { variant: 'recent' }),
+    // En bas de page : elle arrive quand le navigateur le permet, sans rien décaler à l'écran.
+    createInstallInvite(context),
     createHomeFooter(),
   ],
   projects: (context) => [createProjectGrid(context, { variant: 'all' })],

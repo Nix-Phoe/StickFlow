@@ -78,6 +78,14 @@ Règles communes aux fonctionnalités IA :
 - Réglages d'une image : ajustement (Remplir, Ajuster, Étirer, Mosaïque), point focal (glisser l'aperçu ou flèches), zoom 100 à 300 %, flou 0 à 20 px, luminosité, opacité, voile de couleur facultatif.
 - L'arrière-plan suit le cadre du format, apparaît dans la scène, les vignettes, l'aperçu des cartes et tous les exports ; il est le même dans toutes les frames et chaque changement s'annule.
 
+### 2.7 Version 2.2 (réalisée) : phase 7A, mise en ligne (PWA)
+- **Hébergement** : un seul Cloudflare Worker (`stickflow`) sert le site (static assets) et le proxy d'images sous `/api/*` (voir 5.2 et `DEPLOY.md`).
+- **PWA** : installable (manifeste, icônes générées depuis le logo, captures), entièrement hors ligne (service worker Workbox), bannière « Nouvelle version disponible — Mettre à jour » qui enregistre le projet ouvert avant de recharger ; bouton « Installer l'app » dans les Réglages, invitation refusable au bas de l'accueil, explication pour iPhone et iPad.
+- **Protection des projets** : stockage protégé (`navigator.storage.persist()` après la première sauvegarde, état dans les Réglages) ; **fichier `.stickflow`** (projet et ses images) : « Exporter le projet » dans le menu « ⋮ » d'une carte, « Importer un projet » dans « Mes projets » et l'état vide ; « Sauvegarder tous mes projets » et « Restaurer une sauvegarde » dans les Réglages.
+- **Démarrage** : l'éditeur et les encodeurs d'export sont chargés à la demande ; page « Navigateur non compatible » sans WebGL 2 ; page d'erreur globale qui propose de recharger (projet ouvert enregistré d'abord) ; version (`package.json`) dans les Réglages et le pied de page, `CHANGELOG.md`.
+- **Pages publiques** : Politique de confidentialité (`/confidentialite`, marqueurs `[À COMPLÉTER]`), À propos et crédits (`/a-propos`, licences générées au build), page 404 ; balises de partage, image 1200 × 630, `robots.txt`, `sitemap.xml`.
+- **Qualité** : CI GitHub Actions (types, lint Biome, tests, build) ; Lighthouse en local : 100 / 100 / 100 / 100 (ordinateur), 93 / 100 / 100 / 100 (mobile).
+
 ---
 
 ## 3. Interface (UI)
@@ -159,12 +167,14 @@ Référence : https://developer.apple.com/design/human-interface-guidelines
 | Maths | **gl-matrix** |
 | Icônes | **Lucide** |
 | Stockage | **IndexedDB** via `idb-keyval`, projets au format **JSON** versionné ; images d'arrière-plan en Blob (magasin d'assets, v2.1) |
-| Images en ligne (v2.1) | API **Pexels** derrière un **Cloudflare Worker** sans dépendance (`server/image-proxy`, clé en secret) |
+| Images en ligne (v2.1) | API **Pexels** derrière le **Cloudflare Worker** du site (`/api/*`, `server/image-proxy.ts`, clé en secret) |
 | Export | **gifenc** (GIF ; remplace gif.js, non maintenu et qui exige un fichier worker), **MediaRecorder** (vidéo MP4, ou WebM si le navigateur n'enregistre pas le MP4), `canvas.toBlob` + **fflate** (séquence PNG en archive ZIP) |
 | IA (V2) | Entraînement **PyTorch** → inférence **ONNX Runtime Web** |
-| Web | **PWA** (`vite-plugin-pwa`), hébergement Cloudflare Pages / Netlify |
+| Web | **PWA** (`vite-plugin-pwa`, Workbox ; icônes : `@vite-pwa/assets-generator`), hébergement **Cloudflare Workers** avec Static Assets (v2.2) |
+| Déploiement | **Wrangler** (`wrangler.jsonc`), **Workers Builds** (Git : production depuis `main`, prévisualisations par branche), CI **GitHub Actions** |
 | Android | **Capacitor** |
-| Tests | **Vitest** (`npm test`) |
+| Tests | **Vitest** (`npm test`) ; captures et vérifications dans Chrome sans interface : **puppeteer-core** (`scripts/screenshots.mjs`) |
+| Lint | **Biome** (`npm run lint` ; typescript-eslint ne prend pas encore TypeScript 7) |
 | Débogage WebGL | Spector.js |
 
 ---
@@ -341,11 +351,40 @@ src/ui/components/background/           # background-page (sous-page), color-pan
 src/ui/transfer.ts                      # imageFileOf : image d'un glisser-déposer ou du presse-papiers
 src/ui/styles/components/background-page.css
 src/test/recording-context.ts           # Faux contexte Canvas 2D qui note les appels (tests de dessin)
-server/image-proxy/                     # Cloudflare Worker : /search (Pexels), /image (CORS) ; wrangler.toml, README.md
+server/image-proxy/                     # (devenu server/image-proxy.ts sous /api/* en v2.2) Cloudflare Worker : /search (Pexels), /image
 .env.example                            # VITE_IMAGE_PROXY_URL
 docs/adr/0005-arriere-plan-compose-et-assets.md
 ```
 `render/renderer.ts` gagne une texture d'arrière-plan (`DrawOptions.backdrop`, renvoyée seulement quand sa `version` change) ; `render/canvas2d.ts` gagne `paintWorldImage` ; `thumbnail.ts` et l'export dessinent l'arrière-plan composé ; `CanvasArea` accepte le dépôt et le collage d'une image.
+Fichiers ajoutés en version 2.2 (phase 7A, mise en ligne) :
+```
+src/app/errors.ts                       # isReportableError : erreurs globales à montrer, bruit à ignorer (ResizeObserver, extensions)
+src/app/install.ts                      # installMode, isIosDevice, createInstaller (beforeinstallprompt gardé, appinstalled)
+src/app/pwa-update.ts                   # createUpdateController : nouvelle version annoncée, enregistrement puis mise à jour
+src/render/webgl-support.ts             # supportsWebGL2 (contexte d'essai libéré aussitôt)
+src/storage/archive-file.ts             # Fichier « .stickflow » sans fflate : ArchiveError, types, noms de fichier
+src/storage/project-archive.ts          # writeProjectArchive / readProjectArchive (ZIP, vérifications), chargé à la demande
+src/storage/project-transfer.ts         # collectProjects (projets + images), importProjects (ids, copies, images réutilisées)
+src/storage/storage-protection.ts       # createStorageProtection (persist / persisted), protectOnSave (bibliothèque)
+src/ui/components/app/                  # unsupported-screen, error-dialog, update-banner (coquille, hors des vues)
+src/ui/components/home/install-invite.ts, home-footer.ts
+src/ui/styles/components/app.css, components/home/install-invite.css
+src/pages/                              # page.ts (thème, version), about.ts (licences), page.css
+confidentialite.html, a-propos.html, 404.html   # pages publiques (entrées Vite)
+server/worker.ts                        # Entrée du Worker : /api/* → proxy, le reste → static assets
+server/image-proxy.ts                   # Proxy sous /api/* (origine, cache, délai, taille), testé par Vitest
+server/tsconfig.json                    # Types du Worker (server/worker-configuration.d.ts, généré par `wrangler types`)
+scripts/licenses.ts                     # Licences des bibliothèques livrées (virtual:licenses)
+scripts/site-files.ts                   # robots.txt, sitemap.xml, balises Open Graph / Twitter (SITE_URL)
+scripts/screenshots.mjs                 # Captures du manifeste et image de partage (Chrome sans interface)
+public/_headers                         # En-têtes de cache et de sécurité (CSP)
+public/app-icon.svg, *.png, favicon.ico # Icône de l'app et icônes générées (npm run icons, pwa-assets.config.ts)
+public/screenshots/, public/og-image.png
+wrangler.jsonc, .dev.vars.example, .node-version, biome.json, vite.config.ts, pwa-assets.config.ts
+.github/workflows/ci.yml
+CHANGELOG.md, DEPLOY.md, docs/audit-phase-7a.md, docs/adr/0006-deploiement-worker-unique.md
+```
+`views/view-host.ts` accepte une vue chargée à la demande (promesse) et gagne `save()` (enregistrer sans quitter) ; `storage/library.ts` : `save(…, { dates })` garde les dates d'un projet importé ; `storage/asset-store.ts` : `add(…, { id })` garde l'id d'une image importée s'il est libre.
 `storage/library.ts` gagne l'index des projets (second magasin, `stickflow-index`), `rename`, `duplicate`, `setThumbnail` ; `render/camera.ts` gagne `fitWorldHeight`, `stageWorldHeight`, `frameScreenRect` ; `render/thumbnail.ts` gagne `projectThumbnail` / `paintProjectFrame` ; `export/exporter.ts` expose `exportProject` (utilisé par l'éditeur et l'accueil). Noms de fichiers en kebab-case, comme le reste du projet (le prompt v2.0 proposait `HomeView.ts`…).
 
 Il n’y a pas de `core/history.ts` : l’historique est interne au module Projet (`src/model/project/`), par instantanés (voir `docs/adr/0001-historique-par-instantanes.md`).
@@ -386,7 +425,12 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 - **Arrière-plan (v2.1, ADR 0005)** : `environment.background` vaut `null` (celui du thème, blanc à l'export) ou un `Background` : couleur, dégradé, intégré, image. Changements nommés `setBackground` / `updateBackground` (réglages de l'arrière-plan actuel, sans changer son type ni son image) ; un même jeton `gesture` (glisser de slider, de la roue, de l'aperçu) forme une seule étape d'annulation. Le module Projet borne tout (`normalizeBackground` : angle 0 à 359°, zoom 1 à 3, flou 0 à 20, luminosité 0,5 à 1,5, opacité et voile 0 à 1).
 - **Composition de l'arrière-plan** : `paintBackground` (Canvas 2D) dessine l'arrière-plan dans le cadre du format ; `BackgroundSurface` le recompose seulement quand l'arrière-plan ou le format change (long côté 2048 px dans l'éditeur), et la scène le dessine comme un rectangle texturé sous toutes les couches, dans le cadre (hors du cadre : la couleur du thème). Vignettes et aperçus dessinent le même canvas ; l'export le recompose une fois à sa résolution. Flou et luminosité en `ctx.filter`, en pixels du format ; un bord flouté est agrandi pour ne pas s'estomper. Sous une image transparente : le blanc de l'export.
 - **Images d'arrière-plan** : jamais dans le JSON du Projet. `asset-importer` vérifie le fichier par son contenu (`checkImageFile` : PNG, JPEG, WebP, GIF ; SVG et plus de 20 Mo refusés), le traite dans un Worker (`createImageBitmap`, long côté ≤ 2 × celui du format et ≤ 3840 px, WebP sinon JPEG, vignette de 160 px), le garde dans le magasin d'assets, puis émet `background:set`. Erreurs : `session.assetImport` (lues par `aria-live`). Supprimer un projet supprime les images qu'aucun autre projet n'utilise (`ProjectSummary.assetIds`) ; une copie partage l'image.
-- **Proxy d'images** : l'app ne connaît que `VITE_IMAGE_PROXY_URL` (`.env.local`), jamais de clé. `GET /search` (Pexels, 24 par page, `hasMore`) et `GET /image?url=` (PNG, JPEG, WebP, GIF ≤ 20 Mo, CORS ; SVG, adresses privées et origines non autorisées refusés). Codes : 503 non configuré, 429 limite atteinte, 415 type refusé, 413 trop lourd. Crédit « Photo : Nom — Pexels » sur chaque résultat et sous l'arrière-plan, lien « Photos fournies par Pexels ». Pas de recherche générale (droits inconnus).
+- **Proxy d'images** : servi par le Worker du site sous `/api/*` (v2.2) ; l'app l'appelle sur le même domaine (`VITE_IMAGE_PROXY_URL` seulement pour un autre proxy), jamais de clé côté client. `GET /api/search` (Pexels, 24 par page, `hasMore`, résultats 5 min en Cache API) et `GET /api/image?url=` (PNG, JPEG, WebP, GIF ≤ 20 Mo lus au plus, réponses `nosniff` et `sandbox` ; SVG et adresses privées refusés). Seules les pages du site (`Sec-Fetch-Site: same-origin` ou `Origin` du site) et `ALLOWED_ORIGINS` sont servies (403 sinon) ; appels sortants abandonnés après 10 s (504). Codes : 503 non configuré, 429 limite atteinte, 415 type refusé, 413 trop lourd. Crédit « Photo : Nom — Pexels » sur chaque résultat et sous l'arrière-plan, lien « Photos fournies par Pexels ». Pas de recherche générale (droits inconnus).
+- **Déploiement (v2.2, ADR 0006, `DEPLOY.md`)** : un seul Worker `stickflow` (`wrangler.jsonc`) : `dist/` en static assets, `run_worker_first: ["/api/*"]` (seul le proxy exécute du code), `not_found_handling: "404-page"` (routeur par hash : pas de repli SPA). Cloudflare sert les pages sans `.html` (`/confidentialite`) et redirige le reste ; les liens et le pré-cache utilisent ces adresses finales. En-têtes dans `public/_headers` (les réponses de `/api/*` posent les leurs) : CSP `default-src 'self'` (images : `blob:`, `data:`, `https://images.pexels.com` ; médias `blob:` ; pas de `unsafe-inline`, aucun style en attribut), `nosniff`, `Referrer-Policy`, `Permissions-Policy` (plein écran et partage seulement), cache `immutable` sous `/assets/`, `no-cache` pour la page, le service worker et le manifeste. Secrets : `wrangler secret put PEXELS_API_KEY` (local : `.dev.vars`) ; variable de build `SITE_URL`. Commandes : `npm run dev` (Vite, `/api` renvoyé vers le port 8787), `dev:api`, `preview:worker` (comme en production), `deploy`, `typecheck`, `lint`, `icons`, `screenshots`.
+- **PWA (v2.2)** : `vite-plugin-pwa` en `registerType: 'prompt'` ; l'enregistrement est dans `main.ts` (`virtual:pwa-register`, production seulement). Pré-cache de toute l'app et des pages publiques (`navigateFallback: '/'`, `/api/` exclu) ; `/api/*` toujours par le réseau (`NetworkOnly`) ; vignettes Pexels en `CacheFirst` (150, 7 jours, réponses CORS uniquement : `crossorigin="anonymous"`). Une nouvelle version n'est jamais appliquée sans « Mettre à jour » ; avant, `ViewHost.save()` enregistre le projet ouvert. Recherche d'une nouvelle version toutes les heures. L'installeur est créé au démarrage (`beforeinstallprompt` arrive tôt) et passé à l'accueil (`HomeState.install`) ; l'invitation est au bas de l'accueil (pas de décalage de mise en page), refusée pour de bon par la préférence `installInviteDismissed`.
+- **Fichiers « .stickflow » (v2.2)** : archive ZIP : `stickflow.json` (format `stickflow-archive`, version 1, projets avec dates, images avec taille, source, crédit, vignette), `projects/<id>.json` (fichier de projet), `assets/<id>.<ext>`. La lecture refuse tout contenu inattendu avant d'importer (`ArchiveError` : `not-archive`, `too-new`, `too-large`, `invalid`, `empty`) : 512 Mo au plus, 64 Mo par fichier décompressé, chemins attendus seulement, projets par `fromProjectFile` (migration), images par leur contenu (jamais de SVG). Import : un projet garde son id et ses dates sauf s'il existe déjà (copie, nom libre suivant) ; une image garde son id s'il est libre, sinon l'arrière-plan suit son nouvel id. fflate n'est chargé qu'au premier export ou import (`home-view` injecte `archive` dans `home-intents`).
+- **Stockage protégé (v2.2)** : la bibliothèque est enveloppée par `protectOnSave` : après une sauvegarde réussie, `navigator.storage.persist()` est demandé (une fois par session ; « Protéger le stockage » dans les Réglages le redemande). `HomeState.storageProtected` : `true`, `false` ou `null` (inconnu).
+- **Démarrage et erreurs (v2.2)** : `main.ts` vérifie WebGL 2 (`supportsWebGL2`) avant tout, sinon page « Navigateur non compatible ». L'éditeur est importé à la demande (`ViewFactory` peut rendre une promesse ; une route dépassée pendant le chargement n'est jamais montée). `window` `error` et `unhandledrejection` ouvrent la page d'erreur (`isReportableError` ignore le bruit) ; « Recharger » enregistre le projet ouvert d'abord. Journal des événements du bus en développement seulement (`import.meta.env.DEV`) ; en production, seulement `console.error`.
 - **Thème (v2.0)** : Automatique (système), Clair ou Sombre imposé par `data-theme` sur `<html>`. Les couleurs sombres sont déclarées deux fois dans `tokens.css` (automatique et imposé), gardées identiques par `tokens.test.ts`.
 - **Rendu** : `EditorView` passe le canvas `#stage` et le calque de dessin à `connectStageView`. Le rendu lit la taille au moment de dessiner (`canvas.width`/`height`), redessine tout de suite sur `canvas:resize` (évite un clignotement) et à la demande sinon. Les couleurs lues par WebGL viennent des tokens CSS et doivent rester en **hexadécimal** (ex. `--color-stickman`).
 - **Manipulation** : `CanvasArea` émet le pointeur brut (`stage:pointer:*`, en pixels CSS avec la taille du canvas, plus `pointerType`, `shiftKey`, `pressure`) et les touches (`node:cycle`, `node:nudge`, `node:select`) ; `interaction/character-manipulation.ts` fait la sélection et le glisser, et émet `frame:pose:change` (frame désignée par son **id**). Zone de saisie d'une poignée : 22 px CSS de rayon (cible de 44 px). Pas de manipulation pendant la lecture ; les poignées ne s'affichent qu'en mode Personnage.
@@ -484,6 +528,11 @@ Il n’y a pas de `core/history.ts` : l’historique est interne au module Proje
 | `stock:search` | `{ query, page }` (page > 1 : défilement infini) |
 | `stock:import` | `{ photoId }` (photo des résultats, avec son crédit) |
 | `url:import` | `{ url }` (image d'une adresse, par le proxy) |
+| `library:export-file` | `{ projectId }` (fichier `.stickflow` d'un projet, v2.2) |
+| `library:backup` | — (tous les projets dans un seul `.stickflow`) |
+| `library:import` | `{ file }` (importer ou restaurer un `.stickflow`) |
+| `storage:protect` | — (redemander le stockage protégé, Réglages) |
+| `app:install` | — (fenêtre d'installation de la PWA du navigateur) |
 
 La vitesse de prévisualisation comprend **x1** (vitesse normale) en plus de x2 / x5 / x10, pour qu'une valeur soit toujours sélectionnée.
 
@@ -644,7 +693,9 @@ Module Projet (revue d'architecture, candidat 1, **réalisé**) — `src/model/p
    - **Version 2.0** (voir 2.5) : routeur et vues (accueil / éditeur), formats de vidéo et cadre, modèle v3 + migration, index des projets et vignettes, page d'accueil (barre latérale, bannière, modèles, projets, vidéos, création), vidéos conservées et lecteur, réglages et thème, barre d'onglets mobile. ✅
    - **Version 2.0.1** : création de projet simplifiée (barre latérale sans « Nouveau projet », « Libre » et « + » ouvrent la feuille complète, bouton flottant caché sous la bannière sur ordinateur), noms des formats harmonisés. ✅
    - **Version 2.1** (voir 2.6) : arrière-plan personnalisé — couleur, dégradé, intégrés, image de l'appareil (fichier, glisser-déposer, collage) ou d'Internet (Pexels, adresse) ; réglages d'image ; magasin d'assets ; modèle v4 + migration ; proxy Cloudflare Worker. ✅
-7. **Phase 7 — PWA et Android** : `vite-plugin-pwa`, Capacitor, test fermé Google Play.
+7. **Phase 7 — PWA et Android**
+   - **7A — Déploiement web (PWA)**, version 2.2 (voir 2.7) : Worker unique (site + `/api/*`), PWA installable et hors ligne, mises à jour annoncées, fichiers `.stickflow` et sauvegarde, stockage protégé, en-têtes et CSP, pages publiques, référencement, CI. ✅ (mise en ligne : étapes manuelles de `DEPLOY.md`)
+   - **7B — Google Play** : Capacitor, icône adaptative, fiche et captures, test fermé.
 8. **Phase 8 — IA avancée** : modèle de *motion in-betweening*, effets prédéfinis, prompt.
 
 ---

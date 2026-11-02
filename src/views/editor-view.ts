@@ -61,7 +61,7 @@ export function createEditorView({ projectId, library, videos, assets, navigate 
   let destroyed = false;
 
   async function load(): Promise<void> {
-    let project;
+    let project: Project;
     try {
       project = await library.load(projectId);
     } catch (error) {

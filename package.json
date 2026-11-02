@@ -14,7 +14,8 @@
     "dev:api": "wrangler dev --port 8787",
     "preview:worker": "npm run build && wrangler dev --port 8787",
     "deploy": "npm run build && wrangler deploy",
-    "typecheck": "wrangler types server/worker-configuration.d.ts && tsc && tsc -p server"
+    "typecheck": "wrangler types server/worker-configuration.d.ts && tsc && tsc -p server",
+    "lint": "biome lint"
   },
   "dependencies": {
     "fflate": "^0.8.3",
@@ -35,5 +36,8 @@
     "vitest": "^5.0.5",
     "workbox-window": "^7.4.1",
     "wrangler": "^4.156.2"
+  },
+  "engines": {
+    "node": ">=22.12"
   }
 }

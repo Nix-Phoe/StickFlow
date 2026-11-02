@@ -12,8 +12,15 @@ function fakeManager({ persisted = false, grant = true } = {}) {
   return {
     calls,
     manager: {
-      persisted: async () => (calls.push('persisted'), state),
-      persist: async () => (calls.push('persist'), (state = grant)),
+      persisted: async () => {
+        calls.push('persisted');
+        return state;
+      },
+      persist: async () => {
+        calls.push('persist');
+        state = grant;
+        return state;
+      },
     },
   };
 }

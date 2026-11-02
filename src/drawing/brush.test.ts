@@ -61,7 +61,10 @@ describe('createStroke', () => {
 
   it('sprays soft, see-through specks around the path with the airbrush', () => {
     let seed = 1;
-    const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+    const random = () => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
     const dabs = draw('airbrush', line({ x: 0, y: 0 }, { x: 30, y: 0 }, 5), settings, random);
     expect(dabs.length).toBeGreaterThan(30);
     expect(dabs.every((d) => d.alpha < 0.3 && Math.abs(d.y) <= 10)).toBe(true);

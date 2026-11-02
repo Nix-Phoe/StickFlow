@@ -86,7 +86,7 @@ describe('fromProjectFile', () => {
 
   it('rejects an invalid skeleton', () => {
     const file = editable();
-    (file.project.characters[0]?.skeleton as Array<{ parentId: string | null }>).forEach((node) => (node.parentId = null));
+    for (const node of (file.project.characters[0]?.skeleton ?? []) as Array<{ parentId: string | null }>) node.parentId = null;
     expect(() => fromProjectFile(file)).toThrow(ProjectFileError);
   });
 

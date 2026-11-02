@@ -81,6 +81,10 @@ export function createHomeView({ section, library, preferences, videos, assets, 
 
   // Calque de dessin des exports lancés depuis l'accueil, créé au premier export.
   let drawing: DrawingSurface | null = null;
+  const exportDrawing = (): DrawingSurface => {
+    drawing ??= createDrawingSurface();
+    return drawing;
+  };
   const intents: HomeIntents = connectHomeIntents({
     bus,
     store,
@@ -92,7 +96,7 @@ export function createHomeView({ section, library, preferences, videos, assets, 
     thumbnail: (project) => projectThumbnail(project, null),
     // Les encodeurs (GIF, ZIP, vidéo) ne sont chargés qu'au premier export.
     exportProject: async (project, format, onProgress) =>
-      (await import('../export/exporter')).exportProject(project, format, { drawing: (drawing ??= createDrawingSurface()), images, onProgress }),
+      (await import('../export/exporter')).exportProject(project, format, { drawing: exportDrawing(), images, onProgress }),
     download: ({ blob, filename }) => downloadBlob(blob, filename),
     videos,
     assets,

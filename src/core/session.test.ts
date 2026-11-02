@@ -10,7 +10,7 @@ const project = testProject({
   characters: [testCharacter('c1'), testCharacter('c2')],
   environment: { background: null, shapes: [testShape('s1')], drawing: { tiles: {} } },
 });
-const fit = (session: Session, next = sequence) => fitSessionToSequence(session, sequence, next, project);
+const refit = (session: Session, next = sequence) => fitSessionToSequence(session, sequence, next, project);
 
 describe('createSession', () => {
   it('starts paused, with nothing selected, the onion skin on and an empty clipboard', () => {
@@ -43,7 +43,7 @@ describe('fitSessionToSequence', () => {
       selectedParts: ['torso'],
       selectedShapeId: 's1',
     };
-    expect(fit(session)).toBe(session);
+    expect(refit(session)).toBe(session);
   });
 
   it('picks the first frame when nothing is active yet', () => {
@@ -51,25 +51,25 @@ describe('fitSessionToSequence', () => {
   });
 
   it('stays at the same place when the active frame disappears', () => {
-    expect(fit({ ...createSession(), activeFrameId: 'b' }, [frame('a'), frame('c')]).activeFrameId).toBe('c');
+    expect(refit({ ...createSession(), activeFrameId: 'b' }, [frame('a'), frame('c')]).activeFrameId).toBe('c');
   });
 
   it('falls back to the last frame when the active frame was at the end', () => {
-    expect(fit({ ...createSession(), activeFrameId: 'c' }, [frame('a'), frame('b')]).activeFrameId).toBe('b');
+    expect(refit({ ...createSession(), activeFrameId: 'c' }, [frame('a'), frame('b')]).activeFrameId).toBe('b');
   });
 
   it('clears the node and parts that are not in the selected character', () => {
     const session = { ...createSession(), activeFrameId: 'a', selectedCharacterId: 'c1', selectedNodeId: 'tail', selectedParts: ['tail', 'head'] };
-    expect(fit(session)).toMatchObject({ selectedNodeId: null, selectedParts: ['head'] });
+    expect(refit(session)).toMatchObject({ selectedNodeId: null, selectedParts: ['head'] });
   });
 
   it('clears the whole character selection when the character is gone', () => {
     const session = { ...createSession(), activeFrameId: 'a', selectedCharacterId: 'ghost', selectedNodeId: 'head', selectedParts: ['head'] };
-    expect(fit(session)).toMatchObject({ selectedCharacterId: null, selectedNodeId: null, selectedParts: [] });
+    expect(refit(session)).toMatchObject({ selectedCharacterId: null, selectedNodeId: null, selectedParts: [] });
   });
 
   it('clears a selected shape that no longer exists', () => {
-    expect(fit({ ...createSession(), activeFrameId: 'a', selectedShapeId: 'ghost' }).selectedShapeId).toBeNull();
+    expect(refit({ ...createSession(), activeFrameId: 'a', selectedShapeId: 'ghost' }).selectedShapeId).toBeNull();
   });
 });
 

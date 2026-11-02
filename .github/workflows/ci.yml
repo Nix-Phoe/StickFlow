@@ -1,0 +1,36 @@
+# Intégration continue : à chaque push et pull request, vérifier les types, le lint, les tests et le build.
+# Le déploiement est fait par Cloudflare Workers Builds (production depuis main, prévisualisations
+# pour les autres branches) : voir DEPLOY.md.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Installation
+        run: npm ci
+      - name: Vérification TypeScript (app et Worker)
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build

@@ -119,12 +119,15 @@ export function createEditorView({ projectId, library, videos, assets, navigate 
               duration: result.duration,
               thumbnail: thumbnail(project),
             })
-            .catch((error: unknown) => console.warn('[videos] Vidéo non conservée :', error));
+            .catch((error: unknown) => console.error('[videos] Vidéo non conservée :', error));
         },
       }),
-      bus.onAny((type, payload) => {
-        if (!QUIET_EVENTS.has(type as AppEventName)) console.info(`[event] ${String(type)}`, payload ?? '');
-      }),
+      // Journal des événements, en développement seulement (retiré du build de production).
+      import.meta.env.DEV
+        ? bus.onAny((type, payload) => {
+            if (!QUIET_EVENTS.has(type as AppEventName)) console.info(`[event] ${String(type)}`, payload ?? '');
+          })
+        : () => undefined,
       // Retour à l'accueil (bouton du panneau) : la sauvegarde se fait en quittant la vue.
       bus.on('route:change', ({ route }) => navigate(route)),
       // « Enregistrer sous » ou « Ouvrir » changent de document : l'adresse suit, sans recharger la vue.

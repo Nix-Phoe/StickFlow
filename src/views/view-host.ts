@@ -17,9 +17,14 @@ export interface View {
 export interface ViewHost {
   /** Affiche la route ; les appels se suivent, et une route dépassée par une plus récente est ignorée. */
   show(route: Route): Promise<void>;
+  /** La vue affichée finit son travail (sauvegarde) sans être quittée : avant un rechargement de la page. */
+  save(): Promise<void>;
 }
 
-export function createViewHost(parent: HTMLElement, create: (route: Route) => View): ViewHost {
+/** Crée la vue d'une route ; une vue chargée à la demande (l'éditeur, v2.2) arrive par une promesse. */
+export type ViewFactory = (route: Route) => View | Promise<View>;
+
+export function createViewHost(parent: HTMLElement, create: ViewFactory): ViewHost {
   let current: View | null = null;
   let latest: Route | null = null;
   let queue: Promise<void> = Promise.resolve();
@@ -38,7 +43,10 @@ export function createViewHost(parent: HTMLElement, create: (route: Route) => Vi
     }
     // Une route plus récente est arrivée pendant la sortie : c'est elle qu'on montera.
     if (latest !== route) return;
-    current = create(route);
+    const view = await create(route);
+    // … ou pendant le chargement de la vue : celle-ci n'est jamais montée.
+    if (latest !== route) return;
+    current = view;
     current.mount(parent);
   }
 
@@ -47,6 +55,9 @@ export function createViewHost(parent: HTMLElement, create: (route: Route) => Vi
       latest = route;
       queue = queue.then(() => apply(route));
       return queue;
+    },
+    async save() {
+      await current?.leave?.();
     },
   };
 }

@@ -77,11 +77,6 @@ export function partColor(character: Character, nodeId: string, fallback: string
   return character.appearance.segmentColors[nodeId] ?? character.appearance.defaultColor ?? fallback;
 }
 
-/** Parties coloriables : les nœuds qui dessinent quelque chose (la racine, de longueur nulle, n'en est pas une). */
-export function characterParts(character: Character): string[] {
-  return character.skeleton.filter((node) => node.length > 0).map((node) => node.id);
-}
-
 /** Encombrement du personnage dans sa pose de repos, à la taille 100 % (unités du monde). */
 export function restSize(character: Character, strokeWidth = 9): { width: number; height: number } {
   const normal: Character = { ...character, appearance: { ...character.appearance, scale: 1 } };

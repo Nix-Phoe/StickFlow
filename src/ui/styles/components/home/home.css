@@ -118,3 +118,9 @@
   align-self: flex-start;
   color: var(--color-destructive);
 }
+
+.settings__version {
+  font-size: var(--font-size-footnote);
+  color: var(--color-label-tertiary);
+  text-align: center;
+}

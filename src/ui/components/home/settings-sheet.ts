@@ -56,6 +56,7 @@ export function createSettingsSheet({ bus, store }: HomeContext): Component {
       h('div', { class: 'sheet__field' }, [h('span', { class: 'sheet__label' }, [t.defaultFormat]), format.element]),
       h('div', { class: 'sheet__row' }, [h('label', { class: 'sheet__label', for: 'settings-fps' }, [t.defaultFps]), fps.element]),
       h('div', { class: 'sheet__field' }, [h('span', { class: 'sheet__label' }, [t.videos]), videosInfo, clearVideos]),
+      h('p', { class: 'settings__version' }, [t.version(__APP_VERSION__)]),
     ],
     actions: [done],
     onClose: () => bus.emit('home:sheet', { sheet: null }),

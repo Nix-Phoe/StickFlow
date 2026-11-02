@@ -60,4 +60,29 @@ describe('createViewHost', () => {
     await toOther;
     expect(log).toEqual(['mount editor:p1', 'leave editor:p1', 'destroy editor:p1', 'mount editor:p2']);
   });
+
+  it('waits for a view loaded on demand, and drops it if a newer route arrived meanwhile', async () => {
+    const log: string[] = [];
+    let release: () => void = () => undefined;
+    const loaded = new Promise<void>((resolve) => (release = resolve));
+    const host = createViewHost(parent, async (route) => {
+      const name = route.name === 'editor' ? 'editor' : 'home';
+      if (name === 'editor') await loaded;
+      return { mount: () => log.push(`mount ${name}`), destroy: () => log.push(`destroy ${name}`) };
+    });
+    const toEditor = host.show({ name: 'editor', projectId: 'p1' });
+    const toHome = host.show({ name: 'home' });
+    release();
+    await toEditor;
+    await toHome;
+    expect(log).toEqual(['mount home']);
+  });
+
+  it('saves the work of the shown view without leaving it (before a reload)', async () => {
+    const { host, log } = setup();
+    await host.save();
+    await host.show({ name: 'editor', projectId: 'p1' });
+    await host.save();
+    expect(log).toEqual(['mount editor:p1', 'leave editor:p1']);
+  });
 });

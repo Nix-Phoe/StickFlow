@@ -10,7 +10,6 @@ import type { HomeSection, Route } from '../core/router';
 import { Store } from '../core/store';
 import { createDrawingSurface, type DrawingSurface } from '../drawing/surface';
 import { createAssetImages } from '../environment/asset-images';
-import { exportProject } from '../export';
 import { projectThumbnail } from '../render/thumbnail';
 import type { ProjectLibrary } from '../storage';
 import type { PreferencesStore } from '../storage/preferences';
@@ -81,7 +80,9 @@ export function createHomeView({ section, library, preferences, videos, assets, 
     templates,
     names: { project: strings.defaultProjectName, character: strings.characters.defaultName(1) },
     thumbnail: (project) => projectThumbnail(project, null),
-    exportProject: (project, format, onProgress) => exportProject(project, format, { drawing: (drawing ??= createDrawingSurface()), images, onProgress }),
+    // Les encodeurs (GIF, ZIP, vidéo) ne sont chargés qu'au premier export.
+    exportProject: async (project, format, onProgress) =>
+      (await import('../export/exporter')).exportProject(project, format, { drawing: (drawing ??= createDrawingSurface()), images, onProgress }),
     download: ({ blob, filename }) => downloadBlob(blob, filename),
     videos,
     assets,
@@ -91,9 +92,12 @@ export function createHomeView({ section, library, preferences, videos, assets, 
     intents.disconnect,
     preview.destroy,
     images.destroy,
-    bus.onAny((type, payload) => {
-      if (!QUIET_EVENTS.has(type as AppEventName)) console.info(`[event] ${String(type)}`, payload ?? '');
-    }),
+    // Journal des événements, en développement seulement (retiré du build de production).
+    import.meta.env.DEV
+      ? bus.onAny((type, payload) => {
+          if (!QUIET_EVENTS.has(type as AppEventName)) console.info(`[event] ${String(type)}`, payload ?? '');
+        })
+      : () => undefined,
     store.watch((s) => s.preferences.theme, applyTheme),
   );
 

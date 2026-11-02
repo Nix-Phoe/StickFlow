@@ -1,0 +1,79 @@
+/* Coquille de l'app (v2.2) : navigateur non compatible, erreur globale, mise à jour. */
+
+.app-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: max(var(--space-3), env(safe-area-inset-top)) var(--space-2) max(var(--space-3), env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+.app-screen__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(100%, var(--dialog-width));
+  padding: var(--space-4) var(--space-3);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.app-screen__logo {
+  width: var(--space-6);
+  height: var(--space-6);
+  color: var(--color-accent);
+}
+
+.app-screen__title {
+  font-size: var(--font-size-title-1);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.app-screen__text {
+  color: var(--color-label-secondary);
+}
+
+.app-screen__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  padding-left: var(--space-3);
+}
+
+.app-screen__hint {
+  font-size: var(--font-size-footnote);
+  color: var(--color-label-tertiary);
+}
+
+/* Erreur globale : une feuille (`.sheet`) au rôle d'alerte. */
+.error-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.error-dialog__text {
+  color: var(--color-label-secondary);
+}
+
+.error-dialog__details summary {
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--color-accent);
+}
+
+.error-dialog__detail {
+  max-height: calc(var(--space-6) * 3);
+  overflow: auto;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-fill);
+  font-size: var(--font-size-caption);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

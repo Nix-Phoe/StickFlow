@@ -64,7 +64,7 @@ export function connectStageView({ bus, store, canvas, drawing, background }: St
     try {
       return parseHexColor(value);
     } catch (error) {
-      console.warn(`[render] ${token} :`, error);
+      console.error(`[render] ${token} :`, error);
       return FALLBACK_COLOR;
     }
   }

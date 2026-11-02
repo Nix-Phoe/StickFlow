@@ -66,6 +66,19 @@ import {
   Undo2,
   UserPlus,
   X,
+  // Coquille de l'app (v2.2)
+  Archive,
+  ArchiveRestore,
+  FileDown,
+  FileText,
+  FileUp,
+  Info,
+  MonitorDown,
+  RefreshCw,
+  RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
+  SquarePlus,
   type IconNode,
 } from 'lucide';
 
@@ -136,6 +149,19 @@ const registry = {
   upload: ImageUp,
   globe: Globe,
   link: Link,
+  // Coquille de l'app (v2.2) : erreurs, mises à jour, installation, sauvegardes
+  reload: RotateCcw,
+  update: RefreshCw,
+  install: MonitorDown,
+  addToHome: SquarePlus,
+  protected: ShieldCheck,
+  unprotected: ShieldAlert,
+  exportFile: FileDown,
+  importFile: FileUp,
+  backup: Archive,
+  restore: ArchiveRestore,
+  document: FileText,
+  info: Info,
 } satisfies Record<string, IconNode>;
 
 export type IconName = keyof typeof registry;

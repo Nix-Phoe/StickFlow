@@ -21,7 +21,7 @@ export function createAssetImages(assets: Pick<AssetStore, 'get'>): AssetImages 
       const asset = await assets.get(assetId);
       return asset ? await createImageBitmap(asset.blob) : null;
     } catch (error) {
-      console.warn(`[assets] Image ${assetId} illisible :`, error);
+      console.error(`[assets] Image ${assetId} illisible :`, error);
       return null;
     }
   }

@@ -65,7 +65,7 @@ export function createProjectPreviewer(library: ProjectLibrary, images: AssetIma
           request = requestAnimationFrame(tick);
         };
         request = requestAnimationFrame(tick);
-      })().catch((error: unknown) => console.warn('[home] Aperçu indisponible :', error));
+      })().catch((error: unknown) => console.error('[home] Aperçu indisponible :', error));
       return stop;
     },
 

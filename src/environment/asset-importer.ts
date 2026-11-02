@@ -30,7 +30,7 @@ export function connectAssetImporter({ bus, store, assets, process }: AssetImpor
   let queue: Promise<void> = Promise.resolve();
   /** Les imports passent un par un, dans l'ordre. */
   const run = (task: () => Promise<void>): void => {
-    queue = queue.then(task).catch((error: unknown) => console.warn('[assets]', error));
+    queue = queue.then(task).catch((error: unknown) => console.error('[assets]', error));
   };
   const setImport = (status: 'idle' | 'busy' | 'error', error: AssetErrorCode | null = null): void =>
     store.update((s) => ({ session: { ...s.session, assetImport: { status, error } } }));

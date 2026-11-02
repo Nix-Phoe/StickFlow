@@ -24,6 +24,24 @@ export const strings = {
   appName: 'StickFlow',
   defaultProjectName: 'Projet sans titre',
 
+  /** Coquille de l'app (v2.2) : compatibilité, erreurs, mises à jour, installation. */
+  app: {
+    unsupported: {
+      title: 'Navigateur non compatible',
+      text: 'StickFlow dessine la scène avec WebGL 2, que ce navigateur ne propose pas (ou qui est désactivé).',
+      browsers: 'Ouvrez StickFlow dans une version récente de l’un de ces navigateurs :',
+      list: ['Google Chrome ou Microsoft Edge (ordinateur et Android)', 'Mozilla Firefox', 'Safari 15 ou plus récent (Mac, iPhone, iPad)'],
+      hint: 'Si votre navigateur est déjà à jour, vérifiez que l’accélération matérielle est activée dans ses réglages.',
+    },
+    error: {
+      title: 'Une erreur inattendue est survenue',
+      text: 'Vos projets enregistrés sont en sécurité sur cet appareil. Recharger l’app enregistre d’abord le projet ouvert.',
+      reload: 'Recharger',
+      dismiss: 'Continuer',
+      detail: 'Détail technique',
+    },
+  },
+
   modes: {
     characters: 'Personnages',
     environment: 'Environnement',
@@ -435,6 +453,7 @@ export const strings = {
       videos: 'Vidéos conservées',
       clearVideos: 'Effacer les vidéos stockées',
       noVideos: 'Aucune vidéo conservée.',
+      version: (version: string): string => `StickFlow ${version}`,
       close: 'OK',
     },
   },

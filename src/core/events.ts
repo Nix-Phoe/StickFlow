@@ -88,6 +88,12 @@ export interface AppEvents {
   'library:duplicate': { projectId: string; name: string };
   'library:delete': { projectId: string };
   'library:export': { projectId: string; format: ExportFormat };
+  /** Fichier « .stickflow » (v2.2) : exporter un projet, sauvegarder tous les projets, importer un fichier. */
+  'library:export-file': { projectId: string };
+  'library:backup': void;
+  'library:import': { file: Blob };
+  /** Redemande au navigateur de protéger le stockage (bouton des Réglages, v2.2). */
+  'storage:protect': void;
   /** Recherche des projets et des modèles par nom (en direct). */
   /** Vidéos conservées (« Mes vidéos ») : en supprimer une, les plus anciennes (espace presque plein), ou toutes. */
   'video:delete': { videoId: string };

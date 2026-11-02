@@ -27,7 +27,7 @@ export interface ProjectLibrary {
    * Enregistre le projet sous `id`, ou sous un nouvel id s'il n'est pas donné. Sans nouvelle
    * vignette, l'ancienne est gardée.
    */
-  save(project: Project, id?: string, options?: { thumbnail?: string | null }): Promise<ProjectSummary>;
+  save(project: Project, id?: string, options?: SaveOptions): Promise<ProjectSummary>;
   /** Résumés des projets enregistrés (index), du plus récemment modifié au plus ancien. */
   list(): Promise<ProjectSummary[]>;
   load(id: string): Promise<Project>;
@@ -38,6 +38,12 @@ export interface ProjectLibrary {
   duplicate(id: string, name: string): Promise<ProjectSummary>;
   /** Remplace la vignette d'un projet, sans changer sa date de modification. */
   setThumbnail(id: string, thumbnail: string): Promise<void>;
+}
+
+export interface SaveOptions {
+  thumbnail?: string | null;
+  /** Dates d'un projet importé (v2.2) ; sinon création gardée et modification maintenant. */
+  dates?: { createdAt: number; updatedAt: number };
 }
 
 interface StoredProject {
@@ -92,8 +98,9 @@ export function createProjectLibrary(
   }
 
   const library: ProjectLibrary = {
-    async save(project, id, { thumbnail } = {}) {
+    async save(project, id, { thumbnail, dates } = {}) {
       const time = now();
+      if (dates) return write(project, id ?? newId(), dates, thumbnail ?? (id === undefined ? null : ((await readSummary(id))?.thumbnail ?? null)));
       const existing = id === undefined ? null : await readSummary(id);
       const createdAt = existing?.createdAt ?? (id === undefined ? null : (await read(id))?.createdAt) ?? time;
       return write(project, id ?? newId(), { createdAt, updatedAt: time }, thumbnail ?? existing?.thumbnail ?? null);

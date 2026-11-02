@@ -3,13 +3,16 @@
 // Sans DOM : bibliothèque, préférences, modèles, vignettes et export sont injectés.
 
 import type { Project } from './types';
-import type { AssetStore } from '../storage/asset-store';
+import type { Asset, AssetStore } from '../storage/asset-store';
+import { ArchiveError, archiveFileName, backupFileName, type ArchivedProject, type ProjectArchive } from '../storage/project-archive';
+import { collectProjects, importProjects } from '../storage/project-transfer';
+import type { StorageProtection } from '../storage/storage-protection';
 import type { ProjectLibrary } from '../storage/library';
 import type { PreferencesStore } from '../storage/preferences';
 import type { VideoLibrary } from '../storage/video-store';
 import { createProject, uniqueName } from '../model/new-project';
 import type { AppEventBus } from './events';
-import { isVideoType, normalizePreferences, videosToPrune, type HomeNoticeCode, type HomeState, type Preferences } from './home-state';
+import { isVideoType, normalizePreferences, videosToPrune, type HomeNoticeCode, type HomeState, type HomeTransfer, type Preferences } from './home-state';
 import type { Route } from './router';
 import type { Store } from './store';
 import type { ExportFormat } from './types';
@@ -38,12 +41,20 @@ export interface HomeIntentOptions {
   thumbnail?: (project: Project) => string | null;
   /** Export d'un projet enregistré (menu de sa carte) ; navigateur uniquement. */
   exportProject?: (project: Project, format: ExportFormat, onProgress: (progress: number) => void) => Promise<ExportedFile>;
-  /** Remet le fichier exporté à l'utilisateur (téléchargement). */
-  download?: (file: ExportedFile) => void;
+  /** Remet un fichier à l'utilisateur (téléchargement). */
+  download?: (file: { blob: Blob; filename: string }) => void;
   /** Vidéos exportées conservées dans l'app (« Mes vidéos »). */
   videos?: VideoLibrary;
-  /** Images d'arrière-plan : celles qu'aucun projet n'utilise plus sont supprimées avec leur dernier projet (v2.1). */
-  assets?: Pick<AssetStore, 'removeUnused'>;
+  /** Images d'arrière-plan : supprimées avec leur dernier projet (v2.1), exportées et importées avec lui (v2.2). */
+  assets?: Pick<AssetStore, 'removeUnused' | 'get' | 'add'>;
+  /** Écrit et relit les fichiers « .stickflow » (v2.2) ; navigateur uniquement (chargé à la demande). */
+  archive?: {
+    write(contents: { projects: ArchivedProject[]; assets: Asset[] }): Promise<Blob>;
+    read(file: Blob): Promise<ProjectArchive>;
+  };
+  /** Stockage protégé (`navigator.storage.persist()`, v2.2). */
+  protection?: StorageProtection;
+  now?: () => number;
   /** Espace utilisé et disponible (`navigator.storage.estimate()`), s'il est connu. */
   estimateStorage?: () => Promise<{ usage: number; quota: number } | null>;
 }
@@ -72,8 +83,31 @@ export function connectHomeIntents(options: HomeIntentOptions): HomeIntents {
     store.update({ notice: { kind, code, detail: detail instanceof Error ? detail.message : detail === undefined ? undefined : String(detail) } });
 
   async function refresh(): Promise<void> {
-    store.update({ projects: await library.list() });
+    store.update({ projects: await library.list(), storageProtected: (await options.protection?.status()) ?? null });
     await refreshVideos();
+  }
+
+  /** Un transfert de fichier « .stickflow » : un seul à la fois, et ses erreurs deviennent un message. */
+  const transfer = (kind: HomeTransfer, operation: () => Promise<void>, failure: HomeNoticeCode): void =>
+    run(async () => {
+      if (store.state.transfer) return;
+      store.update({ transfer: kind, notice: null });
+      try {
+        await operation();
+      } catch (error) {
+        if (!(error instanceof ArchiveError)) console.error('[home]', error);
+        notify('error', failure, error instanceof ArchiveError ? error.code : error);
+      } finally {
+        store.update({ transfer: null });
+      }
+    });
+
+  /** Archive des projets donnés, remise à l'utilisateur sous ce nom. */
+  async function downloadArchive(projectIds: readonly string[], filename: string): Promise<void> {
+    const { archive, assets, download } = options;
+    if (!archive || !assets) throw new Error('Fichiers .stickflow indisponibles');
+    const blob = await archive.write(await collectProjects(projectIds, { library, assets }));
+    download?.({ blob, filename });
   }
 
   async function refreshVideos(): Promise<void> {
@@ -171,6 +205,54 @@ export function connectHomeIntents(options: HomeIntentOptions): HomeIntents {
         } finally {
           store.update({ exporting: null });
         }
+      }),
+    ),
+    bus.on('library:export-file', ({ projectId }) =>
+      transfer(
+        'export',
+        async () => {
+          const summary = (await library.list()).find((p) => p.id === projectId);
+          if (!summary) return;
+          const filename = archiveFileName(summary.name);
+          await downloadArchive([projectId], filename);
+          notify('success', 'project-exported', filename);
+        },
+        'action-failed',
+      ),
+    ),
+    bus.on('library:backup', () =>
+      transfer(
+        'backup',
+        async () => {
+          const projects = await library.list();
+          if (projects.length === 0) return notify('error', 'backup-empty');
+          const filename = backupFileName(new Date((options.now ?? Date.now)()));
+          await downloadArchive(
+            projects.map((p) => p.id),
+            filename,
+          );
+          notify('success', 'backup-created', filename);
+        },
+        'action-failed',
+      ),
+    ),
+    bus.on('library:import', ({ file }) =>
+      transfer(
+        'import',
+        async () => {
+          const { archive, assets } = options;
+          if (!archive || !assets) throw new Error('Fichiers .stickflow indisponibles');
+          const imported = await importProjects(await archive.read(file), { library, assets, thumbnail });
+          await refresh();
+          notify('success', 'imported', imported.length);
+        },
+        'import-failed',
+      ),
+    ),
+    bus.on('storage:protect', () =>
+      run(async () => {
+        await options.protection?.request({ force: true });
+        store.update({ storageProtected: (await options.protection?.status()) ?? null });
       }),
     ),
     bus.on('video:delete', ({ videoId }) => onVideos((videos) => videos.remove(videoId), 'video-deleted')),

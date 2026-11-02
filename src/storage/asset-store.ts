@@ -27,7 +27,8 @@ export interface Asset extends AssetSummary {
 }
 
 export interface AssetStore {
-  add(asset: NewAsset): Promise<AssetSummary>;
+  /** Garde l'image ; `id` (import d'une archive, v2.2) est gardé s'il est libre. */
+  add(asset: NewAsset, options?: { id?: string }): Promise<AssetSummary>;
   /** L'asset et son fichier ; `null` s'il n'existe pas (ou plus). */
   get(id: string): Promise<Asset | null>;
   /** Le note comme utilisé maintenant (il remonte dans les récents). */
@@ -48,9 +49,10 @@ export function createAssetStore(
   }
 
   return {
-    async add(asset) {
+    async add(asset, { id } = {}) {
       const time = now();
-      const stored: Asset = { ...asset, id: newId(), createdAt: time, usedAt: time };
+      const free = id !== undefined && (await read(id)) === null;
+      const stored: Asset = { ...asset, id: free ? id : newId(), createdAt: time, usedAt: time };
       await store.set(stored.id, stored);
       return summarize(stored);
     },

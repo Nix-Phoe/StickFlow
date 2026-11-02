@@ -21,6 +21,12 @@ function setup() {
 }
 
 describe('createAssetStore', () => {
+  it('keeps the id of an imported image (v2.2) when it is free, a fresh one otherwise', async () => {
+    const { assets } = setup();
+    expect((await assets.add(asset(), { id: 'img-1' })).id).toBe('img-1');
+    expect((await assets.add(asset(), { id: 'img-1' })).id).toBe('a1');
+  });
+
   it('keeps an image with its size, type, source and credit', async () => {
     const { assets } = setup();
     const credit = { author: 'Ana', url: 'https://www.pexels.com/photo/1', provider: 'Pexels' };

@@ -168,3 +168,10 @@ h1.home-section__title {
   margin-bottom: var(--space-1);
   color: var(--color-label-secondary);
 }
+
+.empty-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1);
+}

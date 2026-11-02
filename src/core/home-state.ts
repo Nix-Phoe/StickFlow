@@ -57,7 +57,23 @@ export type HomeSheet =
   | { kind: 'settings' }
   | { kind: 'video'; videoId: string };
 
-export type HomeNoticeCode = 'duplicated' | 'deleted' | 'exported' | 'export-failed' | 'action-failed' | 'video-deleted' | 'videos-cleared';
+export type HomeNoticeCode =
+  | 'duplicated'
+  | 'deleted'
+  | 'exported'
+  | 'export-failed'
+  | 'action-failed'
+  | 'video-deleted'
+  | 'videos-cleared'
+  // Fichiers « .stickflow » (v2.2)
+  | 'project-exported'
+  | 'backup-created'
+  | 'backup-empty'
+  | 'imported'
+  | 'import-failed';
+
+/** Transfert de fichier « .stickflow » en cours (v2.2) : les boutons concernés attendent. */
+export type HomeTransfer = 'export' | 'backup' | 'import';
 
 /** Message bref après une action (affiché, puis effacé). */
 export interface HomeNotice {
@@ -82,6 +98,9 @@ export interface HomeState {
   notice: HomeNotice | null;
   /** La bannière de l'accueil est à l'écran (suivie par un `IntersectionObserver`). */
   heroVisible: boolean;
+  /** Le navigateur protège-t-il le stockage (v2.2) ? `null` : il ne le dit pas. */
+  storageProtected: boolean | null;
+  transfer: HomeTransfer | null;
 }
 
 export function createHomeState(section: HomeSection, preferences: Preferences): HomeState {
@@ -96,6 +115,8 @@ export function createHomeState(section: HomeSection, preferences: Preferences):
     storage: null,
     notice: null,
     heroVisible: true,
+    storageProtected: null,
+    transfer: null,
   };
 }
 

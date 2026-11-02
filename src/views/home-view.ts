@@ -33,6 +33,7 @@ import { h } from '../ui/dom';
 import { downloadBlob } from '../ui/download';
 import { strings } from '../ui/strings';
 import type { AssetStore } from '../storage/asset-store';
+import type { StorageProtection } from '../storage/storage-protection';
 import { applyTheme } from '../ui/theme';
 import { createProjectPreviewer } from './project-previewer';
 import type { View } from './view-host';
@@ -44,6 +45,8 @@ export interface HomeViewOptions {
   videos: VideoLibrary;
   /** Images d'arrière-plan (v2.1) : aperçus, exports, et suppression avec le dernier projet qui les utilise. */
   assets: AssetStore;
+  /** Stockage protégé (v2.2), montré dans les Réglages. */
+  protection: StorageProtection;
   navigate: (route: Route) => void;
 }
 
@@ -60,7 +63,7 @@ const SECTIONS: Record<HomeSection, (context: HomeContext) => Component[]> = {
   videos: (context) => [createVideoGrid(context, { variant: 'all' })],
 };
 
-export function createHomeView({ section, library, preferences, videos, assets, navigate }: HomeViewOptions): View {
+export function createHomeView({ section, library, preferences, videos, assets, protection, navigate }: HomeViewOptions): View {
   const bus = createEventBus();
   const store = new Store<HomeState>(createHomeState(section, normalizePreferences(preferences.load())));
   const images = createAssetImages(assets);
@@ -86,6 +89,15 @@ export function createHomeView({ section, library, preferences, videos, assets, 
     download: ({ blob, filename }) => downloadBlob(blob, filename),
     videos,
     assets,
+    protection,
+    // Fichiers « .stickflow » (v2.2) : fflate n'est chargé qu'au premier export ou import.
+    archive: {
+      write: async ({ projects, assets: images }) => {
+        const { writeProjectArchive } = await import('../storage/project-archive');
+        return new Blob([await writeProjectArchive(projects, images, { app: __APP_VERSION__ })], { type: 'application/zip' });
+      },
+      read: async (file) => (await import('../storage/project-archive')).readProjectArchive(new Uint8Array(await file.arrayBuffer())),
+    },
     estimateStorage: estimateStorage,
   });
   cleanups.push(

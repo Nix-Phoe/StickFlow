@@ -14,6 +14,7 @@ import { supportsWebGL2 } from './render/webgl-support';
 import { createIdbStore, createMemoryStore, createProjectLibrary } from './storage';
 import { createAssetStore } from './storage/asset-store';
 import { createLocalPreferences } from './storage/preferences';
+import { createStorageProtection, protectOnSave } from './storage/storage-protection';
 import { createVideoLibrary } from './storage/video-store';
 import { createErrorDialog } from './ui/components/app/error-dialog';
 import { showUnsupportedScreen } from './ui/components/app/unsupported-screen';
@@ -35,9 +36,15 @@ function start(root: HTMLElement): void {
   // IndexedDB si le navigateur l'autorise (absent en navigation privée sur certains navigateurs) ;
   // sinon les projets ne vivent que le temps de la session.
   const persistent = typeof indexedDB !== 'undefined';
-  const library = createProjectLibrary(persistent ? createIdbStore() : createMemoryStore(), {
-    index: persistent ? createIdbStore('stickflow-index', 'projects') : createMemoryStore(),
-  });
+  // Le navigateur peut vider IndexedDB s'il manque de place : après la première sauvegarde, on lui
+  // demande de garder les données de l'app (stockage protégé, v2.2).
+  const protection = createStorageProtection(persistent ? navigator.storage : undefined);
+  const library = protectOnSave(
+    createProjectLibrary(persistent ? createIdbStore() : createMemoryStore(), {
+      index: persistent ? createIdbStore('stickflow-index', 'projects') : createMemoryStore(),
+    }),
+    protection,
+  );
   // Vidéos exportées, gardées en Blob dans une base à part.
   const videos = createVideoLibrary(persistent ? createIdbStore('stickflow-videos', 'videos') : createMemoryStore());
   // Images d'arrière-plan (v2.1), elles aussi en Blob dans leur propre base.
@@ -49,7 +56,7 @@ function start(root: HTMLElement): void {
   const host = createViewHost(root, async (route) =>
     route.name === 'editor'
       ? (await import('./views/editor-view')).createEditorView({ projectId: route.projectId, library, videos, assets, navigate })
-      : createHomeView({ section: route.name, library, preferences, videos, assets, navigate }),
+      : createHomeView({ section: route.name, library, preferences, videos, assets, protection, navigate }),
   );
 
   // Erreur imprévue : proposer de recharger, après avoir enregistré le projet ouvert.

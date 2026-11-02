@@ -76,6 +76,12 @@ describe('createProjectLibrary: enregistrer et ouvrir', () => {
     expect(await library.list()).toHaveLength(1);
   });
 
+  it('keeps the dates of an imported project (v2.2) instead of the current time', async () => {
+    const { library } = setup();
+    const summary = await library.save(project('Ancien'), 'old-id', { dates: { createdAt: 10, updatedAt: 20 } });
+    expect(summary).toMatchObject({ id: 'old-id', createdAt: 10, updatedAt: 20 });
+  });
+
   it('fails clearly when loading an unknown project', async () => {
     const { library } = setup();
     await expect(library.load('ghost')).rejects.toThrow(LibraryError);

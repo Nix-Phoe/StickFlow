@@ -4,6 +4,7 @@ import { PROJECT_SORTS, PROJECT_VIEWS, RECENT_PROJECTS, shownProjects, type Proj
 import { routeToHash } from '../../../core/router';
 import type { Component } from '../../component';
 import { h } from '../../dom';
+import { chooseFile, PROJECT_FILE_ACCEPT } from '../../transfer';
 import { icon } from '../../icons';
 import { logo } from '../../logo';
 import { strings } from '../../strings';
@@ -42,8 +43,17 @@ export function createProjectGrid(context: HomeContext, { variant }: ProjectGrid
   });
   const viewToggle = h('div', { class: 'view-toggle', role: 'group', 'aria-label': t.view }, viewButtons.map(([, button]) => button));
 
+  // Importer un fichier « .stickflow » (v2.2) : dans l'en-tête, et dans l'état vide.
+  const importFile = (): void =>
+    void chooseFile(PROJECT_FILE_ACCEPT).then((file) => {
+      if (file) bus.emit('library:import', { file });
+    });
+  const importButton = h('button', { type: 'button', class: 'icon-button', 'aria-label': t.importProject, title: t.importProject, 'data-action': 'library:import' }, [icon('importFile')]);
+  importButton.addEventListener('click', importFile);
+
   const Heading = variant === 'all' ? 'h1' : 'h2';
   const controls = h('div', { class: 'home-section__controls' }, [
+    importButton,
     h('label', { class: 'home-select__label' }, [h('span', { class: 'visually-hidden' }, [t.sort]), icon('down', 'icon home-select__chevron'), sortSelect]),
     viewToggle,
   ]);
@@ -67,11 +77,13 @@ export function createProjectGrid(context: HomeContext, { variant }: ProjectGrid
   const status = h('p', { class: 'home-section__status', role: 'status' });
   const emptyButton = h('button', { type: 'button', class: 'button-primary', 'data-action': 'home:sheet' }, [icon('plus'), t.empty.action]);
   emptyButton.addEventListener('click', () => bus.emit('home:sheet', { sheet: { kind: 'create', templateId: null } }));
+  const emptyImport = h('button', { type: 'button', class: 'button-secondary', 'data-action': 'library:import' }, [icon('importFile'), t.importProject]);
+  emptyImport.addEventListener('click', importFile);
   const empty = h('div', { class: 'empty-state', hidden: true }, [
     h('span', { class: 'empty-state__art', 'aria-hidden': 'true' }, [logo('empty-state__logo')]),
     h('h3', { class: 'empty-state__title' }, [t.empty.title]),
     h('p', { class: 'empty-state__text' }, [t.empty.text]),
-    emptyButton,
+    h('div', { class: 'empty-state__actions' }, [emptyButton, emptyImport]),
   ]);
 
   const root = h('section', { class: `home-section project-section project-section--${variant}`, 'aria-labelledby': titleId }, [
@@ -130,6 +142,13 @@ export function createProjectGrid(context: HomeContext, { variant }: ProjectGrid
 
   cleanups.push(
     store.watch((s) => s.projects, render),
+    store.watch(
+      (s) => s.transfer,
+      (transfer) => {
+        importButton.disabled = transfer !== null;
+        emptyImport.disabled = transfer !== null;
+      },
+    ),
     store.watch((s) => s.query, render),
     store.watch((s) => s.preferences, (preferences) => {
       sortSelect.value = preferences.sort;

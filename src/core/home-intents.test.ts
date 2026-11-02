@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { imageBackground } from '../model/background';
 import { createAssetStore } from '../storage/asset-store';
+import { ArchiveError, type ProjectArchive } from '../storage/project-archive';
 import { createMemoryStore } from '../storage/memory-store';
 import { createProjectLibrary } from '../storage/library';
 import { createMemoryPreferences } from '../storage/preferences';
@@ -228,5 +229,90 @@ describe('connectHomeIntents: vidéos', () => {
     await home.settled();
     expect(state().videos).toEqual([]);
     expect(state().notice).toMatchObject({ code: 'videos-cleared' });
+  });
+});
+
+describe('connectHomeIntents: fichiers .stickflow et stockage protégé (v2.2)', () => {
+  const ARCHIVE: ProjectArchive = {
+    projects: [{ id: 'imported', name: 'Venu d’ailleurs', createdAt: 10, updatedAt: 20, project: testProject({ name: 'Venu d’ailleurs' }) }],
+    assets: [],
+  };
+
+  async function withArchive(read: (file: Blob) => Promise<ProjectArchive> = async () => ARCHIVE) {
+    const written: Array<{ names: string[]; assets: number }> = [];
+    const downloads: string[] = [];
+    const context = await setup({
+      assets: createAssetStore(createMemoryStore()),
+      archive: {
+        write: async ({ projects, assets }) => {
+          written.push({ names: projects.map((p) => p.name), assets: assets.length });
+          return new Blob(['zip']);
+        },
+        read,
+      },
+      download: ({ filename }) => downloads.push(filename),
+      now: () => new Date(2026, 10, 2).getTime(),
+    });
+    return { ...context, written, downloads };
+  }
+
+  it('exports one project to a .stickflow file named after it', async () => {
+    const { bus, home, state, written, downloads } = await withArchive();
+    bus.emit('project:create', { name: 'Coup de poing' });
+    await home.settled();
+    bus.emit('library:export-file', { projectId: 'p1' });
+    await home.settled();
+    expect(written).toEqual([{ names: ['Coup de poing'], assets: 0 }]);
+    expect(downloads).toEqual(['coup-de-poing.stickflow']);
+    expect(state().notice).toMatchObject({ kind: 'success', code: 'project-exported', detail: 'coup-de-poing.stickflow' });
+  });
+
+  it('backs up every project in one dated file, and says so when there is nothing to back up', async () => {
+    const { bus, home, state, written, downloads } = await withArchive();
+    bus.emit('library:backup');
+    await home.settled();
+    expect(downloads).toEqual([]);
+    expect(state().notice).toMatchObject({ kind: 'error', code: 'backup-empty' });
+    for (const name of ['Saut', 'Course']) {
+      bus.emit('project:create', { name });
+      await home.settled();
+    }
+    bus.emit('library:backup');
+    await home.settled();
+    expect(written.at(-1)?.names.sort()).toEqual(['Course', 'Saut']);
+    expect(downloads).toEqual(['stickflow-sauvegarde-2026-11-02.stickflow']);
+    expect(state().notice).toMatchObject({ code: 'backup-created' });
+  });
+
+  it('imports the projects of a file into the library', async () => {
+    const { bus, home, state } = await withArchive();
+    bus.emit('library:import', { file: new Blob(['zip']) });
+    await home.settled();
+    expect(state().projects?.map((p) => p.name)).toEqual(['Venu d’ailleurs']);
+    expect(state().notice).toMatchObject({ kind: 'success', code: 'imported', detail: '1' });
+    expect(state().transfer).toBeNull();
+  });
+
+  it('explains why a file cannot be imported', async () => {
+    const { bus, home, state } = await withArchive(async () => {
+      throw new ArchiveError('too-new');
+    });
+    bus.emit('library:import', { file: new Blob(['zip']) });
+    await home.settled();
+    expect(state().notice).toMatchObject({ kind: 'error', code: 'import-failed', detail: 'too-new' });
+    expect(state().projects).toEqual([]);
+  });
+
+  it('shows whether the storage is protected, and asks again on demand', async () => {
+    let persisted = false;
+    const protection = {
+      status: async () => persisted,
+      request: async () => (persisted = true),
+    };
+    const { bus, home, state } = await setup({ protection });
+    expect(state().storageProtected).toBe(false);
+    bus.emit('storage:protect');
+    await home.settled();
+    expect(state().storageProtected).toBe(true);
   });
 });

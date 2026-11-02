@@ -30,6 +30,7 @@
   --color-on-accent: #ffffff;
   --color-focus-ring: rgba(0, 102, 204, 0.6);
   --color-destructive: #d70015;              /* systemRed assombri (AA) */
+  --color-success: #248a3d;                  /* systemGreen assombri (AA) */
 
   /* Canvas (les couleurs lues par le rendu WebGL doivent rester en hexadécimal) */
   --color-stickman: #1c1c1e;
@@ -223,6 +224,7 @@
     --color-on-accent: #ffffff;
     --color-focus-ring: rgba(10, 132, 255, 0.7);
     --color-destructive: #ff453a;
+    --color-success: #30d158;
 
     --color-stickman: #f2f2f7;
     --color-canvas: #1c1c1e;
@@ -270,6 +272,7 @@
   --color-on-accent: #ffffff;
   --color-focus-ring: rgba(10, 132, 255, 0.7);
   --color-destructive: #ff453a;
+  --color-success: #30d158;
 
   --color-stickman: #f2f2f7;
   --color-canvas: #1c1c1e;

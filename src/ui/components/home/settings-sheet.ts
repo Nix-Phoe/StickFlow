@@ -9,11 +9,18 @@ import { h } from '../../dom';
 import { formatBytes } from '../../format';
 import { icon } from '../../icons';
 import { strings } from '../../strings';
+import { chooseFile, PROJECT_FILE_ACCEPT } from '../../transfer';
 import type { HomeContext } from './context';
 
 const t = strings.home.settingsSheet;
 
-/** Réglages : thème, format et IPS par défaut des nouveaux projets, vidéos stockées. */
+/** Pages publiques (v2.2), servies à côté de l'app. */
+export const PUBLIC_PAGES = { privacy: '/confidentialite.html', about: '/a-propos.html' } as const;
+
+/**
+ * Réglages : thème, format et IPS par défaut des nouveaux projets, vidéos stockées ; protection du
+ * stockage, sauvegarde et restauration de tous les projets, pages publiques et version (v2.2).
+ */
 export function createSettingsSheet({ bus, store }: HomeContext): Component {
   const { preferences } = store.state;
   const theme = createSegmented<ThemePreference>({
@@ -44,6 +51,33 @@ export function createSettingsSheet({ bus, store }: HomeContext): Component {
     if (window.confirm(strings.home.videos.confirmClear)) bus.emit('videos:clear');
   });
 
+  // ---------- Mes projets : stockage protégé, sauvegarde, restauration (v2.2) ----------
+  const protectionIcon = h('span', { class: 'settings__status-icon' });
+  const protectionTitle = h('span', { class: 'settings__status-title' });
+  const protectionText = h('span', { class: 'settings__status-text' });
+  const protect = h('button', { type: 'button', class: 'button-secondary settings__action', 'data-action': 'storage:protect' }, [icon('protected'), t.protect]);
+  protect.addEventListener('click', () => bus.emit('storage:protect'));
+  const backup = h('button', { type: 'button', class: 'button-secondary settings__action', 'data-action': 'library:backup' }, [icon('backup'), t.backup]);
+  backup.addEventListener('click', () => bus.emit('library:backup'));
+  const restore = h('button', { type: 'button', class: 'button-secondary settings__action', 'data-action': 'library:import' }, [icon('restore'), t.restore]);
+  restore.addEventListener('click', () => {
+    void chooseFile(PROJECT_FILE_ACCEPT).then((file) => {
+      if (file) bus.emit('library:import', { file });
+    });
+  });
+  const dataSection = h('div', { class: 'sheet__field' }, [
+    h('span', { class: 'sheet__label' }, [t.data]),
+    h('p', { class: 'settings__status', role: 'status' }, [protectionIcon, h('span', { class: 'settings__status-body' }, [protectionTitle, protectionText])]),
+    protect,
+    h('div', { class: 'settings__actions' }, [backup, restore]),
+    h('p', { class: 'settings__hint' }, [t.backupHint]),
+  ]);
+
+  const links = h('nav', { class: 'settings__links', 'aria-label': t.links }, [
+    h('a', { href: PUBLIC_PAGES.privacy, class: 'settings__link' }, [icon('document'), t.privacy]),
+    h('a', { href: PUBLIC_PAGES.about, class: 'settings__link' }, [icon('info'), t.about]),
+  ]);
+
   const done = h('button', { type: 'button', class: 'button-primary', 'data-action': 'home:sheet' }, [t.close]);
   done.addEventListener('click', () => bus.emit('home:sheet', { sheet: null }));
 
@@ -56,6 +90,8 @@ export function createSettingsSheet({ bus, store }: HomeContext): Component {
       h('div', { class: 'sheet__field' }, [h('span', { class: 'sheet__label' }, [t.defaultFormat]), format.element]),
       h('div', { class: 'sheet__row' }, [h('label', { class: 'sheet__label', for: 'settings-fps' }, [t.defaultFps]), fps.element]),
       h('div', { class: 'sheet__field' }, [h('span', { class: 'sheet__label' }, [t.videos]), videosInfo, clearVideos]),
+      dataSection,
+      links,
       h('p', { class: 'settings__version' }, [t.version(__APP_VERSION__)]),
     ],
     actions: [done],
@@ -70,6 +106,27 @@ export function createSettingsSheet({ bus, store }: HomeContext): Component {
         theme.setValue(value.theme);
         format.setValue(value.defaultFormat);
         fps.setValue(value.defaultFps);
+      },
+    ),
+    store.watch(
+      (s) => s.storageProtected,
+      (state) => {
+        const [title, text, iconName] =
+          state === true ? [t.protected, t.protectedText, 'protected' as const] : state === false ? [t.unprotected, t.unprotectedText, 'unprotected' as const] : [t.unknown, t.unknownText, 'unprotected' as const];
+        protectionTitle.textContent = title;
+        protectionText.textContent = text;
+        protectionIcon.replaceChildren(icon(iconName));
+        protectionIcon.dataset.state = String(state);
+        protect.hidden = state !== false;
+      },
+    ),
+    store.watch(
+      (s) => s.transfer,
+      (transfer) => {
+        backup.disabled = transfer !== null;
+        restore.disabled = transfer !== null;
+        backup.setAttribute('aria-busy', String(transfer === 'backup'));
+        restore.setAttribute('aria-busy', String(transfer === 'import'));
       },
     ),
     store.watch(

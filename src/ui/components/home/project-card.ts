@@ -70,6 +70,12 @@ export function createProjectCard(context: HomeContext, summary: ProjectSummary)
         onSelect: () => bus.emit('home:sheet', { sheet: { kind: 'export', projectId: id } }),
       },
       {
+        label: t.exportFile,
+        icon: 'exportFile',
+        action: 'library:export-file',
+        onSelect: () => bus.emit('library:export-file', { projectId: id }),
+      },
+      {
         label: t.delete,
         icon: 'trash',
         action: 'library:delete',

@@ -19,6 +19,8 @@ export class StockError extends Error {
 export interface StockClient {
   /** Un proxy est configuré (sinon l'onglet Internet l'explique). */
   readonly configured: boolean;
+  /** La recherche de photos est proposée ; l'import par adresse, lui, ne demande pas de clé. */
+  readonly searchEnabled: boolean;
   search(query: string, page: number): Promise<{ photos: StockPhoto[]; hasMore: boolean }>;
   /** Image d'une adresse http(s), par le proxy. */
   download(url: string): Promise<Blob>;
@@ -27,12 +29,14 @@ export interface StockClient {
 export interface StockClientOptions {
   /** Adresse du proxy ; `null` ou vide : pas configuré. */
   baseUrl: string | null;
+  /** Propose la recherche de photos (par défaut). Coupée, seule reste l'adresse d'une image. */
+  searchEnabled?: boolean;
   fetch?: typeof globalThis.fetch;
   /** L'appareil est en ligne (`navigator.onLine`). */
   online?: () => boolean;
 }
 
-export function createStockClient({ baseUrl, fetch = globalThis.fetch.bind(globalThis), online = () => navigator.onLine }: StockClientOptions): StockClient {
+export function createStockClient({ baseUrl, searchEnabled = true, fetch = globalThis.fetch.bind(globalThis), online = () => navigator.onLine }: StockClientOptions): StockClient {
   const base = baseUrl ? baseUrl.replace(/\/+$/, '') : '';
 
   async function request(path: string): Promise<Response> {
@@ -52,7 +56,9 @@ export function createStockClient({ baseUrl, fetch = globalThis.fetch.bind(globa
 
   return {
     configured: base !== '',
+    searchEnabled,
     async search(query, page) {
+      if (!searchEnabled) throw new StockError('unconfigured');
       const params = new URLSearchParams({ query, page: String(page), per_page: String(STOCK_PAGE_SIZE) });
       const body: unknown = await (await request(`/search?${params.toString()}`)).json();
       const record = isRecord(body) ? body : {};

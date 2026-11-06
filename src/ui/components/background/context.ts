@@ -15,6 +15,8 @@ export interface BackgroundContext extends ComponentContext {
   preview: BackgroundPreviewSource;
   /** Le proxy d'images a une adresse (onglet Internet). */
   stockConfigured: boolean;
+  /** La recherche de photos est proposée ; sinon l'onglet Internet ne garde que l'adresse d'une image. */
+  stockSearch: boolean;
 }
 
 /**

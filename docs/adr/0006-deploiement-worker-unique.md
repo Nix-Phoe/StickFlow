@@ -31,11 +31,12 @@ La phase 7A met StickFlow en ligne. Il faut :
 
 ## Conséquences
 
-- Un seul déploiement (`npm run deploy`, ou Workers Builds depuis `main`), un seul domaine, un seul secret (`PEXELS_API_KEY`). `npm run preview:worker` reproduit la production en local.
+- Un seul déploiement (`npm run deploy`, ou Workers Builds depuis `main`), un seul domaine, aucun secret obligatoire. `npm run preview:worker` reproduit la production en local.
 - Un retour en arrière (`wrangler rollback`) ramène le site et le proxy ensemble.
 - Les utilisateurs gardent l'ancienne version tant qu'ils n'ont pas choisi « Mettre à jour ». La nouvelle s'applique d'elle-même quand tous les onglets de l'app sont fermés.
 - Les adresses `.html` sont redirigées (307) par Cloudflare : les liens de l'app pointent vers les adresses sans extension.
 - En phase 7B, l'app Android chargera ses fichiers localement. Elle appellera le proxy par son adresse absolue, avec `https://localhost` dans `ALLOWED_ORIGINS`, sans service worker.
+- La recherche Pexels est coupée à la mise en ligne, car Pexels n'émet plus de clés d'API pour l'instant. `VITE_STOCK_SEARCH=on` et le secret `PEXELS_API_KEY` la réactivent sans changer le code ; `/api/image` n'en dépend pas.
 - **Écarts assumés avec le prompt de la phase 7A :**
   - `worker-src 'self'` sans `blob:` : gif.js n'est pas utilisé.
   - Lint avec Biome, et non ESLint : typescript-eslint ne prend pas en charge TypeScript 7.

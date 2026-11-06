@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   /** Adresse du proxy d'images ; par défaut `/api`, servi par le même Worker que l'app (v2.2). */
   readonly VITE_IMAGE_PROXY_URL?: string;
+  /** « on » : propose la recherche de photos (il faut alors le secret PEXELS_API_KEY du Worker). */
+  readonly VITE_STOCK_SEARCH?: string;
 }
 
 /** Version de l'app, lue dans package.json au build (vite.config.ts). */

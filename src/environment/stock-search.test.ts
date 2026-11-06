@@ -34,6 +34,7 @@ function setup(client: Partial<StockClient> = {}) {
     store,
     client: {
       configured: true,
+      searchEnabled: true,
       search: async (query, page) => ({ photos: [photo(`${query}-${page}`)], hasMore: page < 2 }),
       download: async () => new Blob(['img'], { type: 'image/jpeg' }),
       ...client,

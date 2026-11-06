@@ -20,6 +20,7 @@ type Style = 'outline' | 'filled';
 export interface EnvironmentTabOptions {
   preview: BackgroundPreviewSource;
   stockConfigured: boolean;
+  stockSearch: boolean;
 }
 
 /**

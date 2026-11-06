@@ -7,7 +7,7 @@ StickFlow est publié comme une **Progressive Web App** sur **Cloudflare Workers
 ```
 Navigateur ──► Worker « stickflow » (Cloudflare)
                 ├─ /api/*  ──► code du Worker (server/worker.ts → server/image-proxy.ts)
-                │               ├─ /api/search ──► API Pexels (clé secrète PEXELS_API_KEY), cache 5 min
+                │               ├─ /api/search ──► API Pexels (clé secrète, recherche coupée pour l'instant)
                 │               └─ /api/image  ──► image publique (PNG, JPEG, WebP, GIF ≤ 20 Mo)
                 └─ tout le reste ──► fichiers de dist/ (static assets)
                                      ├─ en-têtes : public/_headers (CSP, cache…)
@@ -18,7 +18,8 @@ Navigateur ──► Worker « stickflow » (Cloudflare)
 - **Pages.** Cloudflare sert les pages sans `.html` : `/confidentialite`, `/a-propos`. Une adresse en `.html` est redirigée vers la version sans extension.
 - **Hors ligne.** Le service worker (Workbox, `vite-plugin-pwa`) met toute l'app en cache, pages publiques comprises. `/api/*` passe toujours par le réseau. Les vignettes Pexels sont gardées une semaine, 150 au plus.
 - **Mises à jour.** Une nouvelle version attend l'accord de l'utilisateur. Une bannière « Nouvelle version disponible » enregistre le projet ouvert, puis recharge l'app.
-- **Origine.** Le proxy ne répond qu'aux pages du site, ou aux origines listées dans `ALLOWED_ORIGINS`. Sans clé Pexels, il répond 503 et l'onglet Internet affiche « recherche non configurée ».
+- **Origine.** Le proxy ne répond qu'aux pages du site, ou aux origines listées dans `ALLOWED_ORIGINS`.
+- **Recherche de photos.** Coupée pour l'instant (voir la section 10) : l'onglet Internet ne propose que l'import par adresse, qui ne demande aucune clé.
 
 **Fichiers :**
 
@@ -51,10 +52,11 @@ Navigateur ──► Worker « stickflow » (Cloudflare)
 
 | Nom | Type | Où le définir |
 |---|---|---|
-| `PEXELS_API_KEY` | Secret du Worker | `npx wrangler secret put PEXELS_API_KEY` (la valeur est demandée au clavier, jamais en argument) ; en local : `.dev.vars` |
+| `PEXELS_API_KEY` | Secret du Worker (**facultatif**, recherche seulement) | `npx wrangler secret put PEXELS_API_KEY` (la valeur est demandée au clavier, jamais en argument) ; en local : `.dev.vars` |
 | `ALLOWED_ORIGINS` | Variable du Worker | `wrangler.jsonc` (vide en production : le site lui-même est toujours autorisé) ; en local : `.dev.vars` (`http://localhost:5173`) |
 | `SITE_URL` | Variable de **build** | Adresse publique du site, sans « / » final. Sert aux balises de partage, à `sitemap.xml` et à `robots.txt`. Workers Builds : *Settings › Build › Variables and secrets* ; en local : `.env.local` |
 | `VITE_IMAGE_PROXY_URL` | Variable de build (facultative) | Vide par défaut : `/api` sur le même domaine |
+| `VITE_STOCK_SEARCH` | Variable de build (facultative) | `on` propose la recherche de photos ; vide par défaut (section 10) |
 
 `.dev.vars`, `.env`, `.env.local` et `.wrangler/` sont ignorés par git.
 
@@ -63,23 +65,17 @@ Changer un secret avec `wrangler secret put` crée et déploie une nouvelle vers
 ## 4. Premier déploiement (manuel)
 
 1. **Compte Cloudflare** (gratuit) : https://dash.cloudflare.com/sign-up.
-2. **Clé Pexels** (gratuite) : https://www.pexels.com/api/, puis « Your API Key ».
-3. Dans le dossier du projet :
+2. Dans le dossier du projet :
    ```bash
    npx wrangler login
    ```
    Le navigateur s'ouvre : autorisez Wrangler.
-4. Enregistrez la clé en secret. Wrangler la demande ; collez-la dans le terminal, **pas** dans une conversation :
-   ```bash
-   npx wrangler secret put PEXELS_API_KEY
-   ```
-   Au tout premier passage, Wrangler peut proposer de créer le Worker `stickflow` : acceptez.
-5. Déployez :
+3. Déployez :
    ```bash
    npm run deploy
    ```
    Wrangler affiche l'adresse, par exemple `https://stickflow.<votre-sous-domaine>.workers.dev`.
-6. Mettez cette adresse dans `SITE_URL` (`.env.local`), puis lancez `npm run deploy` à nouveau. Les balises de partage et `sitemap.xml` utilisent alors des adresses absolues.
+4. Mettez cette adresse dans `SITE_URL` (`.env.local`), puis lancez `npm run deploy` à nouveau. Les balises de partage et `sitemap.xml` utilisent alors des adresses absolues.
 
 ## 5. Déploiement automatique (Workers Builds)
 
@@ -98,7 +94,7 @@ Une fois le dépôt sur GitHub :
 
 **Attention aux prévisualisations :**
 - Leurs adresses sont **publiques**, sauf si vous les protégez avec Cloudflare Access (*Settings › Domains & Routes*).
-- Elles utilisent le même secret Pexels, donc le même quota de 200 requêtes par heure.
+- Si la recherche est réactivée, elles utilisent le même secret Pexels, donc le même quota de 200 requêtes par heure.
 
 Node 22 est fixé par `.node-version`.
 
@@ -129,7 +125,7 @@ Navigateurs : **Chrome**, **Firefox** et **Safari** sur ordinateur ; **Chrome An
 
 - [ ] L'accueil s'affiche ; un projet se crée depuis un raccourci de format et depuis un modèle.
 - [ ] L'éditeur : poser un personnage, ajouter des images, lire, annuler / rétablir.
-- [ ] Arrière-plan : couleur, intégré, image de l'appareil, recherche Internet (photo appliquée avec son crédit).
+- [ ] Arrière-plan : couleur, intégré, image de l'appareil, image par son adresse (onglet Internet).
 - [ ] Export GIF, PNG (ZIP) et vidéo (MP4, ou WebM sur Firefox).
 - [ ] **Installation** : Chrome (ordinateur, Android) via « Installer l'app » dans les Réglages ou l'invitation de l'accueil ; iOS via Partager › Sur l'écran d'accueil. L'app s'ouvre dans sa propre fenêtre.
 - [ ] **Mode avion**, app installée et déjà ouverte une fois : créer, éditer, enregistrer, exporter. L'onglet Internet affiche son message hors ligne.
@@ -168,3 +164,11 @@ Navigateurs : **Chrome**, **Firefox** et **Safari** sur ordinateur ; **Chrome An
   - le fichier `.stickflow` sert aussi à passer ses projets du web à Android ;
   - `navigator.storage.persist()` reste utile dans la WebView.
 - **À ne pas reprendre** : le service worker et la bannière de mise à jour. Dans Capacitor, les mises à jour passent par le Play Store. Il faudra désactiver l'enregistrement du service worker dans ce build.
+
+## 10. Réactiver la recherche de photos (Pexels)
+
+Pexels n'émet plus de clés d'API pour l'instant : la recherche est coupée, mais tout son code est conservé. Quand vous aurez une clé :
+
+1. Enregistrez le secret : `npx wrangler secret put PEXELS_API_KEY`.
+2. Ajoutez la variable de build `VITE_STOCK_SEARCH=on` (`.env.local` et Workers Builds), puis redéployez.
+3. Remettez dans la politique de confidentialité la description de ce qui est transmis à Pexels (mots recherchés, vignettes chargées depuis `images.pexels.com`), et le crédit Pexels dans la page À propos.

@@ -48,6 +48,16 @@ describe('createStockClient', () => {
     expect(createStockClient({ baseUrl: '', fetch, online: () => true }).configured).toBe(false);
   });
 
+  it('offers the photo search only when it is switched on, and always the import by address', async () => {
+    const { fetch, urls } = fakeFetch(() => new Response(new Blob(['img'], { type: 'image/png' })));
+    const client = createStockClient({ baseUrl: BASE, searchEnabled: false, fetch, online: () => true });
+    expect(client.searchEnabled).toBe(false);
+    await expect(client.search('mer', 1)).rejects.toMatchObject({ code: 'unconfigured' });
+    expect(urls).toEqual([]);
+    expect((await client.download('https://example.com/a.png')).type).toBe('image/png');
+    expect(createStockClient({ baseUrl: BASE, fetch, online: () => true }).searchEnabled).toBe(true);
+  });
+
   it('turns network and server failures into clear errors', async () => {
     const failing = (status: number) => createStockClient({ baseUrl: BASE, fetch: fakeFetch(() => json({}, status)).fetch, online: () => true });
     await expect(failing(429).search('a', 1)).rejects.toMatchObject({ code: 'rate-limited' });

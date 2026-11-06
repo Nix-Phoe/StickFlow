@@ -10,7 +10,7 @@
     <link rel="icon" href="/app-icon.svg" sizes="any" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
     <title>Politique de confidentialité · StickFlow</title>
-    <meta name="description" content="Comment StickFlow traite vos données : projets gardés sur votre appareil, aucun compte, aucun suivi publicitaire, recherche d’images via notre serveur et Pexels." />
+    <meta name="description" content="Comment StickFlow traite vos données : projets gardés sur votre appareil, aucun compte, aucun suivi publicitaire, import d’images par adresse via notre serveur." />
     <script type="module" src="/src/pages/page.ts"></script>
   </head>
   <body>
@@ -34,7 +34,7 @@
           <ul>
             <li>Vos projets, images et vidéos restent <strong>sur votre appareil</strong>. Nous ne les recevons jamais.</li>
             <li>Il n’y a <strong>aucun compte</strong> à créer, <strong>aucune publicité</strong>, aucun outil de mesure d’audience et aucun cookie de suivi.</li>
-            <li>Seule la <strong>recherche d’images en ligne</strong> passe par notre serveur, qui la transmet à la banque d’images Pexels.</li>
+            <li>Seul l’<strong>import d’une image depuis une adresse web</strong> passe par notre serveur.</li>
           </ul>
         </div>
 
@@ -50,7 +50,7 @@
           <li>vos projets d’animation, leurs vignettes et les images d’arrière-plan que vous importez ;</li>
           <li>les vidéos et GIF que vous exportez et choisissez de conserver dans l’application ;</li>
           <li>vos préférences (thème, tri, format et IPS par défaut, choix de ne plus voir l’invitation à installer l’app) ;</li>
-          <li>une copie de l’application elle-même, pour qu’elle fonctionne hors ligne, et les vignettes de recherche d’images déjà vues (au plus une semaine).</li>
+          <li>une copie de l’application elle-même, pour qu’elle fonctionne hors ligne.</li>
         </ul>
         <p>
           Ces données ne quittent pas votre appareil, sauf si vous les exportez vous-même (fichier <code>.stickflow</code>, vidéo, GIF ou images PNG).
@@ -58,28 +58,18 @@
           Attention : effacer les données du site supprime définitivement vos projets s’ils n’ont pas été sauvegardés.
         </p>
 
-        <h2>La recherche d’images en ligne (Pexels)</h2>
+        <h2>L’import d’une image depuis Internet</h2>
         <p>
-          L’onglet « Internet » de l’arrière-plan permet de chercher des photos libres dans la banque d’images <a href="https://www.pexels.com/" rel="noopener">Pexels</a>.
-          Quand vous l’utilisez :
-        </p>
-        <ul>
-          <li>vos <strong>mots de recherche</strong> et le numéro de la page de résultats sont envoyés à notre serveur, qui les transmet à Pexels avec notre clé d’accès. Pexels reçoit la demande de notre serveur, pas de votre appareil ;</li>
-          <li>les <strong>vignettes des résultats</strong> sont affichées directement depuis les serveurs de Pexels (<code>images.pexels.com</code>) : comme pour toute image d’un site web, Pexels reçoit alors votre adresse IP et les informations habituelles de votre navigateur ;</li>
-          <li>la photo que vous choisissez est téléchargée par notre serveur, puis enregistrée sur votre appareil avec le nom du photographe.</li>
-        </ul>
-        <p>
-          Si vous importez une image <strong>à partir d’une adresse web</strong>, cette adresse est envoyée à notre serveur, qui télécharge l’image et vous la renvoie. Le site qui héberge l’image voit notre serveur, pas votre appareil.
-        </p>
-        <p>
-          Pour en savoir plus sur Pexels : <a href="https://www.pexels.com/privacy-policy/" rel="noopener">politique de confidentialité de Pexels</a>.
+          L’onglet « Internet » de l’arrière-plan permet d’importer une image à partir de son adresse web.
+          Cette adresse est envoyée à notre serveur, qui télécharge l’image et vous la renvoie, puis l’image est enregistrée sur votre appareil.
+          Le site qui héberge l’image voit notre serveur, pas votre appareil.
         </p>
 
         <h2>Hébergement</h2>
         <p>
-          Le site et notre serveur de recherche d’images sont hébergés par <a href="https://www.cloudflare.com/" rel="noopener">Cloudflare</a>.
+          Le site et notre serveur d’import d’images sont hébergés par <a href="https://www.cloudflare.com/" rel="noopener">Cloudflare</a>.
           Pour livrer les pages et protéger le service contre les abus, Cloudflare traite des données techniques de connexion : adresse IP, type de navigateur, adresse demandée, date et heure.
-          Les journaux techniques de notre serveur de recherche (dont les mots recherchés) sont conservés quelques jours au plus, et servent uniquement à corriger les erreurs.
+          Les journaux techniques de notre serveur (dont les adresses des images importées) sont conservés quelques jours au plus, et servent uniquement à corriger les erreurs.
           Voir la <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">politique de confidentialité de Cloudflare</a>.
         </p>
 

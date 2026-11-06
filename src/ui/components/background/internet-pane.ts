@@ -12,10 +12,10 @@ const PEXELS_URL = 'https://www.pexels.com';
 
 /**
  * Onglet Internet : recherche de photos libres (Pexels, via le proxy) avec défilement infini et
- * crédit de chaque photo, puis import d'une image par son adresse. Sans proxy configuré, ou hors
- * ligne, un message l'explique au lieu des champs.
+ * crédit de chaque photo, si elle est activée (VITE_STOCK_SEARCH), puis import d'une image par son
+ * adresse. Sans proxy configuré, ou hors ligne, un message l'explique au lieu des champs.
  */
-export function createInternetPane({ bus, store, stockConfigured }: BackgroundContext): Component {
+export function createInternetPane({ bus, store, stockConfigured, stockSearch }: BackgroundContext): Component {
   const cleanups: Array<() => void> = [];
 
   const notice = h('p', { class: 'background-pane__notice', role: 'status' });
@@ -131,7 +131,7 @@ export function createInternetPane({ bus, store, stockConfigured }: BackgroundCo
     const message = !stockConfigured ? t.unconfigured : !navigator.onLine ? t.offline : '';
     notice.textContent = message;
     notice.hidden = message === '';
-    searchSection.hidden = message !== '';
+    searchSection.hidden = message !== '' || !stockSearch;
     urlSection.hidden = message !== '';
   }
   renderAvailability();

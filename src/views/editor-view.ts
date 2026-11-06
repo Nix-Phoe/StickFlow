@@ -87,7 +87,7 @@ export function createEditorView({ projectId, library, videos, assets, navigate 
     // La vignette de l'accueil est régénérée à chaque sauvegarde, à partir de la première frame.
     storage = connectProjectStorage({ bus, store: editorStore, library, thumbnail });
     // Recherche d'images : l'adresse du proxy vient de l'environnement de build (.env.local).
-    const stockClient = createStockClient({ baseUrl: import.meta.env.VITE_IMAGE_PROXY_URL || '/api' });
+    const stockClient = createStockClient({ baseUrl: import.meta.env.VITE_IMAGE_PROXY_URL || '/api', searchEnabled: import.meta.env.VITE_STOCK_SEARCH === 'on' });
     const importer = connectAssetImporter({ bus, store: editorStore, assets, process: processImageOffThread });
     const stockSearch = connectStockSearch({ bus, store: editorStore, client: stockClient });
     cleanups.push(
@@ -162,7 +162,7 @@ export function createEditorView({ projectId, library, videos, assets, navigate 
     // Les onglets du panneau flottant se montent dans les emplacements qu'il a créés.
     const tabs: Array<[Component, string]> = [
       [createCharactersTab(context), ids.charactersTab],
-      [createEnvironmentTab(context, { preview: background, stockConfigured: stockClient.configured }), ids.environmentTab],
+      [createEnvironmentTab(context, { preview: background, stockConfigured: stockClient.configured, stockSearch: stockClient.searchEnabled }), ids.environmentTab],
     ];
     for (const [component, slotId] of tabs) {
       const slot = root.querySelector<HTMLElement>(`#${slotId}`);

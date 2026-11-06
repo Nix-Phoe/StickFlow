@@ -11,6 +11,7 @@ Toutes les évolutions notables de StickFlow. Les numéros suivent le [versionna
   - export et import d’un projet (fichier `.stickflow`) ;
   - sauvegarde et restauration de tous les projets.
 - Hébergement sur Cloudflare Workers : le site et le proxy d’images (`/api/*`) dans un seul Worker. En-têtes de cache et de sécurité (CSP stricte).
+- Recherche de photos Pexels mise de côté (Pexels n’émet plus de clés pour l’instant) : l’onglet Internet garde l’import par adresse, et la recherche se réactive sans changer le code.
 - Pages publiques : Politique de confidentialité, À propos et crédits (licences des bibliothèques), page 404.
 - Démarrage plus rapide : l’éditeur et les encodeurs d’export sont chargés à la demande.
 - Page « Navigateur non compatible » quand WebGL 2 manque, page d’erreur qui propose de recharger sans perdre le travail enregistré.

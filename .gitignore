@@ -20,3 +20,10 @@ secrets.json
 *.pfx
 *.keystore
 *.jks
+
+# Fichiers de travail locaux (Claude Code, prompts, maquette et captures de référence)
+.claude/
+skills-lock.json
+PROMPT_*.md
+/Capture d’écran *.png
+/Média (*).jpg

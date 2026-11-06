@@ -15,6 +15,7 @@ export interface ApiEnv {
 
 /** Ce que le Worker fournit (injecté : les tests n'ont ni Cache API ni contexte d'exécution). */
 export interface ApiDependencies {
+  /** À appeler seul : le `fetch` des Workers refuse d'être appelé comme méthode (« Illegal invocation »). */
   fetch: typeof fetch;
   cache?: Pick<Cache, 'match' | 'put'>;
   /** Prolonge le Worker après la réponse (écriture du cache). */
@@ -35,6 +36,7 @@ const SAFE_HEADERS = { 'X-Content-Type-Options': 'nosniff', 'Content-Security-Po
 
 export async function handleApi(request: Request, env: ApiEnv, deps: ApiDependencies): Promise<Response> {
   const url = new URL(request.url);
+  const send = deps.fetch;
   const access = checkOrigin(request, url.origin, env.ALLOWED_ORIGINS ?? '');
   if (access === null) return text('Origine non autorisée', 403, {});
   const cors: Record<string, string> = access === 'same-origin' ? {} : { 'Access-Control-Allow-Origin': access, Vary: 'Origin' };
@@ -45,10 +47,11 @@ export async function handleApi(request: Request, env: ApiEnv, deps: ApiDependen
   if (request.method !== 'GET') return text('Méthode non autorisée', 405, cors);
 
   try {
-    if (url.pathname === '/api/search') return await search(url, env, deps, cors);
-    if (url.pathname === '/api/image') return await image(url, deps, cors);
+    if (url.pathname === '/api/search') return await search(url, env, deps, send, cors);
+    if (url.pathname === '/api/image') return await image(url, send, cors);
   } catch (error) {
     if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) return text('Délai dépassé', 504, cors);
+    console.error('[api]', url.pathname, error);
     return text('Service indisponible', 502, cors);
   }
   return text('Introuvable', 404, cors);
@@ -69,7 +72,7 @@ function checkOrigin(request: Request, siteOrigin: string, allowed: string): str
   return origins.includes(origin) ? origin : null;
 }
 
-async function search(url: URL, env: ApiEnv, deps: ApiDependencies, cors: Record<string, string>): Promise<Response> {
+async function search(url: URL, env: ApiEnv, deps: ApiDependencies, send: typeof fetch, cors: Record<string, string>): Promise<Response> {
   if (!env.PEXELS_API_KEY) return json({ error: 'unconfigured' }, 503, cors);
   const query = (url.searchParams.get('query') ?? '').trim().slice(0, 100);
   if (query === '') return json({ error: 'empty-query' }, 400, cors);
@@ -83,7 +86,7 @@ async function search(url: URL, env: ApiEnv, deps: ApiDependencies, cors: Record
   const cached = await deps.cache?.match(cacheKey);
   if (cached) return json(await cached.json(), 200, headers);
 
-  const upstream = await deps.fetch(`${PEXELS_SEARCH}?${params.toString()}`, {
+  const upstream = await send(`${PEXELS_SEARCH}?${params.toString()}`, {
     headers: { Authorization: env.PEXELS_API_KEY },
     signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
   });
@@ -116,10 +119,10 @@ async function search(url: URL, env: ApiEnv, deps: ApiDependencies, cors: Record
   return json(result, 200, headers);
 }
 
-async function image(url: URL, deps: ApiDependencies, cors: Record<string, string>): Promise<Response> {
+async function image(url: URL, send: typeof fetch, cors: Record<string, string>): Promise<Response> {
   const target = parseWebAddress(url.searchParams.get('url') ?? '');
   if (!target) return text('Adresse invalide', 400, cors);
-  const upstream = await deps.fetch(target.toString(), {
+  const upstream = await send(target.toString(), {
     redirect: 'follow',
     headers: { Accept: 'image/png,image/jpeg,image/webp,image/gif' },
     signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),

@@ -173,6 +173,23 @@ describe('/api/image', () => {
   });
 });
 
+describe('Workers runtime', () => {
+  /** Comme le `fetch` des Workers : « Illegal invocation » s'il est appelé comme méthode d'un objet. */
+  function strictFetch(respond: () => Response): typeof globalThis.fetch {
+    return function (this: unknown): Promise<Response> {
+      if (this !== undefined && this !== globalThis) throw new TypeError('Illegal invocation');
+      return Promise.resolve(respond());
+    } as typeof globalThis.fetch;
+  }
+
+  it('calls fetch on its own, for both the image and the search routes', async () => {
+    const image = strictFetch(() => new Response(new Uint8Array([1]), { headers: { 'Content-Type': 'image/png' } }));
+    expect((await handleApi(imageOf('https://example.com/a.png'), ENV, deps(image))).status).toBe(200);
+    const search = strictFetch(() => Response.json(PEXELS_PAGE));
+    expect((await handleApi(sameOrigin('/api/search?query=mer'), ENV, deps(search))).status).toBe(200);
+  });
+});
+
 describe('origin check', () => {
   it('serves the app itself (same origin) and the origins of ALLOWED_ORIGINS, with CORS for the latter', async () => {
     const { fetch } = upstream(() => Response.json(PEXELS_PAGE));

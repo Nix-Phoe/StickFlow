@@ -139,6 +139,12 @@ describe('/api/image', () => {
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(png);
   });
 
+  it('says who is asking: some sites refuse a request without a client name', async () => {
+    const { fetch, requests } = upstream(() => new Response(png, { headers: { 'Content-Type': 'image/png' } }));
+    await handleApi(imageOf('https://example.com/chat.png'), ENV, deps(fetch));
+    expect(requests[0]?.headers.get('User-Agent')).toBe('StickFlow-ImageProxy/1.0');
+  });
+
   it('refuses SVG and non-images', async () => {
     const svg = upstream(() => new Response('<svg/>', { headers: { 'Content-Type': 'image/svg+xml' } }));
     expect((await handleApi(imageOf('https://example.com/a.svg'), ENV, deps(svg.fetch))).status).toBe(415);

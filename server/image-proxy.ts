@@ -124,7 +124,7 @@ async function image(url: URL, send: typeof fetch, cors: Record<string, string>)
   if (!target) return text('Adresse invalide', 400, cors);
   const upstream = await send(target.toString(), {
     redirect: 'follow',
-    headers: { Accept: 'image/png,image/jpeg,image/webp,image/gif' },
+    headers: { Accept: 'image/png,image/jpeg,image/webp,image/gif', 'User-Agent': 'StickFlow-ImageProxy/1.0' },
     signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
   });
   if (!upstream.ok) return text('Image introuvable', 502, cors);

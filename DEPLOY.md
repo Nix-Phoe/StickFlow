@@ -77,6 +77,12 @@ Changer un secret avec `wrangler secret put` crée et déploie une nouvelle vers
    Wrangler affiche l'adresse, par exemple `https://stickflow.<votre-sous-domaine>.workers.dev`.
 4. Mettez cette adresse dans `SITE_URL` (`.env.local`), puis lancez `npm run deploy` à nouveau. Les balises de partage et `sitemap.xml` utilisent alors des adresses absolues.
 
+**Bon à savoir :**
+- Adresse de production : https://stickflow.stickflow.workers.dev.
+- Un sous-domaine `workers.dev` tout neuf peut refuser les connexions HTTPS pendant quelques minutes, le temps d'émettre son certificat.
+- Sous Windows, si PowerShell bloque `npx.ps1` (« l'exécution de scripts est désactivée »), utilisez `npx.cmd` et `npm.cmd` : inutile de changer la politique de sécurité.
+- Certains sites refusent les téléchargements venant d'un serveur (w3.org, par exemple). L'import par adresse échoue alors avec un message clair.
+
 ## 5. Déploiement automatique (Workers Builds)
 
 Une fois le dépôt sur GitHub :

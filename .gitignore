@@ -6,3 +6,17 @@ dist
 .dev.vars
 .wrangler
 server/worker-configuration.d.ts
+
+# Secrets : variantes d'environnement, clés et certificats (les modèles sans valeur restent suivis)
+.env.*
+!.env.example
+.dev.vars*
+!.dev.vars.example
+secrets.json
+*.secret
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks

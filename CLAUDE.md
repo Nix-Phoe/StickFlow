@@ -84,7 +84,7 @@ Règles communes aux fonctionnalités IA :
 - **Protection des projets** : stockage protégé (`navigator.storage.persist()` après la première sauvegarde, état dans les Réglages) ; **fichier `.stickflow`** (projet et ses images) : « Exporter le projet » dans le menu « ⋮ » d'une carte, « Importer un projet » dans « Mes projets » et l'état vide ; « Sauvegarder tous mes projets » et « Restaurer une sauvegarde » dans les Réglages.
 - **Démarrage** : l'éditeur et les encodeurs d'export sont chargés à la demande ; page « Navigateur non compatible » sans WebGL 2 ; page d'erreur globale qui propose de recharger (projet ouvert enregistré d'abord) ; version (`package.json`) dans les Réglages et le pied de page, `CHANGELOG.md`.
 - **Recherche de photos en pause** : Pexels n'émet plus de clés d'API pour l'instant ; l'onglet Internet ne propose que l'import par adresse. La recherche reste dans le code, coupée par `VITE_STOCK_SEARCH` (voir 5.2, « Proxy d'images »).
-- **Pages publiques** : Politique de confidentialité (`/confidentialite`, marqueurs `[À COMPLÉTER]`), À propos et crédits (`/a-propos`, licences générées au build), page 404 ; balises de partage, image 1200 × 630, `robots.txt`, `sitemap.xml`.
+- **Pages publiques** : Politique de confidentialité (`/confidentialite`), À propos et crédits (`/a-propos`, licences générées au build), page 404 ; balises de partage, image 1200 × 630, `robots.txt`, `sitemap.xml`.
 - **Qualité** : CI GitHub Actions (types, lint Biome, tests, build) ; Lighthouse en local : 100 / 100 / 100 / 100 (ordinateur), 93 / 100 / 100 / 100 (mobile).
 
 ---
